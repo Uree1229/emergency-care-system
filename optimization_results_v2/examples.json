@@ -1,0 +1,288 @@
+[
+  {
+    "case": "priority_tradeoff",
+    "plan": {
+      "H": null,
+      "L0": {
+        "h": 0,
+        "start": 2
+      },
+      "L1": {
+        "h": 0,
+        "start": 1
+      },
+      "L2": {
+        "h": 0,
+        "start": 0
+      }
+    },
+    "meta": {
+      "snapshot_version": 1,
+      "policy": "total_first",
+      "stages": [
+        {
+          "index": 0,
+          "status": "OPTIMAL",
+          "value": 1,
+          "bound": 1.0
+        },
+        {
+          "index": 1,
+          "status": "OPTIMAL",
+          "value": 1,
+          "bound": 1.0
+        },
+        {
+          "index": 2,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 3,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0.0
+        },
+        {
+          "index": 4,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0.0
+        },
+        {
+          "index": 5,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 6,
+          "status": "OPTIMAL",
+          "value": 3,
+          "bound": 3.0
+        }
+      ],
+      "hint_rejected": false,
+      "fallback": false,
+      "budget_seconds": 3.0,
+      "lex_optimal": true,
+      "status": "OPTIMAL",
+      "objective": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      "elapsed_seconds": 0.008627999981399626
+    },
+    "metrics": {
+      "4": {
+        "total": 1,
+        "unassigned": 1,
+        "max_delay": null,
+        "mean_delay": null,
+        "deadline_violations": 0
+      },
+      "2": {
+        "total": 0,
+        "unassigned": 0,
+        "max_delay": null,
+        "mean_delay": null,
+        "deadline_violations": 0
+      },
+      "1": {
+        "total": 3,
+        "unassigned": 0,
+        "max_delay": 2,
+        "mean_delay": 1.0,
+        "deadline_violations": 0
+      }
+    }
+  },
+  {
+    "case": "priority_tradeoff",
+    "plan": {
+      "H": {
+        "h": 0,
+        "start": 0
+      },
+      "L0": null,
+      "L1": null,
+      "L2": null
+    },
+    "meta": {
+      "snapshot_version": 1,
+      "policy": "severity_first",
+      "stages": [
+        {
+          "index": 0,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0.0
+        },
+        {
+          "index": 1,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 2,
+          "status": "OPTIMAL",
+          "value": 3,
+          "bound": 3.0
+        },
+        {
+          "index": 3,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0.0
+        },
+        {
+          "index": 4,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 5,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0.0
+        }
+      ],
+      "hint_rejected": false,
+      "fallback": false,
+      "budget_seconds": 3.0,
+      "lex_optimal": true,
+      "status": "OPTIMAL",
+      "objective": [
+        0,
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      "elapsed_seconds": 0.004505899996729568
+    },
+    "metrics": {
+      "4": {
+        "total": 1,
+        "unassigned": 0,
+        "max_delay": 0,
+        "mean_delay": 0.0,
+        "deadline_violations": 0
+      },
+      "2": {
+        "total": 0,
+        "unassigned": 0,
+        "max_delay": null,
+        "mean_delay": null,
+        "deadline_violations": 0
+      },
+      "1": {
+        "total": 3,
+        "unassigned": 3,
+        "max_delay": null,
+        "mean_delay": null,
+        "deadline_violations": 0
+      }
+    }
+  },
+  {
+    "case": "fixed_in_transit",
+    "plan": {
+      "H": {
+        "h": 0,
+        "start": 0
+      },
+      "L0": null,
+      "L1": null,
+      "L2": null
+    },
+    "meta": {
+      "snapshot_version": 1,
+      "policy": "severity_first",
+      "stages": [
+        {
+          "index": 0,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 1,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 2,
+          "status": "OPTIMAL",
+          "value": 3,
+          "bound": 3.0
+        },
+        {
+          "index": 3,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 4,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0
+        },
+        {
+          "index": 5,
+          "status": "OPTIMAL",
+          "value": 0,
+          "bound": 0.0
+        }
+      ],
+      "hint_rejected": false,
+      "fallback": false,
+      "budget_seconds": 3.0,
+      "lex_optimal": true,
+      "status": "OPTIMAL",
+      "objective": [
+        0,
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      "elapsed_seconds": 0.0018320000090170652
+    },
+    "metrics": {
+      "4": {
+        "total": 1,
+        "unassigned": 0,
+        "max_delay": 0,
+        "mean_delay": 0.0,
+        "deadline_violations": 0
+      },
+      "2": {
+        "total": 0,
+        "unassigned": 0,
+        "max_delay": null,
+        "mean_delay": null,
+        "deadline_violations": 0
+      },
+      "1": {
+        "total": 3,
+        "unassigned": 3,
+        "max_delay": null,
+        "mean_delay": null,
+        "deadline_violations": 0
+      }
+    }
+  }
+]

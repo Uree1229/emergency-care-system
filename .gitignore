@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 벤더링된 솔버 라이브러리 (requirements-portable.txt로 설치)
+.solver_deps/
+
+# 문서 렌더링 점검용 이미지·PDF
+.docx_qa*/
+
+# USB 이동·백업 산출물
+.usb_export/
+usb_import_backups/
+*.zip
+
+# Word 임시 파일
+~$*
+
+# 비밀값
+.env
+.env.*

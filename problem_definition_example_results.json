@@ -1,0 +1,168 @@
+{
+  "synthetic_only": true,
+  "patients": [
+    {
+      "id": "P1",
+      "priority": 0,
+      "weight": 4,
+      "travel": {
+        "A": 5,
+        "B": 15
+      }
+    },
+    {
+      "id": "P2",
+      "priority": 1,
+      "weight": 2,
+      "travel": {
+        "A": 5,
+        "B": 10
+      }
+    },
+    {
+      "id": "P3",
+      "priority": 2,
+      "weight": 1,
+      "travel": {
+        "A": 10
+      }
+    }
+  ],
+  "duration_minutes": 10,
+  "latest_planned_start_minutes": 60,
+  "actual_bookings": {
+    "A": [
+      [
+        10,
+        30
+      ]
+    ],
+    "B": []
+  },
+  "ignore_incoming": {
+    "objective": [
+      0,
+      0,
+      0,
+      55,
+      15
+    ],
+    "plans": [
+      [
+        [
+          "A",
+          5
+        ],
+        [
+          "B",
+          10
+        ],
+        [
+          "A",
+          15
+        ]
+      ]
+    ],
+    "candidates_checked": 6624
+  },
+  "include_incoming": {
+    "objective": [
+      0,
+      0,
+      0,
+      130,
+      30
+    ],
+    "plans": [
+      [
+        [
+          "B",
+          20
+        ],
+        [
+          "B",
+          10
+        ],
+        [
+          "A",
+          30
+        ]
+      ]
+    ],
+    "candidates_checked": 6624
+  },
+  "priority_first": {
+    "objective": [
+      0,
+      0,
+      0,
+      15,
+      25,
+      30,
+      30
+    ],
+    "plans": [
+      [
+        [
+          "B",
+          15
+        ],
+        [
+          "B",
+          25
+        ],
+        [
+          "A",
+          30
+        ]
+      ]
+    ],
+    "candidates_checked": 6624
+  },
+  "priority_first_metrics": {
+    "unassigned": 0,
+    "mean_start": 23.333333333333332,
+    "weighted_mean_start": 20.0,
+    "maximum_start": 30
+  },
+  "ignore_incoming_executed": [
+    [
+      "A",
+      30
+    ],
+    [
+      "B",
+      10
+    ],
+    [
+      "A",
+      40
+    ]
+  ],
+  "include_incoming_executed": [
+    [
+      "B",
+      20
+    ],
+    [
+      "B",
+      10
+    ],
+    [
+      "A",
+      30
+    ]
+  ],
+  "ignore_metrics": {
+    "unassigned": 0,
+    "mean_start": 26.666666666666668,
+    "weighted_mean_start": 25.714285714285715,
+    "maximum_start": 40
+  },
+  "include_metrics": {
+    "unassigned": 0,
+    "mean_start": 20.0,
+    "weighted_mean_start": 18.571428571428573,
+    "maximum_start": 30
+  }
+}

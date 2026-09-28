@@ -1,0 +1,302 @@
+[
+  {
+    "path": "assets/응급환자_병원수용_응답병목_개선프로세스.png",
+    "bytes": 1325877,
+    "sha256": "e42c2576b78b617cffcbdc49c49d420a8185b038add4e037d4b6b1a8b40b978e"
+  },
+  {
+    "path": "assets/응급환자_병원연결_프로세스.png",
+    "bytes": 1054938,
+    "sha256": "c00d3f1027afcabeaaa6fa61ff285b6a79698b60a9ace30bc22d1c171bb29395"
+  },
+  {
+    "path": "assets/응급환자_병원연결_프로세스_병목포함.png",
+    "bytes": 1162969,
+    "sha256": "97883d8294a8a0b982dca1bc6340f22b33ccafdd6877beb8e1f24a8fa9afe00c"
+  },
+  {
+    "path": "build_analysis.py",
+    "bytes": 13299,
+    "sha256": "aa4b3ac5885283ba1cf680faa5a4433335ae1bc0eef5631874f09480ad2fa82f"
+  },
+  {
+    "path": "build_current_issues.py",
+    "bytes": 14575,
+    "sha256": "b12dc66e66016ccaf538f95c7c36b6df8d9ed3748aa4fe7a76af953cda670a59"
+  },
+  {
+    "path": "build_expanded.py",
+    "bytes": 1654,
+    "sha256": "799b8bc2058b5c6e77b0f78c7efe09f079880161161885338bb89f2675ba661a"
+  },
+  {
+    "path": "build_improvements.py",
+    "bytes": 11046,
+    "sha256": "f91f6eefbd71be2cc0f8dcdf80617409159edf0b041780a3b8f9f4645b00407f"
+  },
+  {
+    "path": "build_light.py",
+    "bytes": 5483,
+    "sha256": "82100c925efe931ed2e69b6cb396543ff46d58a05947f636b3447708773a50f6"
+  },
+  {
+    "path": "build_mentor_proposal.py",
+    "bytes": 8257,
+    "sha256": "47e7ecfbb424e059b2ac8c440ec8cff0badd05f8d4e6a0671df44be22ed24739"
+  },
+  {
+    "path": "build_proposal.py",
+    "bytes": 16284,
+    "sha256": "b9bf63aea0edb161c447f23d99a67437401c8e891ea3147034b1ae72ca5c5ba4"
+  },
+  {
+    "path": "build_revised_proposal.py",
+    "bytes": 14502,
+    "sha256": "090eebbb77bacc837613f468bac6f80cd1ce306e8f803bed0580e22fa369ff80"
+  },
+  {
+    "path": "experiment_improved.py",
+    "bytes": 2431,
+    "sha256": "3de71d4dd68e9a21f9d140f9c1d18b56018941f3ede3a19dbd10554d45b5f21b"
+  },
+  {
+    "path": "HANDOFF.md",
+    "bytes": 6816,
+    "sha256": "8f75bdf329ef6092d12cd594d0c77d928366c03ee034e1c686e2345162532492"
+  },
+  {
+    "path": "implementation_sections.py",
+    "bytes": 13547,
+    "sha256": "fec22e4a3937ea5fe352082ac50ce364d735d5f86396155dd71224fe2f17a6af"
+  },
+  {
+    "path": "LOCAL_SETUP.md",
+    "bytes": 694,
+    "sha256": "f9a98313880a3480221e696abbeaeec0b074b613d7d4234dc6a093c42fb93b52"
+  },
+  {
+    "path": "optimization_results/inputs.json",
+    "bytes": 1039774,
+    "sha256": "131d75a036b334b0329387f9469ae8bfc2390b2a898789b62c59ff8fe304d7a9"
+  },
+  {
+    "path": "optimization_results/metadata.json",
+    "bytes": 806,
+    "sha256": "da5d30a659f2c8d8b1ea8e31fd1176c21d59d32c7135ee565c872586a394caa7"
+  },
+  {
+    "path": "optimization_results/README.md",
+    "bytes": 6942,
+    "sha256": "456dfb0db170f1dc3b3b8f48e04cb084d03fc2f6d5a6213c33a0dc743dfc9828"
+  },
+  {
+    "path": "optimization_results/sensitivity.json",
+    "bytes": 8006,
+    "sha256": "9598b7c6b7368896665611a66a1752e155647ed14720daa1c65354ef606b2d1d"
+  },
+  {
+    "path": "optimization_results/summary.json",
+    "bytes": 10451,
+    "sha256": "f20de431e4781bd57b5ca9afde433465650d09e3e7fef905d69aee528b629f7e"
+  },
+  {
+    "path": "optimization_results/trials.json",
+    "bytes": 1521051,
+    "sha256": "a23cf30aa9afa8f5ecd9f789d04d649d76eea3d82adacd19da47aaced0c54123"
+  },
+  {
+    "path": "optimization_results_v2/examples.json",
+    "bytes": 5757,
+    "sha256": "27f2c879ddb0b672e7daf4155834261021bbe5b4fc98f8b7cd12026cd1a24163"
+  },
+  {
+    "path": "optimization_results_v2/sensitivity.json",
+    "bytes": 85789,
+    "sha256": "3f030933af18fda48def9794b2d9b1ebc296f30b5a47499013ac69ab84b06ed9"
+  },
+  {
+    "path": "portable-runtime.zip",
+    "bytes": 233838023,
+    "sha256": "1dc42c6ec5ea52386241a823218ec63be3bce067744532c37e473b0adfb7ddb4"
+  },
+  {
+    "path": "prepare_usb_transfer.py",
+    "bytes": 8976,
+    "sha256": "0729d305a5670b892fa221a27edcda0b59efc0b7f99539bc6acbdf01d9e8ccde"
+  },
+  {
+    "path": "problem_definition_example.py",
+    "bytes": 5346,
+    "sha256": "66b4970819935f899bce2e55c001c0e45dfface3a68d76b57021fbfe44d07911"
+  },
+  {
+    "path": "problem_definition_example_results.json",
+    "bytes": 2435,
+    "sha256": "32cc11691e563e1a2f53ada7b7e80e9f9e0471ffc3a920ef8579e9a66a324a32"
+  },
+  {
+    "path": "prototype/check_browser.cjs",
+    "bytes": 1902,
+    "sha256": "887760fd3df9a6c7defd0a087408981c865568e868c77339b72626dd94efd97e"
+  },
+  {
+    "path": "prototype/index.html",
+    "bytes": 9713,
+    "sha256": "ac8cf250221791eab6ea07c50d1faa33437eb06620f5a0267ef70f76279823c6"
+  },
+  {
+    "path": "prototype/preview-mobile.png",
+    "bytes": 75619,
+    "sha256": "1827dc044c9f9cafb663d667bf158a27d6add6608b3775812ccada32ee20f6a4"
+  },
+  {
+    "path": "prototype/preview.png",
+    "bytes": 81180,
+    "sha256": "4d0ca912e5c87350ba84f820f8877bc7fbccc7c373613710e293eb3de4cf8d41"
+  },
+  {
+    "path": "prototype/test_workflow.cjs",
+    "bytes": 1202,
+    "sha256": "ce700004a03c3d73ee8915d079da5d3b672d4d64df6e2b2cf7e2175167337dd7"
+  },
+  {
+    "path": "prototype/workflow.js",
+    "bytes": 3274,
+    "sha256": "4784d36e858cf473b62e98f1ef6b4e3402ae2e0dc8e439133f83425c7df298bd"
+  },
+  {
+    "path": "requirements-portable.txt",
+    "bytes": 33,
+    "sha256": "bff2f14dcc0912b5f369618f75affb4de0e57ed92f5dab0333b58cd147deb0af"
+  },
+  {
+    "path": "RUN_EXPERIMENTS_WINDOWS.cmd",
+    "bytes": 320,
+    "sha256": "4e10e51b08502a1596d65f7a90f320e45f1cde66c5e8a5e8f10b19da22c157b5"
+  },
+  {
+    "path": "SETUP_WINDOWS.cmd",
+    "bytes": 502,
+    "sha256": "6ce6e9eee84ee46fb62b7649686cbfd3191e196a893a07d01c027fdadeb236f4"
+  },
+  {
+    "path": "solver_experiment.py",
+    "bytes": 13659,
+    "sha256": "633a0e906b5327c51efc3a4e8cf25008ce82b7a4ed0007c69b9daf2cffc7efdc"
+  },
+  {
+    "path": "solver_improved.py",
+    "bytes": 14368,
+    "sha256": "843dc9ff137f0a387490609218d4a5f8db120fb2950b7450315f424ec87b1285"
+  },
+  {
+    "path": "solver_sensitivity.py",
+    "bytes": 792,
+    "sha256": "1bf78c07513da8e50c98e9bd60a143957e02011c57d336970199d091e96bdbd1"
+  },
+  {
+    "path": "sync_usb_current.py",
+    "bytes": 3403,
+    "sha256": "cd24b03012a120e8f61fd3c3bbf1b1b3db037b6811ea0c4013e4d6387e5049b8"
+  },
+  {
+    "path": "test_solver_improved.py",
+    "bytes": 3391,
+    "sha256": "bbc1bb2a2b13f3dc5dda4ca12d54c94870f14c431316ef33ce0e053e8313cb95"
+  },
+  {
+    "path": "TEST_WINDOWS.cmd",
+    "bytes": 330,
+    "sha256": "5efb036b51498952764b568a79e6ef1460313c3ac898b23451ae4e7035622097"
+  },
+  {
+    "path": "USB_시작안내.md",
+    "bytes": 2810,
+    "sha256": "d75e79af1ac539725f865d5c62205d9f93f2dc463e625ba99a2546c5a062c1dc"
+  },
+  {
+    "path": "개선판_README.md",
+    "bytes": 5073,
+    "sha256": "e162096ffddc1b7c7532d2e98a2c512aefbe1a2dc4fb72461d7ad0b65c433c56"
+  },
+  {
+    "path": "응급의료_개선판_코드와실험결과.zip",
+    "bytes": 24556,
+    "sha256": "f06640ab517dbcb8a4e8c1abc3501296161e051b5904e088aa08a27e3aa81c45"
+  },
+  {
+    "path": "응급의료_솔버실험_코드와결과.zip",
+    "bytes": 144780,
+    "sha256": "1c0fa1fc517bf9d3dae7b4a23e790fcbdc078b12348abf8c84605d4eb53c2baf"
+  },
+  {
+    "path": "응급의료_시범사업_문제점과_솔버실험.docx",
+    "bytes": 43423,
+    "sha256": "e4147cbd0337ae2e8bc4a43691f43fae19acc6d433ff25e717b01f6e72098636"
+  },
+  {
+    "path": "응급의료_시범사업_문제점과_솔버실험.md",
+    "bytes": 10793,
+    "sha256": "64abf79cb3306e4e6ac1dfd6839aa33f7306b63e041488bc038e2f35fade8e94"
+  },
+  {
+    "path": "응급의료_연계_시스템_제안서.docx",
+    "bytes": 43588,
+    "sha256": "e9000c4084d53f8cf7296da52f31d81e3d4739edc695fe32452ca96c1ea42ef6"
+  },
+  {
+    "path": "응급의료_연계_시스템_제안서_구현방안포함.docx",
+    "bytes": 50334,
+    "sha256": "4ebb8a9757905027868e1b229c64ac6240e3f6d0d722ee8b222b75d1f59119f7"
+  },
+  {
+    "path": "응급의료_연계_시스템_제안서_제출용.docx",
+    "bytes": 39848,
+    "sha256": "30f0cd934459f052d8f37663716f870e32aed96fff612f95b2c2eb181ce80c5e"
+  },
+  {
+    "path": "응급환자_병원선정과_이송체계_문제점_조사.docx",
+    "bytes": 43644,
+    "sha256": "afffbcaf1529fa2bbe724abbe345c4e24a0b0c5538cd2759f9c795444456d718"
+  },
+  {
+    "path": "응급환자_이송체계_문제점과_개선방안_v2.docx",
+    "bytes": 47919,
+    "sha256": "367037552fc626d58f3e9a0502f64a17d47a76d4aa0a7b2390d0ef036c5faddc"
+  },
+  {
+    "path": "최적화_문제정의_v1.md",
+    "bytes": 8886,
+    "sha256": "73a40cba3619832d2d206c411eee55298c5077dacbb19f152b00d1979eb5efb9"
+  },
+  {
+    "path": "캡스톤_프로젝트_제안서.pdf",
+    "bytes": 440610,
+    "sha256": "5711f74911c92ba3d0ac35e20889485f58a1d920f3f270dc8231c6564ea32f44"
+  },
+  {
+    "path": "캡스톤_프로젝트_제안서_개정본_20260923.docx",
+    "bytes": 31014,
+    "sha256": "0d23c6214ab65b10ae2ed7c883ef132b25c4130f5dc7844d51d10dae68502949"
+  },
+  {
+    "path": "캡스톤_프로젝트_제안서_개정본_20260923.pdf",
+    "bytes": 216496,
+    "sha256": "6cbff0dd80f1c21cddedb542c6905372930c4705a44b7a5b6cc77e674e07aae7"
+  },
+  {
+    "path": "캡스톤_프로젝트_제안서_멘토사전공유.docx",
+    "bytes": 41278,
+    "sha256": "722dc8a23b2674ba785202ddd9f60ee02213b94cbf8190228ad4e512969c3074"
+  },
+  {
+    "path": "캡스톤_프로젝트_제안서_문제상황보강_20260923.docx",
+    "bytes": 40805,
+    "sha256": "53786d6801cbea7c3a0ef1c36eff8d265d466c06d7406e08905f8e01e68f12f5"
+  },
+  {
+    "path": "캡스톤_프로젝트_제안서_병원응답보강_20260923.docx",
+    "bytes": 41212,
+    "sha256": "5a3b3e140d80e8a30d7ea36c05bba922869d43634afcd61b596730f7e1226c80"
+  }
+]

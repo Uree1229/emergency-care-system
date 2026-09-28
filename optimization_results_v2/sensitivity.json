@@ -1,0 +1,3819 @@
+{
+  "summary": {
+    "runs": 40,
+    "all_observed_valid": true,
+    "all_not_worse_than_baseline": true,
+    "statuses": {
+      "FEASIBLE": 16,
+      "OPTIMAL": 24
+    },
+    "lex_optimal": 24,
+    "fallbacks": 0,
+    "max_elapsed_seconds": 0.25167769999825396,
+    "hidden_state_invalid_by_scenario": {
+      "normal": 0,
+      "surge": 0,
+      "stale_capacity": 8,
+      "unobserved_inflow": 8,
+      "time_error": 8
+    }
+  },
+  "runs": [
+    {
+      "scenario": "normal",
+      "seed": 0,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 6,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.2502532000071369
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 0,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.2505947000172455
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 1,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.07070609999937005
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 1,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.06700469998759218
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 2,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.06679330000770278
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 2,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.05863009998574853
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 3,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.06705849998979829
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 3,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.060241500003030524
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 0,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 3.888888888888889,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 11,
+          "unassigned": 0,
+          "max_delay": 18,
+          "mean_delay": 13.181818181818182,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 22,
+          "mean_delay": 18.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 35,
+            "bound": 35.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 145,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          35,
+          145,
+          72
+        ],
+        "elapsed_seconds": 0.25039420000393875
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        40,
+        142,
+        76
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 0,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 3.888888888888889,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 11,
+          "unassigned": 0,
+          "max_delay": 18,
+          "mean_delay": 13.181818181818182,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 22,
+          "mean_delay": 18.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 35,
+            "bound": 35.0
+          },
+          {
+            "index": 4,
+            "status": "FEASIBLE",
+            "value": 145,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          35,
+          145,
+          72
+        ],
+        "elapsed_seconds": 0.2504522999806795
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        40,
+        142,
+        76
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 1,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 5.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 21,
+          "mean_delay": 16.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 24,
+          "mean_delay": 19.5,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "FEASIBLE",
+            "value": 48,
+            "bound": 5.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          48,
+          112,
+          156
+        ],
+        "elapsed_seconds": 0.25048030001926236
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        1,
+        0,
+        0,
+        1,
+        54,
+        94,
+        140
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 1,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 5.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 21,
+          "mean_delay": 16.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 24,
+          "mean_delay": 19.5,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 48,
+            "bound": 5.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          48,
+          112,
+          156
+        ],
+        "elapsed_seconds": 0.25050999998347834
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        1,
+        54,
+        94,
+        140
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 2,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 11,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 5.636363636363637,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 24,
+          "mean_delay": 16.285714285714285,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 21,
+          "mean_delay": 18.166666666666668,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "FEASIBLE",
+            "value": 62,
+            "bound": 6.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          62,
+          114,
+          109
+        ],
+        "elapsed_seconds": 0.25045089999912307
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        1,
+        1,
+        0,
+        0,
+        56,
+        88,
+        116
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 2,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 11,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 5.636363636363637,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 24,
+          "mean_delay": 16.285714285714285,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 21,
+          "mean_delay": 18.166666666666668,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 62,
+            "bound": 6.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          62,
+          114,
+          109
+        ],
+        "elapsed_seconds": 0.25042060000123456
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        1,
+        0,
+        0,
+        56,
+        88,
+        116
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 3,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 12,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 5.833333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 17,
+          "mean_delay": 14.333333333333334,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 23,
+          "mean_delay": 18.444444444444443,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "FEASIBLE",
+            "value": 70,
+            "bound": 5.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          70,
+          43,
+          166
+        ],
+        "elapsed_seconds": 0.25167769999825396
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        72,
+        38,
+        165
+      ]
+    },
+    {
+      "scenario": "surge",
+      "seed": 3,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 12,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 5.833333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 17,
+          "mean_delay": 14.333333333333334,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 23,
+          "mean_delay": 18.444444444444443,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 70,
+            "bound": 5.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          70,
+          43,
+          166
+        ],
+        "elapsed_seconds": 0.25161859998479486
+      },
+      "still_valid_under_hidden_state": true,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        72,
+        38,
+        165
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 0,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 6,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.2502917000092566
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 0,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.25027099999715574
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 1,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.072745900019072
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 1,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.06655469999532215
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 2,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.06596469998476095
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 2,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.0622610000136774
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 3,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.06486379998386838
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    },
+    {
+      "scenario": "stale_capacity",
+      "seed": 3,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.059451600012835115
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 0,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 6,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.2503085999924224
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 0,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.2502905000001192
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 1,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.07197340001584962
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 1,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.06584080000175163
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 2,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.0642525999865029
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 2,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.05788509998819791
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 3,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.06583959999261424
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    },
+    {
+      "scenario": "unobserved_inflow",
+      "seed": 3,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.061136300006182864
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 0,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 6,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.2503193999873474
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 0,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 9,
+          "mean_delay": 5.375,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 8,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          9,
+          43,
+          8
+        ],
+        "elapsed_seconds": 0.25026380000053905
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        12,
+        48,
+        10
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 1,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.07261449997895397
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 1,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.333333333333333,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 8,
+          "mean_delay": 6.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 31,
+            "bound": 31.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 44,
+            "bound": 44.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          13,
+          31,
+          44
+        ],
+        "elapsed_seconds": 0.0652371000032872
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        13,
+        34,
+        47
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 2,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.06385999999474734
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 2,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 4.6,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 9.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 13,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 23,
+            "bound": 23.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 37,
+            "bound": 37.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 24,
+            "bound": 24.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          23,
+          37,
+          24
+        ],
+        "elapsed_seconds": 0.05786859997897409
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        24,
+        31,
+        30
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 3,
+      "policy": "total_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "total_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 6,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.06764850000035949
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    },
+    {
+      "scenario": "time_error",
+      "seed": 3,
+      "policy": "severity_first",
+      "metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 6,
+          "mean_delay": 3.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 7,
+          "mean_delay": 6.666666666666667,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 12,
+          "mean_delay": 10.75,
+          "deadline_violations": 0
+        }
+      },
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 16,
+            "bound": 16.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 20,
+            "bound": 20.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 43,
+            "bound": 43.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 0.25,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          16,
+          20,
+          43
+        ],
+        "elapsed_seconds": 0.059222000010777265
+      },
+      "still_valid_under_hidden_state": false,
+      "baseline_objective": [
+        0,
+        0,
+        0,
+        16,
+        20,
+        43
+      ]
+    }
+  ]
+}
