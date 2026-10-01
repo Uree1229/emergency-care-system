@@ -66,6 +66,14 @@
 - 이 PC의 Python 3.14에서는 .solver_deps의 numpy가 맞지 않아 test_solver_improved가 실패함.
   포터블 런타임(_runtime)으로 실행해야 함.
 
+- 2026-10-01 화면 개발자용 API 명세 docs/API.md, CORS 허용, 시연 시나리오
+  (python -m server.app --seed --scenario sudden). 화면(웹·앱)은 다른 팀원 담당.
+- simulation/: B0(순차 문의+최근접) vs B1(병렬 3곳+먼저 수용+변경 알림) 짝지은 비교 시뮬레이터.
+  python -m simulation.run --sensitivity → simulation_results/summary.md (30 seed).
+  기본 설정에서 B1은 확정까지 -4.2분, 대기 90백분위 -4.7분, 문의 건수는 약 2.2배.
+  미응답 10%에서는 B1 평균 대기가 +0.7분으로 오히려 나쁨(먼저 수용한 먼 병원을 고름).
+  B2(솔버)는 simulation/sim.py의 SolverPolicy.choose에 연결하면 됨. 모든 수치는 가정 기반.
+
 ## 아직 하지 않은 작업
 병원 웹·환자 웹 화면, 서버와 솔버 연결(A26 포함), 공공 API 실응답 검증, 실제 병원 통신, 도로망과 Dijkstra 연결, 원자적 확정 트랜잭션,
 백그라운드 알림, 네트워크 장애 처리, 의료진 사용성 검증, 공개 통계로 입력 보정,
