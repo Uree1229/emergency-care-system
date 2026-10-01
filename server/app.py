@@ -155,7 +155,8 @@ class Ctx:
         self.conn, self.now, self.body, self.query, self.estimator = conn, now, body, query, estimator
 
 
-def make_handler(db_path, estimator, clock=lambda: int(time.time())):
+def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin='*'):
+    """cors_origin: 화면을 다른 주소·포트에서 개발할 때 허용할 Origin. None이면 CORS 헤더를 보내지 않는다."""
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):   # 경로에 환자 ID가 있으므로 접근 로그를 남기지 않는다 (O04)
             pass
@@ -166,6 +167,7 @@ def make_handler(db_path, estimator, clock=lambda: int(time.time())):
             self.send_header('Content-Type', ctype)
             self.send_header('Content-Length', str(len(data)))
             self.send_header('Cache-Control', 'no-store')
+            self._cors()
             self.end_headers()
             self.wfile.write(data)
 
@@ -223,6 +225,19 @@ def make_handler(db_path, estimator, clock=lambda: int(time.time())):
         def do_DELETE(self):
             self._dispatch('DELETE')
 
+        def do_OPTIONS(self):   # 브라우저 사전 요청(preflight)
+            self.send_response(204)
+            self._cors()
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.send_header('Access-Control-Max-Age', '600')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
+
+        def _cors(self):
+            if cors_origin:
+                self.send_header('Access-Control-Allow-Origin', cors_origin)
+
     return Handler
 
 
@@ -232,7 +247,12 @@ def main():
     ap.add_argument('--port', type=int, default=8000)
     ap.add_argument('--host', default='127.0.0.1')
     ap.add_argument('--seed', action='store_true', help='가상 병원 10곳을 넣는다 (기존 DB 덮어씀)')
+    ap.add_argument('--scenario', choices=['inquiry', 'accepted', 'in_transit', 'sudden'],
+                    help='--seed 후 시연 시나리오를 이 단계까지 만든다 (server/scenario.py)')
+    ap.add_argument('--cors-origin', default='*', help="허용할 화면 Origin. 'none'이면 끔")
     args = ap.parse_args()
+    if args.scenario and not args.seed:
+        ap.error('--scenario는 --seed와 함께 쓰세요')
     Path(args.db).parent.mkdir(parents=True, exist_ok=True)
     if args.seed:
         for suffix in ('', '-wal', '-shm'):
@@ -241,8 +261,12 @@ def main():
     db.init(conn)
     if args.seed:
         synthetic.seed_hospitals(conn, int(time.time()))
+    if args.scenario:
+        from . import scenario
+        scenario.build(conn, int(time.time()), args.scenario)
     conn.close()
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(args.db, TravelEstimator()))
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(
+        args.db, TravelEstimator(), cors_origin=None if args.cors_origin == 'none' else args.cors_origin))
     print(f'http://{args.host}:{args.port}  (DB: {args.db})')
     server.serve_forever()
 

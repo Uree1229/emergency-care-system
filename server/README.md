@@ -5,7 +5,7 @@
 
 ## 실행
 ```
-python -m server.app --db data/demo.db --seed --port 8000
+python -m server.app --db data/demo.db --seed --scenario sudden --port 8000
 python -m unittest test_server -v
 ```
 `--seed`를 주면 가상 병원 10곳을 새로 넣습니다. 이때 기존 DB는 지워집니다.
@@ -30,7 +30,7 @@ python -m unittest test_server -v
 - 도착 확인 시 예정 수요는 실제 점유로 바뀌므로 이중으로 계산되지 않습니다.
 
 ## 아직 안 한 것
-- 화면(병원 웹·환자 웹): API만 있음
+- 화면(병원 웹·환자 웹): 다른 팀원 담당. API 명세는 `docs/API.md`
 - 솔버 연결과 A26(이동 중 치료 시작시각 재평가): `affected_patients`가 수량만 비교함
 - 공공 API 실응답 검증: 인증키가 필요함. `api_field_mapping.md` 참고
 - 접근 권한(O01): 로그인이 없어서 병원 ID 경로로만 구분함

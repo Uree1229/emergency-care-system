@@ -11,7 +11,7 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from server import db, probe_apis, service, synthetic
+from server import db, probe_apis, scenario, service, synthetic
 from server.app import make_handler
 from server.service import ServiceError
 from server.travel import TravelEstimator
@@ -301,6 +301,21 @@ class Probe(unittest.TestCase):
         self.assertEqual(fields['b'], dict(present=1, empty=1, samples=[], missing=1))
 
 
+class Scenario(unittest.TestCase):
+    def test_every_stage_builds_in_time_order(self):
+        for stage in scenario.STAGES:
+            conn = db.connect(':memory:')
+            db.init(conn)
+            synthetic.seed_hospitals(conn, T0)
+            result = scenario.build(conn, T0, stage)
+            ats = [r[0] for r in conn.execute("SELECT at FROM events WHERE actor!='seed' ORDER BY id")]
+            self.assertEqual(ats, sorted(ats))
+            self.assertLessEqual(max(ats), T0)
+            self.assertEqual(result['H04_affected'], ['DEMO-A'] if stage == 'sudden' else [])
+        self.assertEqual(result['DEMO-A']['state'], 'IN_TRANSIT')
+        self.assertTrue(service.patient_view(conn, 'DEMO-C', T0)['call_119'])
+
+
 class Http(Base):
     def test_http_roundtrip(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(self.path, EST, clock=lambda: T0))
@@ -330,6 +345,11 @@ class Http(Base):
             self.assertEqual(view['state'], 'CONFIRMED')
             self.assertEqual(call('GET', '/api/patients/NOPE')[0], 404)
             self.assertEqual(call('GET', '/api/nothing')[0], 404)
+            with urllib.request.urlopen(urllib.request.Request(base + '/api/hospitals', method='OPTIONS')) as r:
+                self.assertEqual((r.status, r.headers['Access-Control-Allow-Origin']), (204, '*'))
+                self.assertIn('PATCH', r.headers['Access-Control-Allow-Methods'])
+            with urllib.request.urlopen(base + '/api/hospitals') as r:
+                self.assertEqual(r.headers['Access-Control-Allow-Origin'], '*')
         finally:
             server.shutdown()
             server.server_close()
