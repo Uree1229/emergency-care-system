@@ -129,6 +129,6 @@ for t in d.tables:
                 if all(len(pp.text) < 20 for pp in c.paragraphs):
                     for pp in c.paragraphs: pp.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-output = root / '응급환자_병원선정과_이송체계_문제점_조사.docx'
+output = root / 'docs/research/응급환자_병원선정과_이송체계_문제점_조사.docx'
 d.save(output)
 print(output)

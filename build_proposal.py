@@ -164,5 +164,5 @@ for pp in d.paragraphs:
   pp.paragraph_format.line_spacing=1.02
   pp.paragraph_format.space_after=Pt(4)
   if pp.style.name.startswith('Heading'): pp.paragraph_format.space_before=Pt(6)
-d.save(ROOT/'응급의료_연계_시스템_제안서.docx')
-print(ROOT/'응급의료_연계_시스템_제안서.docx')
+d.save(ROOT/'docs/proposals/archive/응급의료_연계_시스템_제안서.docx')
+print(ROOT/'docs/proposals/archive/응급의료_연계_시스템_제안서.docx')

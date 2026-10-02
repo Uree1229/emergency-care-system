@@ -234,7 +234,7 @@ for st in d.styles:
     for b in list(st.element.iter(qn('w:pBdr'))):b.getparent().remove(b)
 for p in list(d.paragraphs)+[p for t in d.tables for r in t.rows for c in r.cells for p in c.paragraphs]:
     e=OxmlElement('w:snapToGrid');e.set(qn('w:val'),'0');p._p.get_or_add_pPr().append(e)
-out=ROOT/'캡스톤_전체구현기능_롱리스트.docx';d.save(out)
+out=ROOT/'docs/design/캡스톤_전체구현기능_롱리스트.docx';out.parent.mkdir(parents=True,exist_ok=True);d.save(out)
 print('Created',len(all_rows),'features',dict(counts))
 
 # Export the same revised longlist as readable plain text.
@@ -248,4 +248,4 @@ for el in d.element.body:
             vals=[''.join(t.text or '' for t in cell.iter(_qn('w:t'))) for cell in row.findall(_qn('w:tc'))]
             lines.append(' | '.join(vals))
         lines.append('')
-(ROOT/'캡스톤_전체구현기능_롱리스트.txt').write_text('\n'.join(lines),encoding='utf-8-sig')
+(ROOT/'docs/design/캡스톤_전체구현기능_롱리스트.txt').write_text('\n'.join(lines),encoding='utf-8-sig')

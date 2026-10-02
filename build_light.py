@@ -67,6 +67,6 @@ for pp in list(d.paragraphs) + [pp for t in d.tables for row in t.rows for c in 
         pp.paragraph_format.space_after = Pt(0)
         pp.paragraph_format.line_spacing = Pt(3)
 
-out = root / '응급의료_연계_시스템_제안서_제출용.docx'
+out = root / 'docs/proposals/archive/응급의료_연계_시스템_제안서_제출용.docx'
 d.save(out)
 print(out)

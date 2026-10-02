@@ -4,7 +4,7 @@ import json
 root=Path(__file__).parent
 base=(root/'build_proposal.py').read_text(encoding='utf-8')
 exec(compile(base.split("d.add_paragraph('응급의료 연계 시스템")[0],str(root/'build_proposal.py'),'exec'))
-d=Document(root/'응급환자_병원선정과_이송체계_문제점_조사.docx')
+d=Document(root/'docs/research/응급환자_병원선정과_이송체계_문제점_조사.docx')
 d.paragraphs[0].text='응급환자 이송체계\n문제점과 개선방안'
 d.paragraphs[0].style='Title'
 d.paragraphs[1].text='캡스톤 디자인 검토 자료  |  개정일 2026년 9월 23일'
@@ -80,5 +80,5 @@ for t in d.tables:
     for row in t.rows:
         for c in row.cells:
             for pp in c.paragraphs:pp.paragraph_format.line_spacing=Pt(14)
-d.save(root/'응급환자_이송체계_문제점과_개선방안_v2.docx')
+d.save(root/'docs/research/응급환자_이송체계_문제점과_개선방안_v2.docx')
 print('Created improved document')

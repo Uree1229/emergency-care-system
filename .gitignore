@@ -25,5 +25,9 @@ usb_import_backups/
 # 개인용 에이전트 설정
 .claude/
 
+# 이전 위치의 열려 있는 Word 파일과 USB 전송 목록
+/캡스톤_전체구현기능_롱리스트.docx
+/TRANSFER_MANIFEST.json
+
 # 서버 실행 DB·API 수집 원본
 data/

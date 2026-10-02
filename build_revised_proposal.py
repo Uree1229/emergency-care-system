@@ -10,7 +10,7 @@ from docx.shared import Cm, Pt, RGBColor
 
 
 ROOT = Path(__file__).parent
-OUT = ROOT / '캡스톤_프로젝트_제안서_병원응답보강_20260923.docx'
+OUT = ROOT / 'docs/proposals/current/캡스톤_프로젝트_제안서_병원응답보강_20260923.docx'
 
 
 def set_font(run, size=None, bold=None):

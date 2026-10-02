@@ -1,6 +1,6 @@
 """최종 보고서 뼈대 생성 (T20).
 
-    python build_final_report.py  →  캡스톤_최종보고서_뼈대.docx
+    python build_final_report.py  →  docs/reports/캡스톤_최종보고서_뼈대.docx
 
 - 기능 목록은 build_feature_longlist.py의 DATA를 그대로 읽는다 (항목 수·문구 동기화).
 - B0/B1 수치는 simulation_results/summary.json에서 읽는다. 시뮬레이션을 다시 돌리면 이 스크립트도 다시 실행.
@@ -299,13 +299,13 @@ def main():
         ['도착 시점 수용 가능성', '위 정보로 계산한 추정값', '모델 출력(원천 데이터 아님)'],
     ], [6.0, 5.0, 6.0])
     d.add_paragraph('전문의 수는 현재 가용 인력이 아니고, 현재 병상 정보는 도착 시점 수용의 보장이 아니다. '
-                    '원본 필드 매핑은 api_field_mapping.md에 실응답 확인 후 채운다. 상세 근거는 데이터확보_조사_20260930.md.')
+                    '원본 필드 매핑은 api_field_mapping.md에 실응답 확인 후 채운다. 상세 근거는 docs/research/데이터확보_조사_20260930.md.')
     todo(d, '인증키 발급 후 실응답 필드 결측률·갱신 지연 측정 결과')
 
     d.add_heading('5. 배정 알고리즘', 1)
     d.add_paragraph('후보 필터링 → 병렬 수용 문의 → 유효한 수용 응답 확인 → 이동시간·자원 점유를 고려한 CP-SAT 배정 → '
                     '상황 변화 시 재계산. 목적함수는 우선순위군별 미배정 수 다음 대기시간을 사전식으로 최소화한다(severity_first). '
-                    '상세는 배정알고리즘_구체화_20260930.md.')
+                    '상세는 docs/design/배정알고리즘_구체화_20260930.md.')
     todo(d, '수학 모델(변수·제약·목적함수) 정리. A26(이동 중 병원 고정, 치료 시작시각 재평가) 구현 후 반영')
 
     d.add_heading('6. 구현 범위와 상태', 1)
@@ -389,7 +389,7 @@ def main():
     fld = OxmlElement('w:fldSimple')
     fld.set(qn('w:instr'), 'PAGE')
     footer._p.append(fld)
-    out = ROOT / '캡스톤_최종보고서_뼈대.docx'
+    out = ROOT / 'docs/reports/캡스톤_최종보고서_뼈대.docx'
     d.save(out)
     print(out.name, dict(counts))
 

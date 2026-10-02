@@ -82,5 +82,5 @@ for t in d.tables:
     for row in t.rows:
         for c in row.cells:
             for pp in c.paragraphs:pp.paragraph_format.line_spacing=Pt(14)
-d.save(root/'캡스톤_프로젝트_제안서_멘토사전공유.docx')
+d.save(root/'docs/proposals/archive/캡스톤_프로젝트_제안서_멘토사전공유.docx')
 print('Mentor proposal created')

@@ -110,6 +110,6 @@ for pp in list(d.paragraphs)+[pp for t in d.tables for row_ in t.rows for c in r
     snap=OxmlElement('w:snapToGrid'); snap.set(qn('w:val'),'0'); pp._p.get_or_add_pPr().append(snap)
     if not pp.text and not pp._p.xpath('.//w:br') and not pp._p.xpath('.//w:hyperlink'):
         pp.paragraph_format.space_after=Pt(0); pp.paragraph_format.line_spacing=Pt(3)
-d.save(root/'응급의료_시범사업_문제점과_솔버실험.docx')
-(root/'응급의료_시범사업_문제점과_솔버실험.md').write_text('\n'.join(md),encoding='utf-8')
+d.save(root/'docs/research/응급의료_시범사업_문제점과_솔버실험.docx')
+(root/'docs/research/응급의료_시범사업_문제점과_솔버실험.md').write_text('\n'.join(md),encoding='utf-8')
 print('report created')
