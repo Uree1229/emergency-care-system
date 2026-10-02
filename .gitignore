@@ -22,5 +22,8 @@ usb_import_backups/
 .env
 .env.*
 
+# 개인용 에이전트 설정
+.claude/
+
 # 서버 실행 DB·API 수집 원본
 data/
