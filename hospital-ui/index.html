@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>병원용 웹 · 수용 문의</title>
+<style>
+  :root {
+    --ink: #1B2430; --muted: #5B6573; --line: #D5D9E0; --bg: #F4F5F7; --card: #FFFFFF;
+    --blue: #1F4FA8; --blue-bg: #E8EEF9; --red: #B42318; --red-bg: #FDECEA;
+    --orange: #9A3E0B; --orange-bg: #FFF1E3; --orange-line: #E8833A; --gray-bg: #E9ECF1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; font-size: 15px; }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  header { background: var(--ink); color: #E6E9EE; padding: 14px 24px; display: flex; gap: 18px;
+           align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0 12px 0 0; color: #fff; }
+  header label { display: flex; gap: 6px; align-items: center; font-size: 14px; color: #C9D0DA; }
+  header input, header select { height: 36px; border: 1px solid #3A4656; border-radius: 6px;
+                                background: #2C3747; color: #fff; padding: 0 8px; }
+  #server { width: 190px; } #handler { width: 110px; }
+  #conn { margin-left: auto; font-size: 13px; color: #A9B1BD; }
+  #conn.bad { color: #FFB27A; font-weight: 700; }
+
+  main { display: flex; gap: 20px; padding: 20px 24px; align-items: flex-start; }
+  #listCol { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+  #detailCol { flex: 1; min-width: 0; }
+  h2 { font-size: 17px; margin: 4px 0 2px; display: flex; gap: 8px; align-items: center; }
+  .count { background: var(--orange-line); color: var(--ink); font-size: 13px; border-radius: 10px; padding: 1px 8px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+          display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100%; color: inherit; }
+  .card.selected { border: 2px solid var(--blue); padding: 13px 15px; }
+  .card.overdue { background: #FFF8F1; }
+  .card .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .card .title { font-size: 16px; font-weight: 700; }
+  .card .meta { display: flex; gap: 12px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .tag { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+  .t-high { color: var(--red); background: var(--red-bg); }
+  .t-mid { color: var(--orange); background: var(--orange-bg); }
+  .t-gray { color: var(--ink); background: var(--gray-bg); }
+  .t-blue { color: var(--blue); background: var(--blue-bg); }
+  .t-new { color: #fff; background: var(--blue); }
+  .empty { color: var(--muted); padding: 18px; background: var(--card); border: 1px dashed var(--line); border-radius: 12px; }
+
+  .recent { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px 14px; }
+  .recent div { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid #EEF0F3; font-size: 14px; }
+  .recent div:last-child { border-bottom: 0; }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .panel-head { padding: 18px 22px; border-bottom: 1px solid #E4E7EC; display: flex; justify-content: space-between; gap: 16px; }
+  .panel-head h3 { margin: 4px 0 0; font-size: 21px; }
+  .sub { font-size: 13px; color: var(--muted); }
+  .grid { padding: 18px 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; }
+  .field .k { font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+  .field .v { font-size: 15px; }
+  .danger { grid-column: span 2; background: var(--red-bg); color: var(--red); border-radius: 8px; padding: 10px 14px; font-weight: 700; }
+  .qa { grid-column: span 2; background: #F7F8FA; border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
+
+  .actions { padding: 16px 22px 20px; border-top: 1px solid #E4E7EC; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn { height: 52px; border-radius: 10px; font-size: 16px; font-weight: 700; padding: 0 20px; }
+  .btn-accept { flex: 1; border: 0; background: var(--blue); color: #fff; font-size: 18px; }
+  .btn-check { border: 1px solid var(--blue); background: #fff; color: var(--blue); }
+  .btn-decline { border: 1px solid var(--red); background: #fff; color: var(--red); }
+  .chip { height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 19px; background: #fff; }
+  .chip.on { border: 2px solid var(--red); color: var(--red); font-weight: 700; }
+  .q-input { flex: 1; min-width: 200px; height: 40px; border: 1px solid #C3C9D2; border-radius: 8px; padding: 0 10px; }
+  .btn-small { height: 40px; padding: 0 14px; border: 1px solid #C3C9D2; border-radius: 8px; background: #fff; }
+  .note { font-size: 13px; color: var(--muted); }
+
+  #notice { min-height: 22px; margin: 0 0 10px; font-weight: 700; }
+  #notice.err { color: var(--red); } #notice.ok { color: var(--blue); }
+</style>
+</head>
+<body>
+<header>
+  <h1>병원용 웹 · 수용 문의</h1>
+  <label>병원 <select id="hospital" aria-label="병원 선택"></select></label>
+  <label>담당자 <input id="handler" placeholder="이름" aria-label="담당자 이름"></label>
+  <label>서버 <input id="server" aria-label="서버 주소"></label>
+  <span id="conn" role="status">연결 확인 중…</span>
+</header>
+
+<main>
+  <section id="listCol" aria-label="문의 목록">
+    <h2>대기 중인 문의 <span class="count" id="openCount">0</span></h2>
+    <div id="openList"></div>
+    <h2 style="margin-top:10px">최근 처리</h2>
+    <div id="recentList"></div>
+  </section>
+
+  <section id="detailCol" aria-label="문의 상세">
+    <div id="notice" role="status" aria-live="polite"></div>
+    <div id="detail"><div class="empty">왼쪽에서 문의를 선택하세요.</div></div>
+  </section>
+</main>
+
+<script>
+// ---------------------------------------------------------------- 설정
+const POLL_MS = 3000;                          // 2~3초마다 조회 (API.md 공통 규칙)
+const DECLINE_REASONS = ['인력', '장비', '병상', '진료 불가', '기타'];
+const params = new URLSearchParams(location.search);
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+let serverBase = params.get('server') || store.get('serverBase', 'http://127.0.0.1:8000');
+let hid = params.get('hid') || store.get('hid', 'H07');
+let data = { open: [], recent: [] };
+let fetchedAt = Date.now();
+let selectedId = null;
+let declineReason = null;
+let busy = false;
+const seen = new Set();          // 이미 본 문의 id (새 문의 표시용)
+const newUntil = new Map();      // id -> 새 문의 표시 종료 시각
+let firstLoad = true;
+let lastSig = '';
+
+$('server').value = serverBase;
+$('handler').value = store.get('handler', '');
+
+// ---------------------------------------------------------------- 표시용 변환
+const STATE = {
+  PENDING: ['신규', 't-blue'], CHECKING: ['확인 중', 't-gray'], ACCEPTED: ['수용함', 't-blue'],
+  DECLINED: ['불가', 't-high'], EXPIRED: ['수용 만료', 't-gray'], CANCELLED: ['환자 측 종료', 't-gray'],
+  CONFIRMED: ['목적지 확정', 't-blue'],
+};
+const SOURCE = { self: '자기신고', expert: '전문가 확인', unknown: '미확인' };
+const ROLE = { self: '본인', guardian: '보호자', transporter: '이송자' };
+const RESOURCE = { ed_bed: '응급병상', special_team: '전문팀' };
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function kst(sec) {
+  if (!sec) return '-';
+  return new Date(sec * 1000).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
+}
+function elapsed(q) {
+  const s = q.elapsed_seconds + Math.floor((Date.now() - fetchedAt) / 1000);
+  const m = Math.floor(s / 60);
+  return m > 0 ? `${m}분 ${s % 60}초` : `${s}초`;
+}
+function severityTag(p) {
+  if (p.priority_source === 'unknown') return ['중증도 미확인', 't-gray'];
+  if (p.effective_priority >= 4) return ['긴급', 't-high'];
+  if (p.effective_priority >= 3) return ['중증', 't-high'];
+  if (p.effective_priority >= 2) return ['중등증', 't-mid'];
+  return ['경증', 't-gray'];
+}
+function stateLabel(q) {
+  if (q.state === 'CHECKING' && q.question && !q.answer) return ['답변 대기', 't-gray'];
+  if (q.state === 'CHECKING' && q.answer) return ['답변 도착', 't-blue'];
+  return STATE[q.state] || [q.state, 't-gray'];
+}
+function demands(p) {
+  return Object.entries(p.resource_demands || {}).map(([k, n]) => `${RESOURCE[k] || k} ${n}`).join(' · ') || '-';
+}
+
+// ---------------------------------------------------------------- 서버 통신
+async function api(path, opts = {}) {
+  const res = await fetch(serverBase + path, {
+    ...opts, headers: { 'Content-Type': 'application/json' },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(body.message || `오류 ${res.status}`); e.body = body; e.status = res.status; throw e; }
+  return body;
+}
+
+async function loadHospitals() {
+  try {
+    const list = await api('/api/hospitals');
+    $('hospital').innerHTML = list.map((h) =>
+      `<option value="${esc(h.id)}">${esc(h.id)} · ${esc(h.name)}</option>`).join('');
+    if (!list.some((h) => h.id === hid) && list.length) hid = list[0].id;
+    $('hospital').value = hid;
+  } catch {
+    $('hospital').innerHTML = `<option value="${esc(hid)}">${esc(hid)}</option>`;
+  }
+}
+
+async function poll() {
+  if (busy) return;
+  try {
+    const next = await api(`/api/hospitals/${encodeURIComponent(hid)}/inquiries`);
+    // 경과시간 말고 바뀐 게 없으면 다시 그리지 않음 (버튼 클릭이 끊기지 않도록)
+    const sig = JSON.stringify(next, (k, v) => (k === 'elapsed_seconds' ? undefined : v));
+    const changed = sig !== lastSig; lastSig = sig;
+    data = next; fetchedAt = Date.now();
+    for (const q of data.open) {
+      if (!seen.has(q.id) && !firstLoad) newUntil.set(q.id, Date.now() + 15000);
+      seen.add(q.id);
+    }
+    firstLoad = false;
+    $('conn').textContent = '마지막 갱신 ' + new Date().toLocaleTimeString('ko-KR') + ' · 3초마다 자동 갱신';
+    $('conn').className = '';
+    if (changed) render();
+  } catch (e) {
+    $('conn').textContent = e.status ? e.message : '서버에 연결할 수 없습니다. 서버가 켜져 있는지 확인하세요.';
+    $('conn').className = 'bad';
+  }
+}
+
+async function respond(action, extra = {}) {
+  const q = current();
+  if (!q) return;
+  const handler = $('handler').value.trim();
+  if (!handler) { notice('담당자 이름을 먼저 입력하세요.', true); $('handler').focus(); return; }
+  busy = true; render();
+  try {
+    const body = { action, handled_by: handler, ...extra };
+    if (action === 'accept' || action === 'decline') body.expected_version = q.version;
+    const r = await api(`/api/inquiries/${q.id}/respond`, { method: 'POST', body: JSON.stringify(body) });
+    const done = { accept: '수용 가능으로 응답했습니다.', decline: `수용 불가(${extra.reason})로 응답했습니다.`,
+                   checking: '확인 중으로 회신했습니다.', question: '추가 질문을 보냈습니다.' }[action];
+    notice(r.duplicate ? '이미 같은 응답이 반영되어 있습니다.' : done + (r.warning ? ` (주의: ${r.warning})` : ''), false);
+    declineReason = null;
+  } catch (e) {
+    let msg = e.message;
+    if (e.body?.error === 'CONFLICT') msg = '다른 담당자가 먼저 처리했습니다. 목록을 새로 불러왔습니다.';
+    if (e.body?.shortfalls?.length) {
+      msg += ' 부족: ' + e.body.shortfalls.map((s) => `${RESOURCE[s.resource_type] || s.resource_type}`).join(', ');
+    }
+    notice(msg, true);
+  } finally {
+    busy = false;
+    lastSig = '';
+    await poll();
+  }
+}
+
+// ---------------------------------------------------------------- 화면 그리기
+function current() {
+  return data.open.find((q) => q.id === selectedId) || data.recent.find((q) => q.id === selectedId) || null;
+}
+function notice(text, isErr) {
+  $('notice').textContent = text;
+  $('notice').className = isErr ? 'err' : 'ok';
+}
+
+function render() {
+  const open = data.open;
+  $('openCount').textContent = open.length;
+  document.title = (open.length ? `(${open.length}) ` : '') + '병원용 웹 · 수용 문의';
+
+  $('openList').innerHTML = open.length ? open.map((q) => {
+    const p = q.patient, [sev, sevCls] = severityTag(p), [st, stCls] = stateLabel(q);
+    const isNew = (newUntil.get(q.id) || 0) > Date.now();
+    return `<button type="button" class="card ${q.id === selectedId ? 'selected' : ''} ${q.overdue ? 'overdue' : ''}" data-id="${q.id}">
+      <div class="top"><span class="tag ${sevCls}">${esc(sev)}</span>
+        <span style="display:flex;gap:6px">${isNew ? '<span class="tag t-new">새 문의</span>' : ''}
+        ${q.overdue ? `<span class="tag t-mid">미응답 <span data-elapsed="${q.id}">${esc(elapsed(q))}</span></span>` : `<span class="tag ${stCls}">${esc(st)}</span>`}</span></div>
+      <div class="title">${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</div>
+      <div class="meta"><span>필요: ${esc((p.required_capabilities || []).join(', ') || '-')}</span>
+        <span>도착 예정 ${p.eta_at ? esc(kst(p.eta_at)) : '미정'}</span><span>${esc(ROLE[p.reporter_role] || p.reporter_role)}</span>
+        ${q.overdue ? '' : `<span><span data-elapsed="${q.id}">${esc(elapsed(q))}</span> 경과</span>`}</div>
+    </button>`;
+  }).join('') : '<div class="empty">대기 중인 문의가 없습니다.</div>';
+
+  $('recentList').innerHTML = data.recent.length ? `<div class="recent">${data.recent.slice(0, 8).map((q) => {
+    const [st, stCls] = stateLabel(q);
+    return `<div><span>${esc(q.patient.age ?? '?')}세 · ${esc(q.patient.symptoms)}</span>
+      <span class="tag ${stCls}">${esc(st)}${q.reason ? ' · ' + esc(q.reason) : ''}</span></div>`;
+  }).join('')}</div>` : '<div class="empty">아직 처리한 문의가 없습니다.</div>';
+
+  renderDetail();
+}
+
+function renderDetail() {
+  const q = current();
+  if (!q) { $('detail').innerHTML = '<div class="empty">왼쪽에서 문의를 선택하세요.</div>'; return; }
+  const p = q.patient, [sev, sevCls] = severityTag(p), [st, stCls] = stateLabel(q);
+  const isOpen = data.open.some((x) => x.id === q.id);
+  const dis = busy ? 'disabled' : '';
+  const prevInput = $('questionInput');
+  const prevText = prevInput ? prevInput.value : '';
+  const hadFocus = document.activeElement === prevInput;
+
+  $('detail').innerHTML = `<div class="panel">
+    <div class="panel-head">
+      <div><div class="sub">문의 #${q.id} · 환자 ${esc(p.id)} · ${esc(kst(q.created_at))} 접수 · 시도 ${q.attempts}회</div>
+        <h3>${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</h3></div>
+      <div style="text-align:right"><div class="sub">도착 예정</div>
+        <div style="font-size:20px;font-weight:700">${p.eta_at ? esc(kst(p.eta_at)) : '미정'}</div>
+        <span class="tag ${stCls}">${esc(st)}</span></div>
+    </div>
+    <div class="grid">
+      ${(p.danger_signs || []).length ? `<div class="danger">위험 신호: ${esc(p.danger_signs.join(', '))}</div>` : ''}
+      <div class="field"><div class="k">중증도</div>
+        <div class="v"><span class="tag ${sevCls}">${esc(sev)}</span>${p.priority_source === 'unknown' ? ' <span class="note">미확인은 높은 우선순위로 다룹니다</span>' : ` <span class="tag t-gray">${esc(SOURCE[p.priority_source] || p.priority_source)}</span>`}</div></div>
+      <div class="field"><div class="k">필요 진료</div><div class="v">${esc((p.required_capabilities || []).join(', ') || '-')}</div></div>
+      <div class="field"><div class="k">필요 자원</div><div class="v">${esc(demands(p))}</div></div>
+      <div class="field"><div class="k">입력자 · 연락처</div>
+        <div class="v">${esc(ROLE[p.reporter_role] || p.reporter_role)} · ${p.contact ? `<a href="tel:${esc(p.contact)}">${esc(p.contact)}</a>` : '-'}</div></div>
+      <div class="field"><div class="k">증상 발생</div><div class="v">${esc(kst(p.onset_at))}</div></div>
+      ${isOpen ? `<div class="field"><div class="k">경과</div><div class="v"><span data-elapsed="${q.id}">${esc(elapsed(q))}</span>${q.overdue ? ' · <b style="color:var(--orange)">미응답 확인 필요</b>' : ''}</div></div>`
+        : `<div class="field"><div class="k">응답</div><div class="v">${esc(kst(q.responded_at))} · ${esc(q.handled_by || '-')}</div></div>`}
+      ${q.question ? `<div class="qa"><b>병원 질문</b> ${esc(q.question)}<br><b>환자 답변</b> ${q.answer ? esc(q.answer) : '<span class="note">아직 답변이 없습니다</span>'}</div>` : ''}
+    </div>
+    ${isOpen ? `<div class="actions">
+      <div class="row">
+        <button type="button" class="btn btn-accept" data-act="accept" ${dis}>수용 가능</button>
+        <button type="button" class="btn btn-check" data-act="checking" ${dis}>확인 중</button>
+      </div>
+      <div class="row"><span class="note">수용 불가 사유:</span>
+        ${DECLINE_REASONS.map((r) => `<button type="button" class="chip ${declineReason === r ? 'on' : ''}" data-reason="${esc(r)}" ${dis}>${esc(r)}</button>`).join('')}
+        <button type="button" class="btn btn-decline" data-act="decline" ${dis || (declineReason ? '' : 'disabled')}>수용 불가</button>
+      </div>
+      <div class="row">
+        <input class="q-input" id="questionInput" placeholder="환자 측에 추가로 물어볼 내용" aria-label="추가 질문">
+        <button type="button" class="btn-small" data-act="question" ${dis}>추가 질문 보내기</button>
+      </div>
+      <div class="note">수용 응답은 자리를 잡아 두는 것이 아니며, 환자가 목적지로 확정한 한 곳만 자원을 사용합니다.</div>
+    </div>` : `<div class="actions"><div class="note">이미 처리가 끝난 문의입니다${q.reason ? ` (사유: ${esc(q.reason)})` : ''}.</div></div>`}
+  </div>`;
+  const input = $('questionInput');
+  if (input && prevText) input.value = prevText;
+  if (input && hadFocus) input.focus();
+}
+
+// ---------------------------------------------------------------- 이벤트
+$('openList').addEventListener('click', (e) => {
+  const card = e.target.closest('[data-id]');
+  if (!card) return;
+  selectedId = Number(card.dataset.id); declineReason = null; notice('', false); render();
+});
+$('detail').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-reason]');
+  if (chip) { declineReason = chip.dataset.reason; renderDetail(); return; }
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === 'decline') respond('decline', { reason: declineReason });
+  else if (act === 'question') {
+    const text = $('questionInput').value.trim();
+    if (!text) { notice('질문 내용을 입력하세요.', true); return; }
+    respond('question', { question: text });
+  } else respond(act);
+});
+$('hospital').addEventListener('change', () => {
+  hid = $('hospital').value; store.set('hid', hid);
+  selectedId = null; seen.clear(); newUntil.clear(); firstLoad = true; lastSig = ''; poll();
+});
+$('handler').addEventListener('change', () => store.set('handler', $('handler').value.trim()));
+$('server').addEventListener('change', () => {
+  serverBase = $('server').value.trim().replace(/\/$/, ''); store.set('serverBase', serverBase);
+  loadHospitals().then(poll);
+});
+
+// 경과시간은 화면 전체를 다시 그리지 않고 글자만 1초마다 갱신 (클릭이 끊기지 않도록)
+setInterval(() => {
+  for (const el of document.querySelectorAll('[data-elapsed]')) {
+    const q = data.open.find((x) => x.id === Number(el.dataset.elapsed)) || data.recent.find((x) => x.id === Number(el.dataset.elapsed));
+    if (q) el.textContent = elapsed(q);
+  }
+  for (const [id, until] of newUntil) if (until <= Date.now()) { newUntil.delete(id); render(); }
+}, 1000);
+
+loadHospitals().then(() => { poll(); setInterval(poll, POLL_MS); });
+</script>
+</body>
+</html>
