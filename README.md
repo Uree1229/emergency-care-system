@@ -12,6 +12,7 @@
 | 배정 솔버 실험 | 환자 우선순위, 이동시간, 진료 자리·전문팀 용량, 계산시간 제한과 대체안 | [`solver_improved.py`](solver_improved.py) |
 | B0/B1 가상 비교 | 순차 문의와 병렬 문의·변경 알림 비교, 30개 seed와 민감도 분석 | [`simulation/`](simulation/run.py), [`simulation_results/summary.md`](simulation_results/summary.md) |
 | 단독 화면 프로토타입 | 문의·응답 흐름을 보여주는 정적 시연 | [`prototype/index.html`](prototype/index.html) |
+| 다양한 가상 데이터셋 | 배정 6,000건·이벤트 600건·서버 200건·경계조건 15건 | [`datasets/`](datasets/README.md) |
 
 병원 웹은 공통 서버에 연결되어 있습니다. 환자 웹의 독립 DB를 공통 API로 전환하는 작업은 남아 있습니다. 후보 목록은 문의할 병원을 찾는 규칙 기반 목록이고, 수용 응답 이후 배정안은 별도의 추천 API로 제공합니다. 실제 공공 API 응답 검증·연결, 실제 점유 종료시각 연계, B2 비교는 진행 과제입니다. 자세한 내용은 [현재 상태와 다음 작업](docs/PROJECT_STATUS.md)에 기록했습니다.
 
@@ -30,7 +31,7 @@ py -3 -m venv .venv
 테스트와 실험은 별도 터미널에서 실행합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest test_server test_solver_improved test_simulation test_planning -v
+.\.venv\Scripts\python.exe -m unittest test_server test_solver_improved test_simulation test_planning test_datasets -v
 .\.venv\Scripts\python.exe -m simulation.run --seeds 30 --sensitivity
 ```
 
@@ -44,6 +45,7 @@ py -3 -m venv .venv
 | `hospital-ui/` | 병원 담당자용 웹 화면 개발 공간 |
 | `patient-ui/` | 환자·이송자용 모바일 웹 화면 개발 공간 |
 | `simulation/` | 순차 문의(B0)와 병렬 문의(B1) 비교 |
+| `datasets/` | 다양한 합성 입력·사건·서버 시나리오, 생성·검증·재생 도구 |
 | `prototype/` | 독립형 화면 프로토타입 |
 | `docs/` | API 명세, 현재 상태, 문서 안내 |
 | `solver_improved.py` | CP-SAT 배정 솔버 실험 |

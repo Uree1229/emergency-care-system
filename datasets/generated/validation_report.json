@@ -1,0 +1,9 @@
+{
+  "records_validated": 6815,
+  "profiles": 105,
+  "golden_cases_proven": 15,
+  "server_cases_replayed": 200,
+  "hashes_verified": 4,
+  "seed_split_leakage": 0,
+  "manifest_sha256": "1ad3cfd82303470dfaf8b06aca6a85695fba978cb68eacf612cdb36df0ac2a47"
+}

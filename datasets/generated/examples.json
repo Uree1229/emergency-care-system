@@ -1,0 +1,2489 @@
+[
+  {
+    "id": "ALLOC-baseline-0000",
+    "kind": "allocation",
+    "schema_version": 1,
+    "profile": "baseline",
+    "description": "일반적인 혼합 환자·병원",
+    "seed": 0,
+    "split": "train",
+    "source": "synthetic",
+    "time_unit": "minute",
+    "config": {
+      "hospitals": 10,
+      "patients": 20,
+      "beds": [
+        2,
+        12
+      ],
+      "teams": [
+        0,
+        3
+      ],
+      "occupied": 0.45,
+      "travel": [
+        1,
+        30
+      ],
+      "duration": [
+        10,
+        60
+      ],
+      "deadline": [
+        30,
+        150
+      ],
+      "horizon": 180,
+      "now": 60,
+      "special_share": 0.3,
+      "eligibility": 0.65,
+      "acceptance_share": 0.85,
+      "priorities": [
+        4,
+        2,
+        1
+      ],
+      "lock_share": 0.0
+    },
+    "observed": {
+      "version": 1,
+      "now": 60,
+      "horizon": 240,
+      "capacities": [
+        [
+          7,
+          0
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          11,
+          0
+        ]
+      ],
+      "patients": [
+        {
+          "id": "P000",
+          "priority": 2,
+          "special": false,
+          "release": 56,
+          "deadline": 110,
+          "duration": 43,
+          "travel": [
+            8,
+            15,
+            13,
+            3,
+            26,
+            30,
+            28,
+            4,
+            23,
+            7
+          ],
+          "eligible": [
+            1,
+            2,
+            4,
+            5,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P001",
+          "priority": 1,
+          "special": false,
+          "release": 34,
+          "deadline": 85,
+          "duration": 54,
+          "travel": [
+            26,
+            8,
+            5,
+            4,
+            7,
+            24,
+            10,
+            1,
+            15,
+            26
+          ],
+          "eligible": [
+            2,
+            5,
+            6
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P002",
+          "priority": 4,
+          "special": false,
+          "release": 42,
+          "deadline": 124,
+          "duration": 47,
+          "travel": [
+            12,
+            7,
+            11,
+            27,
+            5,
+            16,
+            7,
+            25,
+            2,
+            7
+          ],
+          "eligible": [
+            2,
+            4,
+            6,
+            7,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P003",
+          "priority": 1,
+          "special": true,
+          "release": 52,
+          "deadline": 116,
+          "duration": 35,
+          "travel": [
+            10,
+            14,
+            23,
+            23,
+            7,
+            20,
+            12,
+            19,
+            27,
+            19
+          ],
+          "eligible": [
+            2,
+            3,
+            6,
+            8
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P004",
+          "priority": 1,
+          "special": true,
+          "release": 53,
+          "deadline": 115,
+          "duration": 18,
+          "travel": [
+            20,
+            20,
+            23,
+            24,
+            3,
+            22,
+            21,
+            11,
+            24,
+            24
+          ],
+          "eligible": [
+            0,
+            6,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P005",
+          "priority": 4,
+          "special": true,
+          "release": 48,
+          "deadline": 44,
+          "duration": 18,
+          "travel": [
+            2,
+            5,
+            6,
+            1,
+            3,
+            29,
+            21,
+            20,
+            24,
+            18
+          ],
+          "eligible": [
+            2,
+            5,
+            6,
+            7,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P006",
+          "priority": 4,
+          "special": false,
+          "release": 56,
+          "deadline": 75,
+          "duration": 24,
+          "travel": [
+            4,
+            13,
+            20,
+            20,
+            7,
+            18,
+            10,
+            14,
+            3,
+            11
+          ],
+          "eligible": [
+            0,
+            1,
+            5,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P007",
+          "priority": 1,
+          "special": false,
+          "release": 47,
+          "deadline": 106,
+          "duration": 46,
+          "travel": [
+            29,
+            8,
+            5,
+            7,
+            23,
+            14,
+            12,
+            14,
+            15,
+            5
+          ],
+          "eligible": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P008",
+          "priority": 2,
+          "special": false,
+          "release": 49,
+          "deadline": 99,
+          "duration": 34,
+          "travel": [
+            26,
+            23,
+            23,
+            8,
+            20,
+            27,
+            30,
+            21,
+            29,
+            29
+          ],
+          "eligible": [
+            1,
+            2,
+            3,
+            7,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P009",
+          "priority": 1,
+          "special": false,
+          "release": 49,
+          "deadline": 86,
+          "duration": 52,
+          "travel": [
+            6,
+            4,
+            7,
+            11,
+            2,
+            20,
+            13,
+            16,
+            3,
+            28
+          ],
+          "eligible": [
+            1,
+            2,
+            3,
+            7,
+            8
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P010",
+          "priority": 1,
+          "special": false,
+          "release": 40,
+          "deadline": 32,
+          "duration": 46,
+          "travel": [
+            22,
+            13,
+            8,
+            8,
+            13,
+            12,
+            22,
+            23,
+            22,
+            1
+          ],
+          "eligible": [
+            0,
+            1,
+            3,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P011",
+          "priority": 4,
+          "special": true,
+          "release": 33,
+          "deadline": 74,
+          "duration": 30,
+          "travel": [
+            20,
+            2,
+            12,
+            7,
+            8,
+            20,
+            22,
+            27,
+            21,
+            2
+          ],
+          "eligible": [
+            0,
+            2,
+            3,
+            8
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P012",
+          "priority": 4,
+          "special": false,
+          "release": 55,
+          "deadline": 97,
+          "duration": 30,
+          "travel": [
+            4,
+            20,
+            21,
+            4,
+            21,
+            1,
+            7,
+            20,
+            13,
+            13
+          ],
+          "eligible": [
+            0,
+            2,
+            4,
+            5,
+            6,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P013",
+          "priority": 1,
+          "special": true,
+          "release": 48,
+          "deadline": 42,
+          "duration": 41,
+          "travel": [
+            4,
+            6,
+            7,
+            19,
+            30,
+            12,
+            5,
+            9,
+            10,
+            8
+          ],
+          "eligible": [
+            0,
+            1,
+            3,
+            4,
+            6,
+            7,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P014",
+          "priority": 1,
+          "special": false,
+          "release": 34,
+          "deadline": 95,
+          "duration": 44,
+          "travel": [
+            26,
+            17,
+            18,
+            2,
+            23,
+            23,
+            12,
+            11,
+            2,
+            25
+          ],
+          "eligible": [
+            0,
+            2,
+            5
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P015",
+          "priority": 2,
+          "special": true,
+          "release": 56,
+          "deadline": 97,
+          "duration": 60,
+          "travel": [
+            2,
+            18,
+            23,
+            1,
+            12,
+            9,
+            2,
+            29,
+            18,
+            30
+          ],
+          "eligible": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            8
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P016",
+          "priority": 2,
+          "special": false,
+          "release": 60,
+          "deadline": 69,
+          "duration": 28,
+          "travel": [
+            14,
+            9,
+            23,
+            7,
+            25,
+            21,
+            12,
+            15,
+            5,
+            20
+          ],
+          "eligible": [
+            2,
+            6,
+            7
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P017",
+          "priority": 2,
+          "special": false,
+          "release": 44,
+          "deadline": 77,
+          "duration": 20,
+          "travel": [
+            5,
+            11,
+            19,
+            16,
+            21,
+            29,
+            20,
+            20,
+            2,
+            24
+          ],
+          "eligible": [
+            1,
+            2,
+            4,
+            5,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P018",
+          "priority": 4,
+          "special": false,
+          "release": 53,
+          "deadline": 111,
+          "duration": 59,
+          "travel": [
+            29,
+            13,
+            19,
+            19,
+            12,
+            12,
+            6,
+            28,
+            24,
+            27
+          ],
+          "eligible": [
+            0,
+            2,
+            3,
+            5,
+            7,
+            8
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P019",
+          "priority": 2,
+          "special": true,
+          "release": 48,
+          "deadline": 117,
+          "duration": 13,
+          "travel": [
+            21,
+            3,
+            22,
+            18,
+            15,
+            22,
+            17,
+            24,
+            13,
+            22
+          ],
+          "eligible": [
+            0,
+            4,
+            5,
+            7,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "h": 0,
+          "start": 60,
+          "duration": 26,
+          "special": false,
+          "demands": [
+            3,
+            0
+          ]
+        },
+        {
+          "h": 1,
+          "start": 60,
+          "duration": 8,
+          "special": false,
+          "demands": [
+            2,
+            0
+          ]
+        },
+        {
+          "h": 1,
+          "start": 60,
+          "duration": 68,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 2,
+          "start": 60,
+          "duration": 30,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 2,
+          "start": 60,
+          "duration": 12,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 3,
+          "start": 60,
+          "duration": 26,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "h": 3,
+          "start": 60,
+          "duration": 17,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 4,
+          "start": 60,
+          "duration": 77,
+          "special": false,
+          "demands": [
+            3,
+            0
+          ]
+        },
+        {
+          "h": 5,
+          "start": 60,
+          "duration": 37,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 5,
+          "start": 60,
+          "duration": 7,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 6,
+          "start": 60,
+          "duration": 80,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 6,
+          "start": 60,
+          "duration": 57,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 7,
+          "start": 60,
+          "duration": 70,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 8,
+          "start": 60,
+          "duration": 39,
+          "special": false,
+          "demands": [
+            3,
+            0
+          ]
+        },
+        {
+          "h": 8,
+          "start": 60,
+          "duration": 38,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 9,
+          "start": 60,
+          "duration": 72,
+          "special": false,
+          "demands": [
+            5,
+            0
+          ]
+        }
+      ],
+      "fixed": {},
+      "destination_locks": {}
+    },
+    "actual": {
+      "version": 1,
+      "now": 60,
+      "horizon": 240,
+      "capacities": [
+        [
+          7,
+          0
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          11,
+          0
+        ]
+      ],
+      "patients": [
+        {
+          "id": "P000",
+          "priority": 2,
+          "special": false,
+          "release": 56,
+          "deadline": 110,
+          "duration": 43,
+          "travel": [
+            8,
+            15,
+            13,
+            3,
+            26,
+            30,
+            28,
+            4,
+            23,
+            7
+          ],
+          "eligible": [
+            1,
+            2,
+            4,
+            5,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P001",
+          "priority": 1,
+          "special": false,
+          "release": 34,
+          "deadline": 85,
+          "duration": 54,
+          "travel": [
+            26,
+            8,
+            5,
+            4,
+            7,
+            24,
+            10,
+            1,
+            15,
+            26
+          ],
+          "eligible": [
+            2,
+            5,
+            6
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P002",
+          "priority": 4,
+          "special": false,
+          "release": 42,
+          "deadline": 124,
+          "duration": 47,
+          "travel": [
+            12,
+            7,
+            11,
+            27,
+            5,
+            16,
+            7,
+            25,
+            2,
+            7
+          ],
+          "eligible": [
+            2,
+            4,
+            6,
+            7,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P003",
+          "priority": 1,
+          "special": true,
+          "release": 52,
+          "deadline": 116,
+          "duration": 35,
+          "travel": [
+            10,
+            14,
+            23,
+            23,
+            7,
+            20,
+            12,
+            19,
+            27,
+            19
+          ],
+          "eligible": [
+            2,
+            3,
+            6,
+            8
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P004",
+          "priority": 1,
+          "special": true,
+          "release": 53,
+          "deadline": 115,
+          "duration": 18,
+          "travel": [
+            20,
+            20,
+            23,
+            24,
+            3,
+            22,
+            21,
+            11,
+            24,
+            24
+          ],
+          "eligible": [
+            0,
+            6,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P005",
+          "priority": 4,
+          "special": true,
+          "release": 48,
+          "deadline": 44,
+          "duration": 18,
+          "travel": [
+            2,
+            5,
+            6,
+            1,
+            3,
+            29,
+            21,
+            20,
+            24,
+            18
+          ],
+          "eligible": [
+            2,
+            5,
+            6,
+            7,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P006",
+          "priority": 4,
+          "special": false,
+          "release": 56,
+          "deadline": 75,
+          "duration": 24,
+          "travel": [
+            4,
+            13,
+            20,
+            20,
+            7,
+            18,
+            10,
+            14,
+            3,
+            11
+          ],
+          "eligible": [
+            0,
+            1,
+            5,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P007",
+          "priority": 1,
+          "special": false,
+          "release": 47,
+          "deadline": 106,
+          "duration": 46,
+          "travel": [
+            29,
+            8,
+            5,
+            7,
+            23,
+            14,
+            12,
+            14,
+            15,
+            5
+          ],
+          "eligible": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P008",
+          "priority": 2,
+          "special": false,
+          "release": 49,
+          "deadline": 99,
+          "duration": 34,
+          "travel": [
+            26,
+            23,
+            23,
+            8,
+            20,
+            27,
+            30,
+            21,
+            29,
+            29
+          ],
+          "eligible": [
+            1,
+            2,
+            3,
+            7,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P009",
+          "priority": 1,
+          "special": false,
+          "release": 49,
+          "deadline": 86,
+          "duration": 52,
+          "travel": [
+            6,
+            4,
+            7,
+            11,
+            2,
+            20,
+            13,
+            16,
+            3,
+            28
+          ],
+          "eligible": [
+            1,
+            2,
+            3,
+            7,
+            8
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P010",
+          "priority": 1,
+          "special": false,
+          "release": 40,
+          "deadline": 32,
+          "duration": 46,
+          "travel": [
+            22,
+            13,
+            8,
+            8,
+            13,
+            12,
+            22,
+            23,
+            22,
+            1
+          ],
+          "eligible": [
+            0,
+            1,
+            3,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P011",
+          "priority": 4,
+          "special": true,
+          "release": 33,
+          "deadline": 74,
+          "duration": 30,
+          "travel": [
+            20,
+            2,
+            12,
+            7,
+            8,
+            20,
+            22,
+            27,
+            21,
+            2
+          ],
+          "eligible": [
+            0,
+            2,
+            3,
+            8
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P012",
+          "priority": 4,
+          "special": false,
+          "release": 55,
+          "deadline": 97,
+          "duration": 30,
+          "travel": [
+            4,
+            20,
+            21,
+            4,
+            21,
+            1,
+            7,
+            20,
+            13,
+            13
+          ],
+          "eligible": [
+            0,
+            2,
+            4,
+            5,
+            6,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P013",
+          "priority": 1,
+          "special": true,
+          "release": 48,
+          "deadline": 42,
+          "duration": 41,
+          "travel": [
+            4,
+            6,
+            7,
+            19,
+            30,
+            12,
+            5,
+            9,
+            10,
+            8
+          ],
+          "eligible": [
+            0,
+            1,
+            3,
+            4,
+            6,
+            7,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P014",
+          "priority": 1,
+          "special": false,
+          "release": 34,
+          "deadline": 95,
+          "duration": 44,
+          "travel": [
+            26,
+            17,
+            18,
+            2,
+            23,
+            23,
+            12,
+            11,
+            2,
+            25
+          ],
+          "eligible": [
+            0,
+            2,
+            5
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P015",
+          "priority": 2,
+          "special": true,
+          "release": 56,
+          "deadline": 97,
+          "duration": 60,
+          "travel": [
+            2,
+            18,
+            23,
+            1,
+            12,
+            9,
+            2,
+            29,
+            18,
+            30
+          ],
+          "eligible": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            8
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "P016",
+          "priority": 2,
+          "special": false,
+          "release": 60,
+          "deadline": 69,
+          "duration": 28,
+          "travel": [
+            14,
+            9,
+            23,
+            7,
+            25,
+            21,
+            12,
+            15,
+            5,
+            20
+          ],
+          "eligible": [
+            2,
+            6,
+            7
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P017",
+          "priority": 2,
+          "special": false,
+          "release": 44,
+          "deadline": 77,
+          "duration": 20,
+          "travel": [
+            5,
+            11,
+            19,
+            16,
+            21,
+            29,
+            20,
+            20,
+            2,
+            24
+          ],
+          "eligible": [
+            1,
+            2,
+            4,
+            5,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P018",
+          "priority": 4,
+          "special": false,
+          "release": 53,
+          "deadline": 111,
+          "duration": 59,
+          "travel": [
+            29,
+            13,
+            19,
+            19,
+            12,
+            12,
+            6,
+            28,
+            24,
+            27
+          ],
+          "eligible": [
+            0,
+            2,
+            3,
+            5,
+            7,
+            8
+          ],
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "P019",
+          "priority": 2,
+          "special": true,
+          "release": 48,
+          "deadline": 117,
+          "duration": 13,
+          "travel": [
+            21,
+            3,
+            22,
+            18,
+            15,
+            22,
+            17,
+            24,
+            13,
+            22
+          ],
+          "eligible": [
+            0,
+            4,
+            5,
+            7,
+            8,
+            9
+          ],
+          "demands": [
+            1,
+            1
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "h": 0,
+          "start": 60,
+          "duration": 26,
+          "special": false,
+          "demands": [
+            3,
+            0
+          ]
+        },
+        {
+          "h": 1,
+          "start": 60,
+          "duration": 8,
+          "special": false,
+          "demands": [
+            2,
+            0
+          ]
+        },
+        {
+          "h": 1,
+          "start": 60,
+          "duration": 68,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 2,
+          "start": 60,
+          "duration": 30,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 2,
+          "start": 60,
+          "duration": 12,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 3,
+          "start": 60,
+          "duration": 26,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ]
+        },
+        {
+          "h": 3,
+          "start": 60,
+          "duration": 17,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 4,
+          "start": 60,
+          "duration": 77,
+          "special": false,
+          "demands": [
+            3,
+            0
+          ]
+        },
+        {
+          "h": 5,
+          "start": 60,
+          "duration": 37,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 5,
+          "start": 60,
+          "duration": 7,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 6,
+          "start": 60,
+          "duration": 80,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 6,
+          "start": 60,
+          "duration": 57,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 7,
+          "start": 60,
+          "duration": 70,
+          "special": false,
+          "demands": [
+            4,
+            0
+          ]
+        },
+        {
+          "h": 8,
+          "start": 60,
+          "duration": 39,
+          "special": false,
+          "demands": [
+            3,
+            0
+          ]
+        },
+        {
+          "h": 8,
+          "start": 60,
+          "duration": 38,
+          "special": true,
+          "demands": [
+            0,
+            1
+          ]
+        },
+        {
+          "h": 9,
+          "start": 60,
+          "duration": 72,
+          "special": false,
+          "demands": [
+            5,
+            0
+          ]
+        }
+      ],
+      "fixed": {},
+      "destination_locks": {}
+    },
+    "patient_metadata": [
+      {
+        "id": "P000",
+        "priority_source": "expert",
+        "reported_priority": 2,
+        "ground_truth_priority": 2,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          1,
+          2,
+          4,
+          5,
+          7,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          1,
+          2,
+          4,
+          5,
+          8,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P001",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          2,
+          5,
+          6,
+          8
+        ],
+        "accepted_hospitals": [
+          2,
+          5,
+          6
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P002",
+        "priority_source": "expert",
+        "reported_priority": 4,
+        "ground_truth_priority": 4,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          2,
+          4,
+          6,
+          7,
+          9
+        ],
+        "accepted_hospitals": [
+          2,
+          4,
+          6,
+          7,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P003",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          2,
+          3,
+          4,
+          6,
+          7,
+          8
+        ],
+        "accepted_hospitals": [
+          2,
+          3,
+          6,
+          8
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P004",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          1,
+          4,
+          6,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          0,
+          6,
+          8,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P005",
+        "priority_source": "expert",
+        "reported_priority": 4,
+        "ground_truth_priority": 4,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          2,
+          5,
+          6,
+          7,
+          9
+        ],
+        "accepted_hospitals": [
+          2,
+          5,
+          6,
+          7,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P006",
+        "priority_source": "expert",
+        "reported_priority": 4,
+        "ground_truth_priority": 4,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          1,
+          4,
+          5,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          0,
+          1,
+          5,
+          8,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P007",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          1,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P008",
+        "priority_source": "expert",
+        "reported_priority": 2,
+        "ground_truth_priority": 2,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          1,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          1,
+          2,
+          3,
+          7,
+          8,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P009",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          1,
+          2,
+          3,
+          5,
+          7,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          1,
+          2,
+          3,
+          7,
+          8
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P010",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          1,
+          3,
+          9
+        ],
+        "accepted_hospitals": [
+          0,
+          1,
+          3,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P011",
+        "priority_source": "expert",
+        "reported_priority": 4,
+        "ground_truth_priority": 4,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          2,
+          3,
+          5,
+          6,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          0,
+          2,
+          3,
+          8
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P012",
+        "priority_source": "expert",
+        "reported_priority": 4,
+        "ground_truth_priority": 4,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          2,
+          4,
+          5,
+          6,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          0,
+          2,
+          4,
+          5,
+          6,
+          8,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P013",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          1,
+          3,
+          4,
+          6,
+          7,
+          9
+        ],
+        "accepted_hospitals": [
+          0,
+          1,
+          3,
+          4,
+          6,
+          7,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P014",
+        "priority_source": "expert",
+        "reported_priority": 1,
+        "ground_truth_priority": 1,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          1,
+          2,
+          5,
+          8
+        ],
+        "accepted_hospitals": [
+          0,
+          2,
+          5
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P015",
+        "priority_source": "expert",
+        "reported_priority": 2,
+        "ground_truth_priority": 2,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          7,
+          8
+        ],
+        "accepted_hospitals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          7,
+          8
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P016",
+        "priority_source": "expert",
+        "reported_priority": 2,
+        "ground_truth_priority": 2,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          2,
+          4,
+          6,
+          7,
+          8
+        ],
+        "accepted_hospitals": [
+          2,
+          6,
+          7
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P017",
+        "priority_source": "expert",
+        "reported_priority": 2,
+        "ground_truth_priority": 2,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          1,
+          2,
+          4,
+          5,
+          6,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          1,
+          2,
+          4,
+          5,
+          8,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P018",
+        "priority_source": "expert",
+        "reported_priority": 4,
+        "ground_truth_priority": 4,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          2,
+          3,
+          5,
+          7,
+          8
+        ],
+        "accepted_hospitals": [
+          0,
+          2,
+          3,
+          5,
+          7,
+          8
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      },
+      {
+        "id": "P019",
+        "priority_source": "expert",
+        "reported_priority": 2,
+        "ground_truth_priority": 2,
+        "state": "WAITING",
+        "compatible_hospitals": [
+          0,
+          1,
+          4,
+          5,
+          7,
+          8,
+          9
+        ],
+        "accepted_hospitals": [
+          0,
+          4,
+          5,
+          7,
+          8,
+          9
+        ],
+        "symptoms": "가상 실험 입력",
+        "resource_source": "synthetic"
+      }
+    ],
+    "uncertainty": [],
+    "evaluation": {
+      "oracle_label": null,
+      "policy_input": "observed",
+      "hidden_truth": "actual",
+      "note": "actual은 사후 검증 전용. 정책 입력이나 확정된 최적 정답으로 사용하지 않음"
+    }
+  },
+  {
+    "id": "GOLD-scarce_choice",
+    "kind": "golden",
+    "schema_version": 1,
+    "profile": "scarce_choice",
+    "description": "A는 두 병원, B는 H0만 가능: 전체 배정의 이점",
+    "seed": null,
+    "split": "regression",
+    "source": "synthetic",
+    "time_unit": "minute",
+    "observed": {
+      "version": 1,
+      "now": 0,
+      "horizon": 0,
+      "capacities": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "patients": [
+        {
+          "id": "A",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "B",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0
+          ]
+        }
+      ],
+      "fixed": {},
+      "destination_locks": {},
+      "blocks": []
+    },
+    "actual": {
+      "version": 1,
+      "now": 0,
+      "horizon": 0,
+      "capacities": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "patients": [
+        {
+          "id": "A",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "B",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0
+          ]
+        }
+      ],
+      "fixed": {},
+      "destination_locks": {},
+      "blocks": []
+    },
+    "expected": {
+      "assigned": 2,
+      "assignment": {
+        "A": 1,
+        "B": 0
+      }
+    }
+  },
+  {
+    "id": "GOLD-zero_capacity",
+    "kind": "golden",
+    "schema_version": 1,
+    "profile": "zero_capacity",
+    "description": "용량 0이면 배정하지 않음",
+    "seed": null,
+    "split": "regression",
+    "source": "synthetic",
+    "time_unit": "minute",
+    "observed": {
+      "version": 1,
+      "now": 0,
+      "horizon": 0,
+      "capacities": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "patients": [
+        {
+          "id": "A",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "B",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0,
+            1
+          ]
+        }
+      ],
+      "fixed": {},
+      "destination_locks": {},
+      "blocks": []
+    },
+    "actual": {
+      "version": 1,
+      "now": 0,
+      "horizon": 0,
+      "capacities": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "patients": [
+        {
+          "id": "A",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "B",
+          "priority": 4,
+          "special": false,
+          "demands": [
+            1,
+            0
+          ],
+          "release": 0,
+          "deadline": 0,
+          "duration": 1,
+          "travel": [
+            0,
+            0
+          ],
+          "eligible": [
+            0,
+            1
+          ]
+        }
+      ],
+      "fixed": {},
+      "destination_locks": {},
+      "blocks": []
+    },
+    "expected": {
+      "assigned": 0
+    }
+  }
+]
