@@ -8,6 +8,9 @@
 - 이동 중 목적지는 유지한다. 변경은 새 병원의 수용 확인 뒤에만 가능하다.
 모든 쓰기는 BEGIN IMMEDIATE 트랜잭션 안에서 검사와 반영을 함께 한다.
 """
+import math
+from datetime import date
+
 from .db import dumps, row, rows, transaction
 
 ACCEPT_TTL = 600        # 수용 응답 유효시간(초). 실험 설정값
@@ -148,7 +151,9 @@ def patient_summary(p):
                 danger_signs=p['danger_signs'], priority=p['priority'], priority_source=p['priority_source'],
                 effective_priority=effective_priority(p), required_capabilities=p['required_capabilities'],
                 resource_demands=p['resource_demands'], reporter_role=p['reporter_role'],
-                contact=p['contact'], state=p['state'], eta_at=p['eta_at'], version=p['version'])
+                contact=p['contact'], state=p['state'], eta_at=p['eta_at'], version=p['version'],
+                **{k: p.get(k) for k in ('name', 'birth', 'address', 'guardian', 'guardian_phone',
+                                        'consciousness', 'breathing')})
 
 
 # ---------------------------------------------------------------- 병원 정보
@@ -218,22 +223,44 @@ def list_hospitals(conn, now):
 def _clean_patient(payload, partial=False):
     out = {}
     if not partial or 'reporter_role' in payload:
-        _require(payload.get('reporter_role') in REPORTER_ROLES, 'INVALID', '입력자 구분(self/guardian/transporter) 필요')
+        _require(isinstance(payload.get('reporter_role'), str) and payload['reporter_role'] in REPORTER_ROLES,
+                 'INVALID', '입력자 구분(self/guardian/transporter) 필요')
         out['reporter_role'] = payload['reporter_role']
     if not partial:
         _require(payload.get('consent') is True, 'CONSENT_REQUIRED', '개인정보 수집 및 병원 전달 동의가 필요합니다')
         out['consent'] = 1
-    for k in ('relation', 'contact', 'symptoms'):
+    for k in ('relation', 'contact', 'symptoms', 'name', 'address', 'guardian', 'guardian_phone'):
         if k in payload:
             _require(payload[k] is None or isinstance(payload[k], str), 'INVALID', f'{k}는 문자열')
             out[k] = payload[k]
+    if 'birth' in payload:
+        value = payload['birth']
+        try:
+            valid = value is None or (isinstance(value, str) and date.fromisoformat(value).isoformat() == value)
+        except ValueError:
+            valid = False
+        _require(valid, 'INVALID', 'birth는 YYYY-MM-DD 또는 null')
+        out['birth'] = value
+    for key, values in (('consciousness', {'alert', 'impaired', 'unresponsive', 'unknown'}),
+                        ('breathing', {'normal', 'abnormal', 'absent', 'unknown'})):
+        if key in payload:
+            _require(payload[key] is None or (isinstance(payload[key], str) and payload[key] in values),
+                     'INVALID', f'{key} 값 오류')
+            out[key] = payload[key]
+    for key in ('treatment_duration_seconds', 'max_wait_seconds'):
+        if key in payload:
+            _require(payload[key] is None or (type(payload[key]) is int and 0 < payload[key] <= 86400),
+                     'INVALID', f'{key}는 1~86400 실험 설정값 또는 null')
+            out[key] = payload[key]
     for k in ('age', 'onset_at'):
         if k in payload:   # None은 '모르겠음' (P09)
             _require(payload[k] is None or (type(payload[k]) is int and payload[k] >= 0), 'INVALID', f'{k} 값 오류')
             out[k] = payload[k]
     for k in ('lat', 'lon'):
         if k in payload:
-            _require(payload[k] is None or isinstance(payload[k], (int, float)), 'INVALID', f'{k} 값 오류')
+            limit = 90 if k == 'lat' else 180
+            _require(payload[k] is None or (type(payload[k]) in (int, float) and math.isfinite(payload[k])
+                                           and -limit <= payload[k] <= limit), 'INVALID', f'{k} 값 오류')
             out[k] = payload[k]
     if 'extra' in payload:
         _require(isinstance(payload['extra'], dict), 'INVALID', 'extra는 객체')
@@ -251,8 +278,8 @@ def _clean_patient(payload, partial=False):
     if 'priority_source' in payload or 'priority' in payload:
         src = payload.get('priority_source', 'unknown')
         pr = payload.get('priority')
-        _require(src in PRIORITY_SOURCES, 'INVALID', 'priority_source 값 오류')
-        _require(pr is None or pr in PRIORITIES, 'INVALID', 'priority는 4/2/1 또는 null')
+        _require(isinstance(src, str) and src in PRIORITY_SOURCES, 'INVALID', 'priority_source 값 오류')
+        _require(pr is None or (type(pr) is int and pr in PRIORITIES), 'INVALID', 'priority는 4/2/1 또는 null')
         _require(src != 'expert' or pr is not None, 'INVALID', '전문가 평가는 priority가 필요합니다')
         out['priority'], out['priority_source'] = pr, src if pr is not None else 'unknown'
     return out
@@ -294,7 +321,7 @@ def patient_view(conn, pid, now):
     expire_acceptances(conn, now)
     p = _patient(conn, pid)
     p['effective_priority'] = effective_priority(p)
-    p['call_119'] = bool(p['danger_signs'])   # 위험 신호가 있으면 병원 응답을 기다리지 않도록 안내 (P10)
+    p['call_119'] = bool(p['danger_signs']) or p.get('consciousness') == 'unresponsive' or p.get('breathing') in ('abnormal', 'absent')
     inquiries = rows(conn.execute('SELECT i.*, h.name AS hospital_name, h.phone AS hospital_phone '
                                   'FROM inquiries i JOIN hospitals h ON h.id=i.hospital_id '
                                   'WHERE patient_id=? ORDER BY i.id', (pid,)))
@@ -549,16 +576,26 @@ def confirm_destination(conn, now, pid, iid, actor='patient_web'):
     return patient_view(conn, pid, now)
 
 
+def _origin(p, lat, lon):
+    _require((lat is None) == (lon is None), 'INVALID', '위도와 경도를 함께 보내세요')
+    origin = (lat, lon) if lat is not None else (p['lat'], p['lon'])
+    _require(None not in origin, 'LOCATION_REQUIRED', '현재 위치가 필요합니다')
+    _require(all(type(v) in (int, float) and math.isfinite(v) and -limit <= v <= limit
+                 for v, limit in zip(origin, (90, 180))), 'INVALID', '위치 값 오류')
+    return origin
+
+
 def depart(conn, now, pid, estimator, lat=None, lon=None, actor='patient_web'):
     """이동 시작과 도착예정시간 전달 (P31, P34)."""
+    before = _patient(conn, pid)
+    _require(before['state'] == 'CONFIRMED', 'INVALID_STATE', '목적지 확정 후 출발할 수 있습니다', 409)
+    origin = _origin(before, lat, lon)
+    h = _hospital(conn, before['destination_hospital_id'])
+    travel = estimator.estimate(origin, (h['lat'], h['lon']))
+    eta = now + travel['duration_seconds']
     with transaction(conn):
         p = _patient(conn, pid)
-        _require(p['state'] == 'CONFIRMED', 'INVALID_STATE', '목적지 확정 후 출발할 수 있습니다', 409)
-        origin = (lat, lon) if lat is not None and lon is not None else (p['lat'], p['lon'])
-        _require(None not in origin, 'LOCATION_REQUIRED', '출발 위치가 필요합니다')
-        h = _hospital(conn, p['destination_hospital_id'])
-        travel = estimator.estimate(origin, (h['lat'], h['lon']))
-        eta = now + travel['duration_seconds']
+        _require(p['version'] == before['version'], 'CONFLICT', '이동시간 계산 중 환자 상태가 바뀌었습니다', 409)
         conn.execute("UPDATE patients SET state='IN_TRANSIT', departed_at=?, eta_at=?, lat=?, lon=?, "
                      "version=version+1 WHERE id=?", (now, eta, origin[0], origin[1], pid))
         log(conn, now, actor, 'departed', pid, h['id'], eta_at=eta, provider=travel['provider'])
@@ -567,19 +604,25 @@ def depart(conn, now, pid, estimator, lat=None, lon=None, actor='patient_web'):
 
 def change_destination(conn, now, pid, iid, estimator, lat=None, lon=None, actor='patient_web'):
     """조정 필요 상태에서 새 병원의 수용 확인 뒤에만 목적지를 바꾼다 (P38, A25 원칙)."""
+    before = _patient(conn, pid)
+    _require(before['state'] in ACTIVE_TRANSPORT, 'INVALID_STATE', '확정·이동 중인 환자만 변경합니다', 409)
+    _require(before['needs_adjustment'], 'NOT_REQUESTED', '병원의 조정 요청이 없으면 목적지를 바꾸지 않습니다', 409)
+    inquiry = _inquiry(conn, iid)
+    _require(inquiry['hospital_id'] != before['destination_hospital_id'], 'INVALID', '같은 병원입니다')
+    _check_acceptance(conn, now, before, inquiry)
+    eta = None
+    if before['state'] == 'IN_TRANSIT':
+        origin = _origin(before, lat, lon)
+        h = _hospital(conn, inquiry['hospital_id'])
+        eta = now + estimator.estimate(origin, (h['lat'], h['lon']))['duration_seconds']
     with transaction(conn):
         p = _patient(conn, pid)
-        _require(p['state'] in ACTIVE_TRANSPORT, 'INVALID_STATE', '확정·이동 중인 환자만 변경합니다', 409)
-        _require(p['needs_adjustment'], 'NOT_REQUESTED', '병원의 조정 요청이 없으면 목적지를 바꾸지 않습니다', 409)
+        _require(p['version'] == before['version'] and p['needs_adjustment'], 'CONFLICT',
+                 '이동시간 계산 중 환자 상태가 바뀌었습니다', 409)
         q = _inquiry(conn, iid)
-        _require(q['hospital_id'] != p['destination_hospital_id'], 'INVALID', '같은 병원입니다')
         _check_acceptance(conn, now, p, q)
         old = p['destination_hospital_id']
-        eta = None
         if p['state'] == 'IN_TRANSIT':
-            origin = (lat, lon) if lat is not None and lon is not None else (p['lat'], p['lon'])
-            h = _hospital(conn, q['hospital_id'])
-            eta = now + estimator.estimate(origin, (h['lat'], h['lon']))['duration_seconds']
             conn.execute('UPDATE patients SET lat=?, lon=? WHERE id=?', (origin[0], origin[1], pid))
         conn.execute('UPDATE patients SET destination_hospital_id=?, eta_at=?, needs_adjustment=0, '
                      'adjustment_note=NULL, version=version+1 WHERE id=?', (q['hospital_id'], eta, pid))

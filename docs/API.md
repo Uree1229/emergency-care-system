@@ -251,3 +251,98 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 | 재문의 최소 간격 | 120초 | `service.RETRY_MIN` |
 | 오래된 정보 기준 | 600초 | `service.STALE_AFTER` |
 | 이동시간 추정 | 직선거리 × 1.3, 40km/h | `travel.py` (카카오 키가 있으면 실제 길찾기 사용) |
+| 가상 치료 소요시간 / 최대 대기 | 1800초 / 3600초 | `solver_adapter.py` |
+| 계획 기간 / 시간 단위 | 120분 / 1분 | `solver_adapter.py` |
+| 추천 최대 유효시간 | 30초 (수용 응답·정보 만료가 빠르면 더 짧음) | `planning.py` |
+| 솔버 프로세스 제한시간 | 3초 | `--solver-seconds` |
+
+## 9. 환자 화면 필드 매핑 (2026-10-08 추가)
+
+등록·응급증상 화면의 정보를 하나의 `POST /api/patients` JSON으로 보내세요. 별도의 `emergency.db`나 URL 쿼리에 환자 정보를 저장하지 않고, 응답의 `id`로 공통 서버를 조회합니다. 모르는 값과 빈 날짜는 `null`로 변환하세요.
+
+| 화면 필드 | API 필드 | 값 |
+|---|---|---|
+| 이름 / 생년월일 / 주소 | `name` / `birth` / `address` | 문자열 또는 null; 생년월일은 YYYY-MM-DD |
+| 전화번호(phone) | `contact` | 문자열 또는 null |
+| 보호자 / 보호자 전화번호 | `guardian` / `guardian_phone` | 문자열 또는 null |
+| 의식 상태 | `consciousness` | `alert`, `impaired`, `unresponsive`, `unknown` 또는 null |
+| 호흡 상태 | `breathing` | `normal`, `abnormal`, `absent`, `unknown` 또는 null |
+| 증상 / 위험 신호 | `symptoms` / `danger_signs` | 문자열 / 문자열 목록 |
+| 입력자 / 동의 | `reporter_role` / `consent` | `self`, `guardian`, `transporter` / true |
+| 현재 위치 | `lat` / `lon` | 위도 -90~90, 경도 -180~180, 유한한 숫자 |
+
+모르는 의식·호흡을 정상 또는 비정상으로 단정하지 마세요. `unresponsive`, `abnormal`, `absent` 또는 위험 신호가 입력되면 `call_119=true`입니다. 전문가 확인 전 우선순위는 실험상 보수적으로 4로 다루며 진단 결과가 아닙니다. 이 프로토타입은 전문가 신원을 인증하지 않습니다.
+
+`treatment_duration_seconds`, `max_wait_seconds`는 선택적인 1~86400 정수 또는 null입니다. 일반 사용자 화면에서 임상 기준처럼 제시하지 말고 가상 시나리오 설정에만 사용하세요. 생략하면 각각 1800초, 3600초를 씁니다. 환자 상세와 병원 문의의 `patient`에 프로필·의식·호흡 필드를 전달합니다.
+
+## 10. 배정 결과 API (2026-10-08 추가)
+
+서버 실행 시 배정 워커가 함께 시작합니다. 환자·문의·병원 자원·제한·이송 상태가 바뀌면 최신 입력을 DB에 기록한 뒤 백그라운드에서 다시 계산합니다. 계산 중에도 API는 상태 조회와 변경을 처리합니다.
+
+| 용도 | 메서드·경로 | 본문 |
+|---|---|---|
+| 환자별 추천 조회 | `GET /api/patients/{pid}/recommendation` | 없음; 2~3초 폴링 |
+| 수동 재계산 요청 | `POST /api/patients/{pid}/replan` | `{}`; 폴링마다 호출하지 않음 |
+| 병원별 예정 환자 재평가 | 기존 `GET /api/hospitals/{hid}/incoming` | 추가된 `planning` 배열 사용 |
+
+모두 HTTP 200 JSON입니다. 작업 대기·만료는 HTTP 오류가 아니라 본문의 `status`로 구분합니다.
+
+```json
+{
+  "status": "READY",
+  "revision": 42,
+  "created_at": 1790000020,
+  "expires_at": 1790000050,
+  "result": {
+    "status": "RECOMMENDED",
+    "hospital_id": "H02",
+    "inquiry_id": 5,
+    "destination_locked": false,
+    "planned_start_at": 1790000160,
+    "planned_end_at": 1790001960,
+    "wait_seconds": 160,
+    "confirmable_now": true,
+    "accepted_alternatives": [],
+    "warnings": ["PRIORITY_UNVERIFIED"],
+    "travel": {"duration_seconds": 120, "provider": "synthetic"},
+    "assumptions": {
+      "parameter_source": "experiment",
+      "treatment_duration_seconds": 1800,
+      "max_wait_seconds": 3600,
+      "occupied_release": "unknown_blocked_for_horizon"
+    },
+    "solver": {"status": "OPTIMAL", "fallback": false, "lex_optimal": true}
+  }
+}
+```
+
+| 바깥 `status` | 화면 처리 |
+|---|---|
+| `QUEUED` | 계산 대기 표시; `result=null` |
+| `READY` | 아래 결과 상태·예상시각·사유 표시 |
+| `STALE` | 이전 추천을 사용하지 않고 재계산 대기; `result=null` |
+| `ERROR` | 계산 실패·재시도 안내; `result=null` |
+| `NOT_APPLICABLE` | 도착·퇴실·취소 상태. 배정 폴링 종료; `patient_state` 참고 |
+
+| `result.status` | 의미 |
+|---|---|
+| `RECOMMENDED` | 유효한 수용 응답을 받은 병원 중 가상 시간 제약을 만족하는 배정안 |
+| `UNASSIGNED` | 유효한 수용 병원이 없거나 대기·자원 제약으로 미배정 |
+| `DESTINATION_HELD` | 기존 목적지를 유지하면서 예상 치료 시작시각 재평가 |
+| `NEEDS_REVIEW` | 기존 자원 충돌·기한 초과·병원 조정 요청·지원하지 않는 자원 등 재확인 필요 |
+
+수용 응답과 추천은 자원 예약이 아닙니다. `confirmable_now=true`는 해당 스냅샷에서 현재 수량 검사를 통과할 수 있다는 뜻이며 자리를 보장하지 않습니다. 사용자가 확정을 누르면 기존 `POST .../confirm`에 `inquiry_id`를 보내고, 서버가 현재 수용 응답과 자원 수량을 다시 검사합니다. 미래 시간대의 자리만 가능한 안은 `confirmable_now=false`일 수 있습니다.
+
+이동 중 환자는 목적지를 자동 변경하거나 미배정으로 처리하지 않습니다. 병원이 조정 요청을 한 경우 `accepted_alternatives`에 새 수용 응답이 있는 대체 병원을 제공합니다. 대체 병원 목록은 최적 순위·예약이 아니며, 이동 중에는 현재 위치를 받아 기존 `POST .../change-destination`에 전달하세요. 서버가 확정 직전에 다시 검사합니다.
+
+병원 `incoming.planning`의 각 항목은 `{patient_id, status, revision, result, ...}` 형태입니다. 기존 `affected`의 수량 기준 판정과 함께 재평가 상태를 보여 주세요. 대표 경고는 `PRIORITY_UNVERIFIED`, `WAIT_LIMIT_EXCEEDED`, `HOSPITAL_REQUESTED_ADJUSTMENT`, `DESTINATION_RESTRICTED`, `UNSUPPORTED_RESOURCE`, `NO_VALID_ACCEPTED_HOSPITAL`입니다.
+
+### 1차 구현의 범위
+
+- 기본 목표는 중증군→중간군→낮은군의 미배정 수, 이어서 각 군의 대기시간을 순서대로 최소화합니다. 미확인 중증도는 보수적으로 높은 군에 포함합니다.
+- `ed_bed`, `special_team`의 양·시간 제약을 지원합니다. 다른 자원은 별도 모델이 필요하므로 재확인 결과를 제공합니다.
+- 실제 점유 환자의 종료시각은 없으므로 계획 기간 전체를 차단합니다. 도착을 치료 시작으로 단정하지 않습니다.
+- 기존 목적지가 실행 불가능하면 해당 환자의 목적지·예정 수요를 DB에 유지하고, 전체 계획을 재확인 대상으로 반환합니다.
+- 솔버 제한시간 내 유효한 해가 없으면 순차 배정안으로 대체합니다. 순차안도 기존 목적지를 보존할 수 없으면 재확인 상태를 반환합니다. 제한시간은 솔버 프로세스에 적용하며 입력 수집·순차안 계산은 별도입니다.
+- 계산 전후 DB 버전과 수용 응답·자원 정보 만료를 검사합니다. 오래된 결과는 저장하지 않으며 재계산합니다. 시연 크기 제한은 모델 환자 64명, 병원 32곳입니다.
+- `--no-planner`로 워커를 끈 상태에서는 재계산 요청이 처리되지 않습니다. 독립 워커 서비스·실제 의료기관 검증·B2 비교는 후속 과제입니다.

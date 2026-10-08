@@ -9,10 +9,11 @@ import json
 import re
 import time
 import traceback
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import db, service, synthetic
+from . import db, service, synthetic, planning
 from .travel import TravelEstimator
 
 STATIC = Path(__file__).parent / 'static'
@@ -72,7 +73,8 @@ def _(ctx, iid):
 @route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/incoming')
 def _(ctx, hid):
     return dict(incoming=service.incoming(ctx.conn, ctx.now, hid),
-                affected=service.affected_patients(ctx.conn, ctx.now, hid))
+                affected=service.affected_patients(ctx.conn, ctx.now, hid),
+                planning=planning.hospital_results(ctx.conn, ctx.now, hid))
 
 
 @route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/external-arrivals')
@@ -98,7 +100,7 @@ def _(ctx, hid, pid, act):
 @route('POST', r'/api/patients')
 def _(ctx):
     b = dict(ctx.body)
-    pid = b.pop('id', None) or f'P-{int(ctx.now * 1000) % 10**9:09d}'
+    pid = b.pop('id', None) or 'P-' + uuid.uuid4().hex
     return service.create_patient(ctx.conn, ctx.now, pid, b)
 
 
@@ -115,6 +117,16 @@ def _(ctx, pid):
 @route('GET', r'/api/patients/(?P<pid>[\w-]+)/candidates')
 def _(ctx, pid):
     return service.candidates(ctx.conn, ctx.now, pid, ctx.estimator)
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/recommendation')
+def _(ctx, pid):
+    return planning.patient_result(ctx.conn, ctx.now, pid)
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/replan')
+def _(ctx, pid):
+    return planning.request(ctx.conn, ctx.now, pid)
 
 
 @route('POST', r'/api/patients/(?P<pid>[\w-]+)/inquiries')
@@ -250,7 +262,11 @@ def main():
     ap.add_argument('--scenario', choices=['inquiry', 'accepted', 'in_transit', 'sudden'],
                     help='--seed 후 시연 시나리오를 이 단계까지 만든다 (server/scenario.py)')
     ap.add_argument('--cors-origin', default='*', help="허용할 화면 Origin. 'none'이면 끔")
+    ap.add_argument('--no-planner', action='store_true', help='배정 워커를 끈다 (UI 단독 개발용)')
+    ap.add_argument('--solver-seconds', type=float, default=3, help='솔버 프로세스 제한시간; 0은 순차 배정만')
     args = ap.parse_args()
+    if not 0 <= args.solver_seconds <= 30:
+        ap.error('--solver-seconds는 0~30초 사이여야 합니다')
     if args.scenario and not args.seed:
         ap.error('--scenario는 --seed와 함께 쓰세요')
     Path(args.db).parent.mkdir(parents=True, exist_ok=True)
@@ -265,10 +281,22 @@ def main():
         from . import scenario
         scenario.build(conn, int(time.time()), args.scenario)
     conn.close()
+    estimator = TravelEstimator()
     server = ThreadingHTTPServer((args.host, args.port), make_handler(
-        args.db, TravelEstimator(), cors_origin=None if args.cors_origin == 'none' else args.cors_origin))
+        args.db, estimator, cors_origin=None if args.cors_origin == 'none' else args.cors_origin))
+    from .worker import Worker
+    worker = None if args.no_planner else Worker(args.db, estimator, args.solver_seconds)
+    if worker:
+        worker.start()
     print(f'http://{args.host}:{args.port}  (DB: {args.db})')
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if worker:
+            worker.stop()
+        server.server_close()
 
 
 if __name__ == '__main__':
