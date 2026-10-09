@@ -1,0 +1,280 @@
+{
+ "config": {
+  "horizon": 240,
+  "tail": 600,
+  "arrival_rate": 0.15,
+  "walkin_rate": 0.006,
+  "resp_median": 3.0,
+  "resp_sigma": 0.7,
+  "nonresponse": 0.2,
+  "timeout": 10,
+  "k_parallel": 3,
+  "retry_wait": 5,
+  "duration_mean": 45,
+  "init_occupancy": 0.6,
+  "rural_share": 0.1,
+  "allowance": {
+   "4": 30,
+   "2": 60,
+   "1": 120
+  }
+ },
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24,
+  25,
+  26,
+  27,
+  28,
+  29,
+  30
+ ],
+ "results": {
+  "미응답 52% (2025년 119구급스마트시스템 응답률 47.96% 반영)": {
+   "mean_wait": {
+    "label": "요청→치료 시작 평균(분)",
+    "n": 30,
+    "b0_mean": 42.146598750931624,
+    "b1_mean": 33.071742952778564,
+    "diff_mean": -9.074855798153063,
+    "diff_median": -9.224533715925395,
+    "diff_sd": 2.2038137760686154,
+    "b1_better_share": 1.0,
+    "tie_share": 0.0
+   },
+   "p90_wait": {
+    "label": "요청→치료 시작 90백분위(분)",
+    "n": 30,
+    "b0_mean": 71.66666666666667,
+    "b1_mean": 52.7,
+    "diff_mean": -18.966666666666665,
+    "diff_median": -19.5,
+    "diff_sd": 6.445973527144187,
+    "b1_better_share": 1.0,
+    "tie_share": 0.0
+   },
+   "g4.mean_wait": {
+    "label": "높음 군 평균 대기(분)",
+    "n": 30,
+    "b0_mean": 43.06490222740223,
+    "b1_mean": 33.794571724571725,
+    "diff_mean": -9.270330502830504,
+    "diff_median": -9.293650793650793,
+    "diff_sd": 4.044345970053373,
+    "b1_better_share": 0.9666666666666667,
+    "tie_share": 0.0
+   },
+   "g4.over_allowance": {
+    "label": "높음 군 허용 시간 초과(명)",
+    "n": 30,
+    "b0_mean": 5.766666666666667,
+    "b1_mean": 4.666666666666667,
+    "diff_mean": -1.1,
+    "diff_median": -1.0,
+    "diff_sd": 0.9948141396330237,
+    "b1_better_share": 0.7333333333333333,
+    "tie_share": 0.26666666666666666
+   },
+   "g2.over_allowance": {
+    "label": "중간 군 허용 시간 초과(명)",
+    "n": 30,
+    "b0_mean": 2.9,
+    "b1_mean": 0.7333333333333333,
+    "diff_mean": -2.1666666666666665,
+    "diff_median": -1.5,
+    "diff_sd": 1.8210139906170377,
+    "b1_better_share": 0.9,
+    "tie_share": 0.1
+   },
+   "untreated": {
+    "label": "관찰 종료까지 미치료(명)",
+    "n": 30,
+    "b0_mean": 0,
+    "b1_mean": 0,
+    "diff_mean": 0,
+    "diff_median": 0.0,
+    "diff_sd": 0.0,
+    "b1_better_share": 0.0,
+    "tie_share": 1.0
+   },
+   "time_to_commit": {
+    "label": "요청→목적지 확정 평균(분)",
+    "n": 30,
+    "b0_mean": 16.751255557541903,
+    "b1_mean": 6.1957692552595915,
+    "diff_mean": -10.555486302282311,
+    "diff_median": -10.478900255754477,
+    "diff_sd": 2.01574090637499,
+    "b1_better_share": 1.0,
+    "tie_share": 0.0
+   },
+   "inquiries": {
+    "label": "병원 문의 건수(병원 부담)",
+    "n": 30,
+    "b0_mean": 80.3,
+    "b1_mean": 125.4,
+    "diff_mean": 45.1,
+    "diff_median": 43.5,
+    "diff_sd": 9.128772248151483,
+    "b1_better_share": 0.0,
+    "tie_share": 0.0
+   },
+   "redirects": {
+    "label": "목적지 변경(건)",
+    "n": 30,
+    "b0_mean": 0,
+    "b1_mean": 0.06666666666666667,
+    "diff_mean": 0.06666666666666667,
+    "diff_median": 0.0,
+    "diff_sd": 0.2537081317024624,
+    "b1_better_share": 0.0,
+    "tie_share": 0.9333333333333333
+   },
+   "extra_travel": {
+    "label": "목적지 변경으로 늘어난 도착시각 합(분)",
+    "n": 30,
+    "b0_mean": 0,
+    "b1_mean": 0.8333333333333334,
+    "diff_mean": 0.8333333333333334,
+    "diff_median": 0.0,
+    "diff_sd": 3.195722716094267,
+    "b1_better_share": 0.0,
+    "tie_share": 0.9333333333333333
+   }
+  },
+  "미응답 52% + 돌발 유입 2배": {
+   "mean_wait": {
+    "label": "요청→치료 시작 평균(분)",
+    "n": 30,
+    "b0_mean": 42.786327553485734,
+    "b1_mean": 33.64567800946622,
+    "diff_mean": -9.140649544019519,
+    "diff_median": -9.239331436699857,
+    "diff_sd": 2.225361700547492,
+    "b1_better_share": 1.0,
+    "tie_share": 0.0
+   },
+   "p90_wait": {
+    "label": "요청→치료 시작 90백분위(분)",
+    "n": 30,
+    "b0_mean": 71.96666666666667,
+    "b1_mean": 54.2,
+    "diff_mean": -17.766666666666666,
+    "diff_median": -19.0,
+    "diff_sd": 7.069523387014165,
+    "b1_better_share": 1.0,
+    "tie_share": 0.0
+   },
+   "g4.mean_wait": {
+    "label": "높음 군 평균 대기(분)",
+    "n": 30,
+    "b0_mean": 43.17996114996115,
+    "b1_mean": 34.50388343138343,
+    "diff_mean": -8.67607771857772,
+    "diff_median": -9.125,
+    "diff_sd": 4.3397554177114115,
+    "b1_better_share": 0.9333333333333333,
+    "tie_share": 0.0
+   },
+   "g4.over_allowance": {
+    "label": "높음 군 허용 시간 초과(명)",
+    "n": 30,
+    "b0_mean": 5.733333333333333,
+    "b1_mean": 4.733333333333333,
+    "diff_mean": -1,
+    "diff_median": -1.0,
+    "diff_sd": 0.982607368881035,
+    "b1_better_share": 0.6666666666666666,
+    "tie_share": 0.3333333333333333
+   },
+   "g2.over_allowance": {
+    "label": "중간 군 허용 시간 초과(명)",
+    "n": 30,
+    "b0_mean": 3,
+    "b1_mean": 0.8,
+    "diff_mean": -2.2,
+    "diff_median": -2.0,
+    "diff_sd": 1.749876842957024,
+    "b1_better_share": 0.9,
+    "tie_share": 0.1
+   },
+   "untreated": {
+    "label": "관찰 종료까지 미치료(명)",
+    "n": 30,
+    "b0_mean": 0,
+    "b1_mean": 0,
+    "diff_mean": 0,
+    "diff_median": 0.0,
+    "diff_sd": 0.0,
+    "b1_better_share": 0.0,
+    "tie_share": 1.0
+   },
+   "time_to_commit": {
+    "label": "요청→목적지 확정 평균(분)",
+    "n": 30,
+    "b0_mean": 17.00469037921505,
+    "b1_mean": 6.367385075194825,
+    "diff_mean": -10.637305304020224,
+    "diff_median": -10.691176470588236,
+    "diff_sd": 2.0200238555767553,
+    "b1_better_share": 1.0,
+    "tie_share": 0.0
+   },
+   "inquiries": {
+    "label": "병원 문의 건수(병원 부담)",
+    "n": 30,
+    "b0_mean": 81.06666666666666,
+    "b1_mean": 127.26666666666667,
+    "diff_mean": 46.2,
+    "diff_median": 44.0,
+    "diff_sd": 10.568006369258567,
+    "b1_better_share": 0.0,
+    "tie_share": 0.0
+   },
+   "redirects": {
+    "label": "목적지 변경(건)",
+    "n": 30,
+    "b0_mean": 0,
+    "b1_mean": 0.23333333333333334,
+    "diff_mean": 0.23333333333333334,
+    "diff_median": 0.0,
+    "diff_sd": 0.4301830671520763,
+    "b1_better_share": 0.0,
+    "tie_share": 0.7666666666666667
+   },
+   "extra_travel": {
+    "label": "목적지 변경으로 늘어난 도착시각 합(분)",
+    "n": 30,
+    "b0_mean": 0,
+    "b1_mean": 7.933333333333334,
+    "diff_mean": 7.933333333333334,
+    "diff_median": 0.0,
+    "diff_sd": 18.305705410464594,
+    "b1_better_share": 0.0,
+    "tie_share": 0.7666666666666667
+   }
+  }
+ }
+}
