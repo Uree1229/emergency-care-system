@@ -14,7 +14,7 @@
 | 화면과 서버를 연결할 때 | [공통 서버 API 명세](API.md), [서버 구현 안내](../server/README.md) |
 | 가상 실험의 비교 결과 | [B0/B1 결과](../simulation_results/summary.md), [솔버 결과 설명](../optimization_results/README.md) |
 | 문제 배경·제안서 | [최적화 문제 정의](design/최적화_문제정의_v1.md), [현재 제안서](proposals/current/캡스톤_프로젝트_제안서_병원응답보강_20260923.docx), [이전 제안서](proposals/archive/) |
-| 원인 조사와 검토 자료 | [이송체계 전국 확대의 남은 문제와 해결방안](research/이송체계_전국확대_문제점과_해결방안.md), [시범사업 문제점과 솔버 실험](research/응급의료_시범사업_문제점과_솔버실험.md), `research/`의 Word 조사자료 |
+| 원인 조사와 검토 자료 | [호남권 이송체계 공개정보 정리](research/호남권_이송체계_공개정보_정리.md), [이송체계 전국 확대의 남은 문제와 해결방안](research/이송체계_전국확대_문제점과_해결방안.md), [시범사업 문제점과 솔버 실험](research/응급의료_시범사업_문제점과_솔버실험.md), `research/`의 Word 조사자료 |
 | 제출 산출물 | [멘토링 보고서](reports/캡스톤_멘토링_보고서_작성본.docx), [최종보고서 뼈대](reports/캡스톤_최종보고서_뼈대.docx) |
 | USB 백업에서 작업할 때 | [USB 시작 안내](../USB_시작안내.md), [로컬 작업환경](../LOCAL_SETUP.md) |
 
