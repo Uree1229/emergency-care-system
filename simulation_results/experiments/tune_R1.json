@@ -1,0 +1,4118 @@
+{
+ "stage": "tune",
+ "rows": [
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 0,
+    "near_minutes": null
+   },
+   "name": "R1_k1_w0",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 0,
+    "near_minutes": 15
+   },
+   "name": "R1_k1_w0_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 0,
+    "near_minutes": 25
+   },
+   "name": "R1_k1_w0_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 1,
+    "near_minutes": null
+   },
+   "name": "R1_k1_w1",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 1,
+    "near_minutes": 15
+   },
+   "name": "R1_k1_w1_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 1,
+    "near_minutes": 25
+   },
+   "name": "R1_k1_w1_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 2,
+    "near_minutes": null
+   },
+   "name": "R1_k1_w2",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 2,
+    "near_minutes": 15
+   },
+   "name": "R1_k1_w2_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 2,
+    "near_minutes": 25
+   },
+   "name": "R1_k1_w2_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 4,
+    "near_minutes": null
+   },
+   "name": "R1_k1_w4",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 4,
+    "near_minutes": 15
+   },
+   "name": "R1_k1_w4_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 1,
+    "wait": 4,
+    "near_minutes": 25
+   },
+   "name": "R1_k1_w4_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.661982334467794,
+     "inquiries": 1.315821246418239,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.39955730163392,
+     "inquiries": 1.314588081435074,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 41.91465871863649,
+     "inquiries": 2.216796735916559,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 33.133260725410906,
+     "inquiries": 1.7660077798291798,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.6882992895079,
+     "inquiries": 1.3725942111509104,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 38.18013232303796,
+     "inquiries": 2.0307989303236296,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.4799375222552271,
+    "slow_response": 2.271472059128289,
+    "low_response": 8.678120017769757,
+    "surge": 2.172238172126878,
+    "resource_change": 1.6807634300319059,
+    "compound": 5.4544117820522615
+   },
+   "max_regret": 8.678120017769757,
+   "mean_inquiries": 1.6694344975122652
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 0,
+    "near_minutes": null
+   },
+   "name": "R1_k2_w0",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.360293549629436,
+     "inquiries": 2.1146659094991893,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.291304850163097,
+     "inquiries": 2.1064468770696307,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.003241093703686,
+     "inquiries": 2.860012942390591,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.133797773511965,
+     "inquiries": 2.531297210196993,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.1781010212987,
+     "inquiries": 2.152478328532593,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.68113471900793,
+     "inquiries": 2.7494960144787357,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.17824873741686886,
+    "slow_response": 0.16321960765746724,
+    "low_response": 1.7667023928369545,
+    "surge": 0.1727752202279369,
+    "resource_change": 0.17056516182270798,
+    "compound": 0.9554141780222309
+   },
+   "max_regret": 1.7667023928369545,
+   "mean_inquiries": 2.419066213694622
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 0,
+    "near_minutes": 15
+   },
+   "name": "R1_k2_w0_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.182044812212567,
+     "inquiries": 1.9732458001831086,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.12808524250563,
+     "inquiries": 1.96502676775355,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.52191045949488,
+     "inquiries": 2.771296914941614,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.109304410942826,
+     "inquiries": 2.4188406904226154,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.007535859475993,
+     "inquiries": 2.0189154957784834,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.182546037153294,
+     "inquiries": 2.671119253794533,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.0,
+    "slow_response": 0.0,
+    "low_response": 2.285371758628152,
+    "surge": 0.1482818576587981,
+    "resource_change": 0.0,
+    "compound": 1.4568254961675962
+   },
+   "max_regret": 2.285371758628152,
+   "mean_inquiries": 2.303074153812317
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 0,
+    "near_minutes": 25
+   },
+   "name": "R1_k2_w0_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.248834798702973,
+     "inquiries": 1.9582544029273845,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.292777373069434,
+     "inquiries": 1.9507761112385664,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.75868738873195,
+     "inquiries": 2.7770053312863694,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.20139618275659,
+     "inquiries": 2.41630299467834,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.135913703804523,
+     "inquiries": 2.015247455815304,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.1081060004079,
+     "inquiries": 2.650148324161278,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.0667899864904058,
+    "slow_response": 0.16469213056380383,
+    "low_response": 2.5221486878652186,
+    "surge": 0.24037362947256113,
+    "resource_change": 0.12837784432852928,
+    "compound": 1.3823854594222027
+   },
+   "max_regret": 2.5221486878652186,
+   "mean_inquiries": 2.2946224366845405
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 1,
+    "near_minutes": null
+   },
+   "name": "R1_k2_w1",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.59247019329299,
+     "inquiries": 2.1171375677603215,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.84567628436235,
+     "inquiries": 2.1082486788714325,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.63534135785388,
+     "inquiries": 2.861706832287748,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.61384664284802,
+     "inquiries": 2.5272042500283205,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.403809681674687,
+     "inquiries": 2.15024901788223,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.42126645177322,
+     "inquiries": 2.7631344769890847,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.41042538108042237,
+    "slow_response": 0.7175910418567213,
+    "low_response": 2.398802656987151,
+    "surge": 0.6528240895639925,
+    "resource_change": 0.3962738221986939,
+    "compound": 1.6955459107875228
+   },
+   "max_regret": 2.398802656987151,
+   "mean_inquiries": 2.4212801373031896
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 1,
+    "near_minutes": 15
+   },
+   "name": "R1_k2_w1_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.603097805610354,
+     "inquiries": 1.9759358586626408,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.637296074926194,
+     "inquiries": 1.9668285695553518,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 36.152817046476336,
+     "inquiries": 2.7711890030369686,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.544529844291862,
+     "inquiries": 2.411547027176816,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.35047996767007,
+     "inquiries": 2.0183967114439096,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.70137903191913,
+     "inquiries": 2.6628680273209624,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.4210529933977867,
+    "slow_response": 0.509210832420564,
+    "low_response": 2.916278345609605,
+    "surge": 0.5835072910078338,
+    "resource_change": 0.34294410819407517,
+    "compound": 1.9756584909334336
+   },
+   "max_regret": 2.916278345609605,
+   "mean_inquiries": 2.3011275328661083
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 1,
+    "near_minutes": 25
+   },
+   "name": "R1_k2_w1_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.675211395895996,
+     "inquiries": 1.9624259428883981,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.82010778013331,
+     "inquiries": 1.9507761112385664,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 36.34354847595861,
+     "inquiries": 2.775250945321457,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.81081123408724,
+     "inquiries": 2.4374132380403086,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.52591332680634,
+     "inquiries": 2.0140780866854087,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.73990949856796,
+     "inquiries": 2.6599416817178634,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.49316658368342914,
+    "slow_response": 0.692022537627679,
+    "low_response": 3.107009775091882,
+    "surge": 0.8497886808032113,
+    "resource_change": 0.5183774673303461,
+    "compound": 2.014188957582263
+   },
+   "max_regret": 3.107009775091882,
+   "mean_inquiries": 2.2999810009820005
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 2,
+    "near_minutes": null
+   },
+   "name": "R1_k2_w2",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.90482685047149,
+     "inquiries": 2.1149153455380993,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.227499772901986,
+     "inquiries": 2.1082486788714325,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 36.23411352585699,
+     "inquiries": 2.8602253508062665,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.00499866916533,
+     "inquiries": 2.5395569072384023,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.795375108575914,
+     "inquiries": 2.153607734990947,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.945741059712844,
+     "inquiries": 2.7604258464079106,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.7227820382589236,
+    "slow_response": 1.0994145303963556,
+    "low_response": 2.9975748249902594,
+    "surge": 1.0439761158813035,
+    "resource_change": 0.7878392490999211,
+    "compound": 2.2200205187271465
+   },
+   "max_regret": 2.9975748249902594,
+   "mean_inquiries": 2.422829977308843
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 2,
+    "near_minutes": 15
+   },
+   "name": "R1_k2_w2_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.863516293156504,
+     "inquiries": 1.9737136364404186,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.05400041928048,
+     "inquiries": 1.96502676775355,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 36.70817979500448,
+     "inquiries": 2.7711890030369686,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.94996966748171,
+     "inquiries": 2.419292006414813,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.674767251743074,
+     "inquiries": 2.01512152191872,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 35.13160998779209,
+     "inquiries": 2.6522394727622682,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.6814714809439373,
+    "slow_response": 0.9259151767748506,
+    "low_response": 3.471641094137752,
+    "surge": 0.988947114197682,
+    "resource_change": 0.6672313922670803,
+    "compound": 2.405889446806391
+   },
+   "max_regret": 3.471641094137752,
+   "mean_inquiries": 2.2994304013877898
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 2,
+    "near_minutes": 25
+   },
+   "name": "R1_k2_w2_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.983700015097778,
+     "inquiries": 1.959462979925435,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.18620901051431,
+     "inquiries": 1.9507761112385664,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 36.88583674406507,
+     "inquiries": 2.777473167543679,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.219962550149376,
+     "inquiries": 2.4429424580391457,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.9082173764566,
+     "inquiries": 2.0143555407128626,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 35.23052027018718,
+     "inquiries": 2.6571715593443437,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.8016552028852111,
+    "slow_response": 1.0581237680086808,
+    "low_response": 3.6492980431983355,
+    "surge": 1.2589399968653474,
+    "resource_change": 0.9006815169806082,
+    "compound": 2.50479972920148
+   },
+   "max_regret": 3.6492980431983355,
+   "mean_inquiries": 2.3003636361340054
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 4,
+    "near_minutes": null
+   },
+   "name": "R1_k2_w4",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.54021764042157,
+     "inquiries": 2.1149153455380993,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.993543293146935,
+     "inquiries": 2.109730160352914,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 37.45885946724862,
+     "inquiries": 2.8602253508062665,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.728551377918144,
+     "inquiries": 2.5477438735670344,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.352859376815907,
+     "inquiries": 2.1457410337909124,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 35.942021123006995,
+     "inquiries": 2.754944372696843,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.3581728282090033,
+    "slow_response": 1.8654580506413048,
+    "low_response": 4.222320766381891,
+    "surge": 1.767528824634116,
+    "resource_change": 1.3453235173399136,
+    "compound": 3.2163005820212973
+   },
+   "max_regret": 4.222320766381891,
+   "mean_inquiries": 2.4222166894586783
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 4,
+    "near_minutes": 15
+   },
+   "name": "R1_k2_w4_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.41750396794424,
+     "inquiries": 1.9737136364404186,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.780349600212865,
+     "inquiries": 1.9665082492350314,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 37.80644717197317,
+     "inquiries": 2.7711890030369686,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.6534167897412,
+     "inquiries": 2.4299864992533924,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.26409179750601,
+     "inquiries": 2.0184583319221967,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 36.08525849173115,
+     "inquiries": 2.6566654479259686,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.2354591557316716,
+    "slow_response": 1.6522643577072351,
+    "low_response": 4.569908471106437,
+    "surge": 1.6923942364571722,
+    "resource_change": 1.256555938030015,
+    "compound": 3.3595379507454552
+   },
+   "max_regret": 4.569908471106437,
+   "mean_inquiries": 2.302753527968996
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 2,
+    "wait": 4,
+    "near_minutes": 25
+   },
+   "name": "R1_k2_w4_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.502321634574045,
+     "inquiries": 1.959462979925435,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.94165741658527,
+     "inquiries": 1.9515168519793071,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 37.97460643896159,
+     "inquiries": 2.777473167543679,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.76420135639762,
+     "inquiries": 2.4349853473428222,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.372354997225717,
+     "inquiries": 2.0032340695913917,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 36.16124692412139,
+     "inquiries": 2.658354189377031,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.3202768223614783,
+    "slow_response": 1.8135721740796384,
+    "low_response": 4.7380677380948555,
+    "surge": 1.8031788031135925,
+    "resource_change": 1.3648191377497234,
+    "compound": 3.435526383135695
+   },
+   "max_regret": 4.7380677380948555,
+   "mean_inquiries": 2.2975044342932778
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 0,
+    "near_minutes": null
+   },
+   "name": "R1_k3_w0",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.07127267945298,
+     "inquiries": 2.93204509870574,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.717037142688767,
+     "inquiries": 2.9337545004151417,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 33.27509219328715,
+     "inquiries": 3.5091483557789624,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.216786123617148,
+     "inquiries": 3.3129042672484146,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.559069822637515,
+     "inquiries": 2.9371274237202036,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 32.7257205409857,
+     "inquiries": 3.434157581489724,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.8892278672404146,
+    "slow_response": 0.5889519001831367,
+    "low_response": 0.03855349242041939,
+    "surge": 0.25576357033311936,
+    "resource_change": 0.5515339631615213,
+    "compound": 0.0
+   },
+   "max_regret": 0.8892278672404146,
+   "mean_inquiries": 3.1765228712263642
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 0,
+    "near_minutes": 15
+   },
+   "name": "R1_k3_w0_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.51970599320359,
+     "inquiries": 2.561161438262255,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.229200542953382,
+     "inquiries": 2.561161438262255,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.007605506441124,
+     "inquiries": 3.3243168383926487,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.117992577187895,
+     "inquiries": 3.0315058505905292,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.22091502523834,
+     "inquiries": 2.598220342197779,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.33314153940382,
+     "inquiries": 3.2301378114395742,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.3376611809910237,
+    "slow_response": 0.10111530044775208,
+    "low_response": 0.7710668055743923,
+    "surge": 0.15697002390386672,
+    "resource_change": 0.2133791657623476,
+    "compound": 0.6074209984181209
+   },
+   "max_regret": 0.7710668055743923,
+   "mean_inquiries": 2.8844172865241737
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 0,
+    "near_minutes": 25
+   },
+   "name": "R1_k3_w0_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.620237652079997,
+     "inquiries": 2.510445902523688,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.418452645325026,
+     "inquiries": 2.514377526455312,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.35622907563893,
+     "inquiries": 3.2562272141197277,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 30.961022553284028,
+     "inquiries": 2.9414008469911357,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.376481678153098,
+     "inquiries": 2.5559549481366814,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.16528060917156,
+     "inquiries": 3.1464348072406336,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.43819283986742974,
+    "slow_response": 0.29036740281939544,
+    "low_response": 1.1196903747721976,
+    "surge": 0.0,
+    "resource_change": 0.36894581867710485,
+    "compound": 0.43956006818586246
+   },
+   "max_regret": 1.1196903747721976,
+   "mean_inquiries": 2.82080687424453
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 1,
+    "near_minutes": null
+   },
+   "name": "R1_k3_w1",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.764002451701472,
+     "inquiries": 2.935425500930815,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.939056479441174,
+     "inquiries": 2.93204509870574,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 33.719159488900324,
+     "inquiries": 3.510902741743875,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.51686737802728,
+     "inquiries": 3.3296454291664066,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.42415673518168,
+     "inquiries": 2.9425638170513335,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 32.95560180437574,
+     "inquiries": 3.430923971073422,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.5819576394889054,
+    "slow_response": 0.8109712369355435,
+    "low_response": 0.4826207880335929,
+    "surge": 0.5558448247432501,
+    "resource_change": 0.41662087570568573,
+    "compound": 0.2298812633900411
+   },
+   "max_regret": 0.8109712369355435,
+   "mean_inquiries": 3.180251093111932
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 1,
+    "near_minutes": 15
+   },
+   "name": "R1_k3_w1_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.64565474662909,
+     "inquiries": 2.565282581228071,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.611003906517816,
+     "inquiries": 2.561161438262255,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.561251138033676,
+     "inquiries": 3.326071224357561,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.436557327739322,
+     "inquiries": 3.048718508942657,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.397584307288206,
+     "inquiries": 2.6110746392626023,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.60102617624904,
+     "inquiries": 3.212813914334745,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.46360993441652454,
+    "slow_response": 0.4829186640121854,
+    "low_response": 1.3247124371669443,
+    "surge": 0.47553477445529424,
+    "resource_change": 0.3900484478122124,
+    "compound": 0.875305635263345
+   },
+   "max_regret": 1.3247124371669443,
+   "mean_inquiries": 2.8875203843979818
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 1,
+    "near_minutes": 25
+   },
+   "name": "R1_k3_w1_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.7622868782839,
+     "inquiries": 2.5177468106204883,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.757047252878092,
+     "inquiries": 2.51266812474591,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.7796178251897,
+     "inquiries": 3.2579816000846398,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.60354990545237,
+     "inquiries": 3.0050734262098464,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.523648170695164,
+     "inquiries": 2.5662185866304226,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.70213844607017,
+     "inquiries": 3.170386767977453,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.5802420660713317,
+    "slow_response": 0.6289620103724616,
+    "low_response": 1.543079124322972,
+    "surge": 0.6425273521683401,
+    "resource_change": 0.516112311219171,
+    "compound": 0.9764179050844746
+   },
+   "max_regret": 1.543079124322972,
+   "mean_inquiries": 2.8383458860447934
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 2,
+    "near_minutes": null
+   },
+   "name": "R1_k3_w2",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.873735856326228,
+     "inquiries": 2.938455803961118,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.264699667242994,
+     "inquiries": 2.9337994846706525,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.269177411669,
+     "inquiries": 3.5101739968046037,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.699789124742622,
+     "inquiries": 3.308399211889918,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.59533520229145,
+     "inquiries": 2.9455941200816365,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.65308926366144,
+     "inquiries": 3.4448959082454227,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.6916910441136608,
+    "slow_response": 1.1366144247373633,
+    "low_response": 1.0326387108022672,
+    "surge": 0.7387665714585943,
+    "resource_change": 0.5877993428154582,
+    "compound": 0.9273687226757446
+   },
+   "max_regret": 1.1366144247373633,
+   "mean_inquiries": 3.1802197542755586
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 2,
+    "near_minutes": 15
+   },
+   "name": "R1_k3_w2_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.816290374269872,
+     "inquiries": 2.5630603590058487,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.045406101329974,
+     "inquiries": 2.5629158242271672,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.092792863502936,
+     "inquiries": 3.3154279495037597,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.96010808599544,
+     "inquiries": 3.056361229386393,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.608607676079682,
+     "inquiries": 2.610226371640141,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.119425428808384,
+     "inquiries": 3.2149367681149204,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.6342455620573055,
+    "slow_response": 0.9173208588243433,
+    "low_response": 1.8562541626362048,
+    "surge": 0.9990855327114119,
+    "resource_change": 0.6010718166036888,
+    "compound": 1.393704887822686
+   },
+   "max_regret": 1.8562541626362048,
+   "mean_inquiries": 2.887154750313038
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 2,
+    "near_minutes": 25
+   },
+   "name": "R1_k3_w2_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.966002444148728,
+     "inquiries": 2.518487551361229,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.11362523823086,
+     "inquiries": 2.5129410292293413,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.27141960083287,
+     "inquiries": 3.2579935958861093,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.93002966866564,
+     "inquiries": 2.9990344440904644,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.75717449540947,
+     "inquiries": 2.5655192859311216,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.23616030944056,
+     "inquiries": 3.1706455338774626,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.7839576319361612,
+    "slow_response": 0.9855399957252295,
+    "low_response": 2.03488089996614,
+    "surge": 0.9690071153816113,
+    "resource_change": 0.7496386359334757,
+    "compound": 1.5104397684548587
+   },
+   "max_regret": 2.03488089996614,
+   "mean_inquiries": 2.837436906729288
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 4,
+    "near_minutes": null
+   },
+   "name": "R1_k3_w4",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.62210862030726,
+     "inquiries": 2.94035042585574,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.96931797460667,
+     "inquiries": 2.935425500930815,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.602642984341735,
+     "inquiries": 3.5086973477417476,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.47260116986117,
+     "inquiries": 3.3012839282736026,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.44739748070138,
+     "inquiries": 2.945026909514426,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.788439985463256,
+     "inquiries": 3.444175632776523,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.440063808094692,
+    "slow_response": 1.8412327321010409,
+    "low_response": 2.3661042834750035,
+    "surge": 1.5115786165771432,
+    "resource_change": 1.4398616212253863,
+    "compound": 2.0627194444775583
+   },
+   "max_regret": 2.3661042834750035,
+   "mean_inquiries": 3.1791599575154756
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 4,
+    "near_minutes": 15
+   },
+   "name": "R1_k3_w4_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.398633586009286,
+     "inquiries": 2.565763061708551,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.76809553945617,
+     "inquiries": 2.562319618265108,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 36.30262853933348,
+     "inquiries": 3.316173522663126,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.516184918204985,
+     "inquiries": 3.033990863648381,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.283786350350518,
+     "inquiries": 2.617890725971162,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 35.26168667176162,
+     "inquiries": 3.224498033780057,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.216588773796719,
+    "slow_response": 1.640010296950539,
+    "low_response": 3.066089838466752,
+    "surge": 1.5551623649209567,
+    "resource_change": 1.2762504908745242,
+    "compound": 2.5359661307759254
+   },
+   "max_regret": 3.066089838466752,
+   "mean_inquiries": 2.8867726376727307
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 3,
+    "wait": 4,
+    "near_minutes": 25
+   },
+   "name": "R1_k3_w4_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.57045481781445,
+     "inquiries": 2.526442779316457,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.864587338507306,
+     "inquiries": 2.517819078009829,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 36.48891462954457,
+     "inquiries": 3.255771373663887,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.617032426662796,
+     "inquiries": 2.9956838904416765,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.401722505801786,
+     "inquiries": 2.570462017123853,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 35.390235353809466,
+     "inquiries": 3.181023196258836,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.3884100056018838,
+    "slow_response": 1.7365020960016757,
+    "low_response": 3.2523759286778358,
+    "surge": 1.6560098733787676,
+    "resource_change": 1.3941866463257924,
+    "compound": 2.664514812823768
+   },
+   "max_regret": 3.2523759286778358,
+   "mean_inquiries": 2.8412003891357562
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 0,
+    "near_minutes": null
+   },
+   "name": "R1_k5_w0",
+   "per_scenario": {
+    "normal": {
+     "arrive": 29.465483706259082,
+     "inquiries": 4.007962170190989,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.1256325165105,
+     "inquiries": 4.013375275604095,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 33.23653870086673,
+     "inquiries": 4.433382110095657,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.588690961015644,
+     "inquiries": 4.393203272887968,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.972279528020458,
+     "inquiries": 4.001748676088352,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.20284798258964,
+     "inquiries": 4.395263191979798,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 2.2834388940465153,
+    "slow_response": 1.9975472740048694,
+    "low_response": 0.0,
+    "surge": 1.6276684077316155,
+    "resource_change": 1.9647436685444646,
+    "compound": 0.4771274416039404
+   },
+   "max_regret": 2.2834388940465153,
+   "mean_inquiries": 4.207489116141144
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 0,
+    "near_minutes": 15
+   },
+   "name": "R1_k5_w0_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.15507896548114,
+     "inquiries": 3.1983030507292964,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.893158092031623,
+     "inquiries": 3.1983030507292964,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 33.888008633674744,
+     "inquiries": 3.986330596706156,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.81728865334967,
+     "inquiries": 3.7646829749420916,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.90848666170922,
+     "inquiries": 3.2549248920484994,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.66669992744418,
+     "inquiries": 3.8954421607066894,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.9730341532685749,
+    "slow_response": 0.7650728495259926,
+    "low_response": 0.6514699328080127,
+    "surge": 0.8562661000656426,
+    "resource_change": 0.9009508022332255,
+    "compound": 0.9409793864584799
+   },
+   "max_regret": 0.9730341532685749,
+   "mean_inquiries": 3.549664454310338
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 0,
+    "near_minutes": 25
+   },
+   "name": "R1_k5_w0_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.047620088799857,
+     "inquiries": 3.007189451381341,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.906609121829725,
+     "inquiries": 3.013343297535187,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 33.97764723527189,
+     "inquiries": 3.7637718503534416,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.548617562006257,
+     "inquiries": 3.5432041415651034,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.820994329932045,
+     "inquiries": 3.062727735628203,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.40888108320058,
+     "inquiries": 3.70337739696679,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.8655752765872897,
+    "slow_response": 0.7785238793240943,
+    "low_response": 0.7411085344051571,
+    "surge": 0.5875950087222286,
+    "resource_change": 0.8134584704560517,
+    "compound": 0.6831605422148854
+   },
+   "max_regret": 0.8655752765872897,
+   "mean_inquiries": 3.348935645571678
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 1,
+    "near_minutes": null
+   },
+   "name": "R1_k5_w1",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.434330826225537,
+     "inquiries": 4.011665873894693,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.935840582029577,
+     "inquiries": 4.011665873894693,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 33.25039833410695,
+     "inquiries": 4.43708581379936,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.01143136937665,
+     "inquiries": 4.395539889431406,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.964396368274983,
+     "inquiries": 3.980337297565292,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 32.97183519372607,
+     "inquiries": 4.41617584896656,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.2522860140129701,
+    "slow_response": 1.807755339523947,
+    "low_response": 0.013859633240215885,
+    "surge": 1.0504088160926237,
+    "resource_change": 0.9568605087989894,
+    "compound": 0.24611465274037414
+   },
+   "max_regret": 1.807755339523947,
+   "mean_inquiries": 4.208745099592001
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 1,
+    "near_minutes": 15
+   },
+   "name": "R1_k5_w1_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.75323496364372,
+     "inquiries": 3.196821569247815,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 30.9925486359972,
+     "inquiries": 3.2005252729515186,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.093838445048924,
+     "inquiries": 3.9900343004098597,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.71821641936784,
+     "inquiries": 3.7527482922830235,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.43511939165859,
+     "inquiries": 3.248668709206951,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.624923874599254,
+     "inquiries": 3.889602181145921,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.5711901514311535,
+    "slow_response": 0.8644633934915689,
+    "low_response": 0.8572997441821926,
+    "surge": 0.7571938660838136,
+    "resource_change": 0.42758353218259515,
+    "compound": 0.8992033336135563
+   },
+   "max_regret": 0.8992033336135563,
+   "mean_inquiries": 3.5464000542075147
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 1,
+    "near_minutes": 25
+   },
+   "name": "R1_k5_w1_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.901934031308652,
+     "inquiries": 3.0156266690868514,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.01354876512324,
+     "inquiries": 3.0116338958257853,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.22075386815358,
+     "inquiries": 3.7637718503534416,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.804284459119064,
+     "inquiries": 3.57973097351237,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.696164698852705,
+     "inquiries": 3.0710646206675913,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.61367946187516,
+     "inquiries": 3.7470650462294417,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.7198892190960855,
+    "slow_response": 0.8854635226176093,
+    "low_response": 0.9842151672868482,
+    "surge": 0.8432619058350355,
+    "resource_change": 0.6886288393767117,
+    "compound": 0.88795892088946
+   },
+   "max_regret": 0.9842151672868482,
+   "mean_inquiries": 3.364815509279247
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 2,
+    "near_minutes": null
+   },
+   "name": "R1_k5_w2",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.036904828823978,
+     "inquiries": 4.017077715891901,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.816777618485837,
+     "inquiries": 4.007962170190989,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 33.30517462859285,
+     "inquiries": 4.42648752320107,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.905570238895365,
+     "inquiries": 4.3763087810637415,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.688391086480962,
+     "inquiries": 3.9859576031855974,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.41035153473731,
+     "inquiries": 4.456186937357427,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.8548600166114113,
+    "slow_response": 1.6886923759802066,
+    "low_response": 0.06863592772612037,
+    "surge": 0.9445476856113366,
+    "resource_change": 0.6808552270049688,
+    "compound": 0.6846309937516111
+   },
+   "max_regret": 1.6886923759802066,
+   "mean_inquiries": 4.211663455148455
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 2,
+    "near_minutes": 15
+   },
+   "name": "R1_k5_w2_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.83729898557629,
+     "inquiries": 3.1953400877663336,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.14811357119862,
+     "inquiries": 3.196821569247815,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.445734254278165,
+     "inquiries": 3.98029071066627,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.9496590533255,
+     "inquiries": 3.775285871036779,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.590056856689362,
+     "inquiries": 3.2447435185075664,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.94465244021841,
+     "inquiries": 3.8982650151463805,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.6552541733637227,
+    "slow_response": 1.020028328692991,
+    "low_response": 1.2091955534114334,
+    "surge": 0.9886365000414727,
+    "resource_change": 0.5825209972133685,
+    "compound": 1.2189318992327145
+   },
+   "max_regret": 1.2189318992327145,
+   "mean_inquiries": 3.5484577953951906
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 2,
+    "near_minutes": 25
+   },
+   "name": "R1_k5_w2_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 27.937855497129355,
+     "inquiries": 3.016728746774295,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.194562958782832,
+     "inquiries": 3.007930192122082,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.553075952348046,
+     "inquiries": 3.7655382321198236,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 31.947463215067327,
+     "inquiries": 3.5746748207624885,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 28.715313690729968,
+     "inquiries": 3.0712662208691914,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 33.931523679322176,
+     "inquiries": 3.7483885857492187,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 0.7558106849167885,
+    "slow_response": 1.066477716277202,
+    "low_response": 1.3165372514813143,
+    "surge": 0.9864406617832984,
+    "resource_change": 0.7077778312539742,
+    "compound": 1.2058031383364778
+   },
+   "max_regret": 1.3165372514813143,
+   "mean_inquiries": 3.3640877997328498
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 4,
+    "near_minutes": null
+   },
+   "name": "R1_k5_w4",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.730995070442365,
+     "inquiries": 4.017953136767322,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 32.01873041130255,
+     "inquiries": 4.012027210841396,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 34.62185100150659,
+     "inquiries": 4.42172759085493,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.38844257645027,
+     "inquiries": 4.358431879265532,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.45862854514002,
+     "inquiries": 3.9838074110354054,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.29432779841486,
+     "inquiries": 4.419788096552224,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.548950258229798,
+    "slow_response": 1.8906451687969188,
+    "low_response": 1.3853123006398604,
+    "surge": 1.4274200231662384,
+    "resource_change": 1.451092685664026,
+    "compound": 1.5686072574291643
+   },
+   "max_regret": 1.8906451687969188,
+   "mean_inquiries": 4.202289220886135
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 4,
+    "near_minutes": 15
+   },
+   "name": "R1_k5_w4_r15",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.442018987573096,
+     "inquiries": 3.199043791470037,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.7223511390397,
+     "inquiries": 3.2008866098982214,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.61898890783738,
+     "inquiries": 3.9800352828246353,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.52572254895555,
+     "inquiries": 3.7341019953644294,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.27862105722632,
+     "inquiries": 3.248214588645303,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 34.912589660383254,
+     "inquiries": 3.899029011488527,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.2599741753605294,
+    "slow_response": 1.5942658965340684,
+    "low_response": 2.3824502069706455,
+    "surge": 1.5646999956715213,
+    "resource_change": 1.2710851977503275,
+    "compound": 2.1868691193975565
+   },
+   "max_regret": 2.3824502069706455,
+   "mean_inquiries": 3.5435518799485255
+  },
+  {
+   "spec": {
+    "rule": "R1",
+    "k": 5,
+    "wait": 4,
+    "near_minutes": 25
+   },
+   "name": "R1_k5_w4_r25",
+   "per_scenario": {
+    "normal": {
+     "arrive": 28.560238134204056,
+     "inquiries": 3.0240014740470222,
+     "unassigned": 0
+    },
+    "slow_response": {
+     "arrive": 31.82235395207178,
+     "inquiries": 3.0152472652928135,
+     "unassigned": 0
+    },
+    "low_response": {
+     "arrive": 35.807007470122,
+     "inquiries": 3.7633160098976015,
+     "unassigned": 0
+    },
+    "surge": {
+     "arrive": 32.67171722023476,
+     "inquiries": 3.560954656328803,
+     "unassigned": 0
+    },
+    "resource_change": {
+     "arrive": 29.402585886145264,
+     "inquiries": 3.076381152234123,
+     "unassigned": 0
+    },
+    "compound": {
+     "arrive": 35.02320972093344,
+     "inquiries": 3.7538327868882546,
+     "unassigned": 0
+    }
+   },
+   "regret": {
+    "normal": 1.378193321991489,
+    "slow_response": 1.694268709566149,
+    "low_response": 2.570468769255271,
+    "surge": 1.710694666950733,
+    "resource_change": 1.3950500266692707,
+    "compound": 2.297489179947739
+   },
+   "max_regret": 2.570468769255271,
+   "mean_inquiries": 3.3656222241147695
+  }
+ ],
+ "pick": {
+  "spec": {
+   "rule": "R1",
+   "k": 3,
+   "wait": 0,
+   "near_minutes": 15
+  },
+  "name": "R1_k3_w0_r15",
+  "per_scenario": {
+   "normal": {
+    "arrive": 27.51970599320359,
+    "inquiries": 2.561161438262255,
+    "unassigned": 0
+   },
+   "slow_response": {
+    "arrive": 30.229200542953382,
+    "inquiries": 2.561161438262255,
+    "unassigned": 0
+   },
+   "low_response": {
+    "arrive": 34.007605506441124,
+    "inquiries": 3.3243168383926487,
+    "unassigned": 0
+   },
+   "surge": {
+    "arrive": 31.117992577187895,
+    "inquiries": 3.0315058505905292,
+    "unassigned": 0
+   },
+   "resource_change": {
+    "arrive": 28.22091502523834,
+    "inquiries": 2.598220342197779,
+    "unassigned": 0
+   },
+   "compound": {
+    "arrive": 33.33314153940382,
+    "inquiries": 3.2301378114395742,
+    "unassigned": 0
+   }
+  },
+  "regret": {
+   "normal": 0.3376611809910237,
+   "slow_response": 0.10111530044775208,
+   "low_response": 0.7710668055743923,
+   "surge": 0.15697002390386672,
+   "resource_change": 0.2133791657623476,
+   "compound": 0.6074209984181209
+  },
+  "max_regret": 0.7710668055743923,
+  "mean_inquiries": 2.8844172865241737
+ },
+ "validation": {
+  "R0_k3_w0": {
+   "normal": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 2.6745861088380494,
+     "value": 2.6745861088380494,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 7,
+     "value": 7,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 28.23274176611518,
+     "value": 28.23274176611518,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 56.15,
+     "value": 56.15,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 28.23274176611518,
+     "value": 28.23274176611518,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 2.9165707927142,
+     "value": 2.9165707927142,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 26.35,
+     "value": 26.35,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.15,
+     "value": 0.15,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.013872727495355713,
+     "value": 0.013872727495355713,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    }
+   },
+   "slow_response": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 5.193155030158616,
+     "value": 5.193155030158616,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 13.05,
+     "value": 13.05,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 31.043685810869178,
+     "value": 31.043685810869178,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 58.9,
+     "value": 58.9,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 31.10793484809639,
+     "value": 31.10793484809639,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 2.9209825574200825,
+     "value": 2.9209825574200825,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 26.4,
+     "value": 26.4,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.1,
+     "value": 0.1,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.01502654584553993,
+     "value": 0.01502654584553993,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    }
+   },
+   "low_response": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 5.928776694366271,
+     "value": 5.928776694366271,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 23.05,
+     "value": 23.05,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 32.52911247361123,
+     "value": 32.52911247361123,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 63.9,
+     "value": 63.9,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 32.551641356794796,
+     "value": 32.551641356794796,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 3.4326911965625793,
+     "value": 3.4326911965625793,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 31.35,
+     "value": 31.35,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.1,
+     "value": 0.1,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.015123291131129205,
+     "value": 0.015123291131129205,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    }
+   },
+   "surge": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 4.730295123559498,
+     "value": 4.730295123559498,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 20.05,
+     "value": 20.05,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 30.67892550751639,
+     "value": 30.67892550751639,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 64.1,
+     "value": 64.1,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 30.707742427227004,
+     "value": 30.707742427227004,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 3.2657125271437852,
+     "value": 3.2657125271437852,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 86.9,
+     "value": 86.9,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.55,
+     "value": 0.55,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.013025756224250794,
+     "value": 0.013025756224250794,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    }
+   },
+   "resource_change": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 2.9375919753775563,
+     "value": 2.9375919753775563,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 8.85,
+     "value": 8.85,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 28.66376657468529,
+     "value": 28.66376657468529,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 56.5,
+     "value": 56.5,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 29.005611696401782,
+     "value": 29.005611696401782,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 2.933926305401038,
+     "value": 2.933926305401038,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 26.85,
+     "value": 26.85,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.15,
+     "value": 0.15,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.014085607905321708,
+     "value": 0.014085607905321708,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    }
+   },
+   "compound": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 6.315739157550448,
+     "value": 6.315739157550448,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 25.15,
+     "value": 25.15,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 32.76269440861879,
+     "value": 32.76269440861879,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 66.7,
+     "value": 66.7,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 33.07071855437962,
+     "value": 33.07071855437962,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 3.505670486440968,
+     "value": 3.505670486440968,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 75.6,
+     "value": 75.6,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.7,
+     "value": 0.7,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.014557156463810028,
+     "value": 0.014557156463810028,
+     "diff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    }
+   }
+  },
+  "R1_k3_w0_r15": {
+   "normal": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 2.6745861088380494,
+     "value": 3.3761306382826253,
+     "diff": 0.7015445294445758,
+     "ci": [
+      0.5090593642232196,
+      0.894029694665932
+     ],
+     "better": 0.0,
+     "worse": 1.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 7,
+     "value": 10.05,
+     "diff": 3.05,
+     "ci": [
+      1.8819788213888369,
+      4.2180211786111625
+     ],
+     "better": 0.0,
+     "worse": 0.8
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 28.23274176611518,
+     "value": 27.60472351975169,
+     "diff": -0.6280182463634881,
+     "ci": [
+      -1.0714585050982384,
+      -0.18457798762873784
+     ],
+     "better": 0.7,
+     "worse": 0.3
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 56.15,
+     "value": 55.8,
+     "diff": -0.35,
+     "ci": [
+      -3.0676232262769614,
+      2.367623226276961
+     ],
+     "better": 0.25,
+     "worse": 0.3
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 28.23274176611518,
+     "value": 27.60472351975169,
+     "diff": -0.6280182463634881,
+     "ci": [
+      -1.0714585050982384,
+      -0.18457798762873784
+     ],
+     "better": 0.7,
+     "worse": 0.3
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 2.9165707927142,
+     "value": 2.6000038199203472,
+     "diff": -0.3165669727938526,
+     "ci": [
+      -0.3553014676682753,
+      -0.2778324779194299
+     ],
+     "better": 1.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 26.35,
+     "value": 23,
+     "diff": -3.35,
+     "ci": [
+      -4.241122414651734,
+      -2.458877585348266
+     ],
+     "better": 0.95,
+     "worse": 0.05
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.15,
+     "value": 0.1,
+     "diff": -0.05,
+     "ci": [
+      -0.148,
+      0.04799999999999999
+     ],
+     "better": 0.05,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.013872727495355713,
+     "value": 0.014609482112415605,
+     "diff": 0.0007367546170598923,
+     "ci": [
+      -0.0011594987979243526,
+      0.002633008032044137
+     ],
+     "better": 0.55,
+     "worse": 0.45
+    }
+   },
+   "slow_response": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 5.193155030158616,
+     "value": 6.141546446389825,
+     "diff": 0.9483914162312086,
+     "ci": [
+      0.7422511551100308,
+      1.1545316773523864
+     ],
+     "better": 0.0,
+     "worse": 1.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 13.05,
+     "value": 15.85,
+     "diff": 2.8,
+     "ci": [
+      1.5474065640482246,
+      4.052593435951775
+     ],
+     "better": 0.0,
+     "worse": 0.65
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 31.043685810869178,
+     "value": 30.590505216357855,
+     "diff": -0.45318059451132253,
+     "ci": [
+      -0.9189883574667905,
+      0.01262716844414552
+     ],
+     "better": 0.65,
+     "worse": 0.35
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 58.9,
+     "value": 58.55,
+     "diff": -0.35,
+     "ci": [
+      -3.3672978849155397,
+      2.6672978849155395
+     ],
+     "better": 0.3,
+     "worse": 0.35
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 31.10793484809639,
+     "value": 30.616596358848227,
+     "diff": -0.4913384892481648,
+     "ci": [
+      -0.98200468715836,
+      -0.0006722913379696438
+     ],
+     "better": 0.65,
+     "worse": 0.35
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 2.9209825574200825,
+     "value": 2.5884509316982918,
+     "diff": -0.33253162572179046,
+     "ci": [
+      -0.36533743597177315,
+      -0.29972581547180777
+     ],
+     "better": 1.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 26.4,
+     "value": 22.85,
+     "diff": -3.55,
+     "ci": [
+      -4.372696337148704,
+      -2.7273036628512957
+     ],
+     "better": 1.0,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.1,
+     "value": 0.05,
+     "diff": -0.05,
+     "ci": [
+      -0.148,
+      0.04799999999999999
+     ],
+     "better": 0.05,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.01502654584553993,
+     "value": 0.011386916933942684,
+     "diff": -0.003639628911597247,
+     "ci": [
+      -0.005146940179988041,
+      -0.0021323176432064533
+     ],
+     "better": 0.85,
+     "worse": 0.15
+    }
+   },
+   "low_response": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 5.928776694366271,
+     "value": 7.079118349893083,
+     "diff": 1.150341655526812,
+     "ci": [
+      0.9192606344361736,
+      1.3814226766174504
+     ],
+     "better": 0.0,
+     "worse": 1.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 23.05,
+     "value": 24.85,
+     "diff": 1.8,
+     "ci": [
+      0.35970003124349126,
+      3.240299968756509
+     ],
+     "better": 0.0,
+     "worse": 0.3
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 32.52911247361123,
+     "value": 33.17081449016952,
+     "diff": 0.641702016558287,
+     "ci": [
+      0.25075810213296745,
+      1.0326459309836065
+     ],
+     "better": 0.15,
+     "worse": 0.85
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 63.9,
+     "value": 65.15,
+     "diff": 1.25,
+     "ci": [
+      -0.06768816692841151,
+      2.5676881669284115
+     ],
+     "better": 0.05,
+     "worse": 0.25
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 32.551641356794796,
+     "value": 33.19334337335309,
+     "diff": 0.6417020165582867,
+     "ci": [
+      0.25075810213296723,
+      1.0326459309836062
+     ],
+     "better": 0.15,
+     "worse": 0.85
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 3.4326911965625793,
+     "value": 3.265408224829536,
+     "diff": -0.1672829717330428,
+     "ci": [
+      -0.21923503855963877,
+      -0.11533090490644683
+     ],
+     "better": 0.9,
+     "worse": 0.05
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 31.35,
+     "value": 29.4,
+     "diff": -1.95,
+     "ci": [
+      -2.7087717221376857,
+      -1.1912282778623142
+     ],
+     "better": 0.85,
+     "worse": 0.05
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.1,
+     "value": 0.05,
+     "diff": -0.05,
+     "ci": [
+      -0.148,
+      0.04799999999999999
+     ],
+     "better": 0.05,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.015123291131129205,
+     "value": 0.011125400722274541,
+     "diff": -0.003997890408854665,
+     "ci": [
+      -0.0058758836129290965,
+      -0.002119897204780233
+     ],
+     "better": 0.75,
+     "worse": 0.25
+    }
+   },
+   "surge": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 4.730295123559498,
+     "value": 5.4145943239516,
+     "diff": 0.6842992003921022,
+     "ci": [
+      0.5090109381210762,
+      0.8595874626631282
+     ],
+     "better": 0.05,
+     "worse": 0.95
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 20.05,
+     "value": 20.3,
+     "diff": 0.25,
+     "ci": [
+      -1.6938147518407418,
+      2.193814751840742
+     ],
+     "better": 0.25,
+     "worse": 0.45
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 30.67892550751639,
+     "value": 30.471784289490518,
+     "diff": -0.2071412180258731,
+     "ci": [
+      -0.5227658122062004,
+      0.10848337615445425
+     ],
+     "better": 0.65,
+     "worse": 0.35
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 64.1,
+     "value": 64.05,
+     "diff": -0.05,
+     "ci": [
+      -1.1917603214243118,
+      1.0917603214243117
+     ],
+     "better": 0.2,
+     "worse": 0.3
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 30.707742427227004,
+     "value": 30.57211974989513,
+     "diff": -0.13562267733187258,
+     "ci": [
+      -0.44764600932290133,
+      0.17640065465915614
+     ],
+     "better": 0.6,
+     "worse": 0.4
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 3.2657125271437852,
+     "value": 3.000103553200579,
+     "diff": -0.2656089739432065,
+     "ci": [
+      -0.31288363029787525,
+      -0.21833431758853775
+     ],
+     "better": 1.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 86.9,
+     "value": 78.95,
+     "diff": -7.95,
+     "ci": [
+      -9.917593186451006,
+      -5.982406813548995
+     ],
+     "better": 0.95,
+     "worse": 0.05
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.55,
+     "value": 0.8,
+     "diff": 0.25,
+     "ci": [
+      -0.09465390725983897,
+      0.5946539072598389
+     ],
+     "better": 0.1,
+     "worse": 0.25
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.013025756224250794,
+     "value": 0.01192458912805461,
+     "diff": -0.0011011670961961846,
+     "ci": [
+      -0.0027390957959952805,
+      0.0005367616036029115
+     ],
+     "better": 0.55,
+     "worse": 0.45
+    }
+   },
+   "resource_change": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 2.9375919753775563,
+     "value": 3.6568781647515065,
+     "diff": 0.7192861893739498,
+     "ci": [
+      0.5157724502528939,
+      0.9227999284950058
+     ],
+     "better": 0.0,
+     "worse": 1.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 8.85,
+     "value": 12.45,
+     "diff": 3.6,
+     "ci": [
+      1.743845741437704,
+      5.456154258562297
+     ],
+     "better": 0.0,
+     "worse": 0.65
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 28.66376657468529,
+     "value": 28.071930610258086,
+     "diff": -0.591835964427206,
+     "ci": [
+      -0.9501469126466127,
+      -0.23352501620779936
+     ],
+     "better": 0.75,
+     "worse": 0.25
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 56.5,
+     "value": 57.5,
+     "diff": 1,
+     "ci": [
+      -0.5048329160618323,
+      2.504832916061832
+     ],
+     "better": 0.2,
+     "worse": 0.25
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 29.005611696401782,
+     "value": 28.551912404300552,
+     "diff": -0.45369929210123006,
+     "ci": [
+      -0.8093950684434391,
+      -0.098003515759021
+     ],
+     "better": 0.65,
+     "worse": 0.3
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 2.933926305401038,
+     "value": 2.6321860402134885,
+     "diff": -0.3017402651875493,
+     "ci": [
+      -0.3306791306479584,
+      -0.27280139972714024
+     ],
+     "better": 1.0,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 26.85,
+     "value": 23.8,
+     "diff": -3.05,
+     "ci": [
+      -3.7953291748934617,
+      -2.304670825106538
+     ],
+     "better": 0.95,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.15,
+     "value": 0.15,
+     "diff": 0,
+     "ci": [
+      -0.1421933450215623,
+      0.1421933450215623
+     ],
+     "better": 0.05,
+     "worse": 0.05
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.014085607905321708,
+     "value": 0.01441512435131373,
+     "diff": 0.0003295164459920205,
+     "ci": [
+      -0.0012234853797113273,
+      0.0018825182716953682
+     ],
+     "better": 0.5,
+     "worse": 0.5
+    }
+   },
+   "compound": {
+    "unassigned": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "not_arrived": {
+     "n": 20,
+     "base": 0,
+     "value": 0,
+     "diff": 0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "better": 0.0,
+     "worse": 0.0
+    },
+    "time_to_commit": {
+     "n": 20,
+     "base": 6.315739157550448,
+     "value": 7.485222594996093,
+     "diff": 1.1694834374456449,
+     "ci": [
+      0.9927206341016082,
+      1.3462462407896816
+     ],
+     "better": 0.0,
+     "worse": 1.0
+    },
+    "commit_p95": {
+     "n": 20,
+     "base": 25.15,
+     "value": 26.4,
+     "diff": 1.25,
+     "ci": [
+      -0.11294379541992994,
+      2.61294379541993
+     ],
+     "better": 0.1,
+     "worse": 0.55
+    },
+    "arrive_mean": {
+     "n": 20,
+     "base": 32.76269440861879,
+     "value": 33.11852001817664,
+     "diff": 0.35582560955784714,
+     "ci": [
+      0.06742957447721276,
+      0.6442216446384815
+     ],
+     "better": 0.35,
+     "worse": 0.65
+    },
+    "arrive_p95": {
+     "n": 20,
+     "base": 66.7,
+     "value": 68.2,
+     "diff": 1.5,
+     "ci": [
+      0.08877134532015907,
+      2.911228654679841
+     ],
+     "better": 0.15,
+     "worse": 0.55
+    },
+    "mean_wait": {
+     "n": 20,
+     "base": 33.07071855437962,
+     "value": 33.490628266390196,
+     "diff": 0.41990971201058186,
+     "ci": [
+      0.13521782735745597,
+      0.7046015966637078
+     ],
+     "better": 0.3,
+     "worse": 0.65
+    },
+    "inquiries_per_patient": {
+     "n": 20,
+     "base": 3.505670486440968,
+     "value": 3.316828779901866,
+     "diff": -0.18884170653910193,
+     "ci": [
+      -0.23292783930366212,
+      -0.14475557377454173
+     ],
+     "better": 0.95,
+     "worse": 0.0
+    },
+    "max_hospital_inquiries": {
+     "n": 20,
+     "base": 75.6,
+     "value": 71.25,
+     "diff": -4.35,
+     "ci": [
+      -5.591853538275071,
+      -3.1081464617249277
+     ],
+     "better": 0.95,
+     "worse": 0.0
+    },
+    "redirects": {
+     "n": 20,
+     "base": 0.7,
+     "value": 0.4,
+     "diff": -0.3,
+     "ci": [
+      -0.5503572184741339,
+      -0.04964278152586604
+     ],
+     "better": 0.25,
+     "worse": 0.0
+    },
+    "decision_ms_mean": {
+     "n": 20,
+     "base": 0.014557156463810028,
+     "value": 0.01197940107339905,
+     "diff": -0.002577755390410979,
+     "ci": [
+      -0.003974557012976101,
+      -0.0011809537678458561
+     ],
+     "better": 0.75,
+     "worse": 0.25
+    }
+   }
+  }
+ }
+}

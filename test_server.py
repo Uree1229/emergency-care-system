@@ -275,6 +275,25 @@ class SuddenArrival(Base):                                    # T05
         self.assertEqual(self.code(service.change_destination, self.conn, T0 + 71, 'A', 1, EST), 'NOT_REQUESTED')
 
 
+class ResourceSpecificImpact(Base):                           # 발표 대본 7장
+    def test_equipment_loss_affects_only_patient_needing_it(self):
+        service.set_resource(self.conn, T0, 'H3', 'ed_bed', 4, 0, source='synthetic')
+        service.set_resource(self.conn, T0, 'H3', 'special_team', 1, 0, source='synthetic')
+        self.patient('A', resource_demands={'ed_bed': 1, 'special_team': 1})
+        self.patient('B', resource_demands={'ed_bed': 1})
+        for pid in ('A', 'B'):
+            service.confirm_destination(self.conn, T0 + 20, pid, self.accepted(pid, 'H3'))
+            service.depart(self.conn, T0 + 30, pid, EST)
+        self.assertEqual(service.affected_patients(self.conn, T0 + 40, 'H3'), [])
+        # 병원이 해당 장비를 쓸 수 없다고 등록: 신규 수용 여유와 별개로, 그 장비가 필요한 A만 재확인 대상
+        service.set_resource(self.conn, T0 + 50, 'H3', 'special_team', 1, 1)
+        affected = service.affected_patients(self.conn, T0 + 50, 'H3')
+        self.assertEqual([a['patient']['id'] for a in affected], ['A'])
+        self.assertEqual(affected[0]['shortfalls'][0]['resource_type'], 'special_team')
+        for pid in ('A', 'B'):   # 목적지는 자동으로 바뀌지 않는다
+            self.assertEqual(service.patient_view(self.conn, pid, T0 + 51)['destination_hospital_id'], 'H3')
+
+
 class Synthetic(unittest.TestCase):
     def test_seed(self):
         conn = db.connect(':memory:')
