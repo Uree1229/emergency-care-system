@@ -42,6 +42,7 @@ def build(snapshot, estimator):
         supported = set(demand) <= set(RESOURCE_TYPES)
         eligible, travel, arrivals, routes, expiries, alternatives = [], [], [], {}, [], []
         warnings = []
+        missing_capabilities = []
         if not supported:
             warnings.append('UNSUPPORTED_RESOURCE')
         if p['priority_source'] != 'expert':
@@ -67,6 +68,9 @@ def build(snapshot, estimator):
                           for r in snapshot['restrictions'])
             if locked and hid == p['destination_hospital_id']:
                 eligible.append(hi)
+                missing_capabilities = sorted(set(p['required_capabilities']) - set(h['capabilities']))
+                if missing_capabilities:
+                    warnings.append('DESTINATION_CAPABILITY_MISSING')
                 if blocked:
                     warnings.append('DESTINATION_RESTRICTED')
                 continue
@@ -91,7 +95,7 @@ def build(snapshot, estimator):
         deadline = p['max_wait_seconds'] or DEFAULT_MAX_WAIT
         context[pid] = dict(patient=p, eligible=eligible, routes=routes, warnings=warnings,
                             acceptance_expiries=expiries, locked=locked, duration=duration, deadline=deadline,
-                            accepted_alternatives=alternatives)
+                            accepted_alternatives=alternatives, missing_capabilities=missing_capabilities)
         if 'DESTINATION_RESTRICTED' in warnings:
             context[pid]['blocking_review'] = True
         # 별도 자원 모델이 필요한 환자는 누락 없이 명시적 검토 결과를 제공한다.
@@ -126,6 +130,8 @@ def present(snapshot, model, context, plan, meta):
         start = assignment['start'] * 60 if assignment else None
         violations = start is not None and start > p['requested_at'] + ctx['deadline']
         warnings = list(ctx['warnings'])
+        if ctx['locked'] and 'DESTINATION_CAPABILITY_MISSING' in warnings:
+            status = 'NEEDS_REVIEW'
         if ctx['locked'] and p['needs_adjustment']:
             warnings.append('HOSPITAL_REQUESTED_ADJUSTMENT')
             status = 'NEEDS_REVIEW'
@@ -155,7 +161,7 @@ def present(snapshot, model, context, plan, meta):
                            planned_end_at=start + minute(ctx['duration']) * 60 if start is not None else None,
                            wait_seconds=max(0, start - p['requested_at']) if start is not None else None,
                            confirmable_now=bool(assignment and not ctx['locked'] and inquiry and not short and not unknown),
-                           warnings=warnings, travel=ctx['routes'].get(hid),
+                           warnings=warnings, missing_capabilities=ctx['missing_capabilities'], travel=ctx['routes'].get(hid),
                            assumptions=dict(parameter_source='experiment', treatment_duration_seconds=ctx['duration'],
                                             max_wait_seconds=ctx['deadline'], occupied_release='unknown_blocked_for_horizon'),
                            solver=meta)

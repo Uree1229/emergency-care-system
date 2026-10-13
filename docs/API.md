@@ -304,6 +304,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
     "confirmable_now": true,
     "accepted_alternatives": [],
     "warnings": ["PRIORITY_UNVERIFIED"],
+    "missing_capabilities": [],
     "travel": {"duration_seconds": 120, "provider": "synthetic"},
     "assumptions": {
       "parameter_source": "experiment",
@@ -343,6 +344,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 - `ed_bed`, `special_team`의 양·시간 제약을 지원합니다. 다른 자원은 별도 모델이 필요하므로 재확인 결과를 제공합니다.
 - 실제 점유 환자의 종료시각은 없으므로 계획 기간 전체를 차단합니다. 도착을 치료 시작으로 단정하지 않습니다.
 - 기존 목적지가 실행 불가능하면 해당 환자의 목적지·예정 수요를 DB에 유지하고, 전체 계획을 재확인 대상으로 반환합니다.
+- 확정·이동 중인 환자의 목적 병원에서 필요한 진료 분야가 사라지면 그 환자의 `result.status`를 `NEEDS_REVIEW`로 표시하고, `DESTINATION_CAPABILITY_MISSING` 경고와 `missing_capabilities` 목록을 반환합니다. 목적지 잠금과 예정 자원 수요는 유지하며, 다른 병원의 환자 추천은 계속 계산합니다. 정보가 복구되면 경고를 해제합니다.
 - 솔버 제한시간 내 유효한 해가 없으면 순차 배정안으로 대체합니다. 순차안도 기존 목적지를 보존할 수 없으면 재확인 상태를 반환합니다. 제한시간은 솔버 프로세스에 적용하며 입력 수집·순차안 계산은 별도입니다.
 - 계산 전후 DB 버전과 수용 응답·자원 정보 만료를 검사합니다. 오래된 결과는 저장하지 않으며 재계산합니다. 시연 크기 제한은 모델 환자 64명, 병원 32곳입니다.
 - `--no-planner`로 워커를 끈 상태에서는 재계산 요청이 처리되지 않습니다. 독립 워커 서비스·실제 의료기관 검증·B2 비교는 후속 과제입니다.
