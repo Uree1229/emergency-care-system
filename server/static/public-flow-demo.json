@@ -1,0 +1,4 @@
+{
+  "source_note": "실제 병원 저장본과 가상 환자를 준비하려면 python -m server.team_demo를 실행하세요. 실제 병원에는 전송하지 않습니다.",
+  "cases": []
+}

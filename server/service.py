@@ -12,6 +12,7 @@ import math
 from datetime import date
 
 from .db import dumps, row, rows, transaction
+from . import db, treatment_binding
 
 ACCEPT_TTL = 600        # 수용 응답 유효시간(초). 실험 설정값
 PENDING_WARN = 60       # 미응답 강조 기준(초)
@@ -42,8 +43,8 @@ def _require(cond, code, message, status=400, **details):
 
 
 def log(conn, now, actor, type_, patient_id=None, hospital_id=None, **data):
-    conn.execute('INSERT INTO events (at, actor, patient_id, hospital_id, type, data) VALUES (?,?,?,?,?,?)',
-                 (now, actor, patient_id, hospital_id, type_, dumps(data)))
+    return conn.execute('INSERT INTO events (at, actor, patient_id, hospital_id, type, data) VALUES (?,?,?,?,?,?)',
+                        (now, actor, patient_id, hospital_id, type_, dumps(data))).lastrowid
 
 
 def expire_acceptances(conn, now):
@@ -159,10 +160,14 @@ def patient_summary(p):
 # ---------------------------------------------------------------- 병원 정보
 
 def upsert_hospital(conn, h):
-    conn.execute('INSERT OR REPLACE INTO hospitals (id, name, address, phone, lat, lon, capabilities, source, '
-                 'source_ids) VALUES (?,?,?,?,?,?,?,?,?)',
+    conn.execute('INSERT INTO hospitals (id, name, address, phone, lat, lon, capabilities, source, '
+                 'source_ids, capabilities_status) VALUES (?,?,?,?,?,?,?,?,?,?) '
+                 'ON CONFLICT(id) DO UPDATE SET name=excluded.name, address=excluded.address, '
+                 'phone=excluded.phone, lat=excluded.lat, lon=excluded.lon, capabilities=excluded.capabilities, '
+                 'source=excluded.source, source_ids=excluded.source_ids, capabilities_status=excluded.capabilities_status',
                  (h['id'], h['name'], h.get('address'), h.get('phone'), h['lat'], h['lon'],
-                  dumps(h.get('capabilities', [])), h['source'], dumps(h.get('source_ids', {}))))
+                  dumps(h.get('capabilities', [])), h['source'], dumps(h.get('source_ids', {})),
+                  h.get('capabilities_status', 'known')))
 
 
 def set_resource(conn, now, hid, rtype, capacity, occupied, status='available', source='hospital_input',
@@ -182,6 +187,8 @@ def set_resource(conn, now, hid, rtype, capacity, occupied, status='available', 
                      (hid, rtype, capacity, occupied, status, source, source_observed_at, now, version))
         log(conn, now, actor, 'resource_updated', hospital_id=hid, resource_type=rtype,
             capacity=capacity, occupied=occupied, status=status)
+        from . import transport_review
+        transport_review.scan_in_transaction(conn, now, hid)
     return hospital_view(conn, hid, now)
 
 
@@ -193,6 +200,8 @@ def add_restriction(conn, now, hid, scope, reason, ends_at=None, starts_at=None,
                            'VALUES (?,?,?,?,?)', (hid, scope, reason, starts_at or now, ends_at))
         log(conn, now, actor, 'restriction_added', hospital_id=hid, restriction_id=cur.lastrowid,
             scope=scope, reason=reason, ends_at=ends_at)
+        from . import transport_review
+        transport_review.scan_in_transaction(conn, now, hid)
     return hospital_view(conn, hid, now)
 
 
@@ -202,6 +211,8 @@ def clear_restriction(conn, now, hid, rid, actor='hospital'):
                          (now, rid, hid)).rowcount
         _require(n == 1, 'NOT_FOUND', '해제할 제한이 없습니다', 404)
         log(conn, now, actor, 'restriction_cleared', hospital_id=hid, restriction_id=rid)
+        from . import transport_review
+        transport_review.scan_in_transaction(conn, now, hid)
     return hospital_view(conn, hid, now)
 
 
@@ -211,6 +222,11 @@ def hospital_view(conn, hid, now):
     h['resources'] = res
     h['restrictions'] = restrictions(conn, hid, now)
     h['last_updated_at'] = max((r['updated_at'] for r in res), default=None)
+    # 공개 관측값은 환자별 수용 확답이나 운영 자원 총량이 아니다.
+    from .public_data import snapshot_view
+    h['public_data'] = snapshot_view(conn, hid, now)
+    h['treatment_evaluations'] = treatment_binding.evaluate_profiles(
+        treatment_binding.observation_map(h['public_data'], now), now)
     return h
 
 
@@ -264,6 +280,11 @@ def _clean_patient(payload, partial=False):
             out[k] = payload[k]
     if 'extra' in payload:
         _require(isinstance(payload['extra'], dict), 'INVALID', 'extra는 객체')
+        if 'treatment_profile_id' in payload['extra']:
+            try:
+                treatment_binding.profile(payload['extra']['treatment_profile_id'])
+            except ValueError as exc:
+                raise ServiceError('INVALID', str(exc), 400) from None
         out['extra'] = dumps(payload['extra'])
     for k in ('danger_signs', 'required_capabilities'):
         if k in payload:
@@ -272,7 +293,8 @@ def _clean_patient(payload, partial=False):
             out[k] = dumps(payload[k])
     if 'resource_demands' in payload:
         d = payload['resource_demands']
-        _require(isinstance(d, dict) and d and all(type(v) is int and v > 0 for v in d.values()),
+        _require(isinstance(d, dict) and d and all(isinstance(k,str) and k.strip() for k in d) and
+                 all(type(v) is int and v > 0 for v in d.values()),
                  'INVALID', 'resource_demands는 {자원: 양의 정수}')
         out['resource_demands'] = dumps(d)
     if 'priority_source' in payload or 'priority' in payload:
@@ -285,8 +307,32 @@ def _clean_patient(payload, partial=False):
     return out
 
 
+def _bind_treatment_fields(fields, current=None):
+    import json
+    baseline = dict(current or {'extra':{}, 'required_capabilities':[], 'resource_demands':{'ed_bed':1}})
+    for key in ('required_capabilities','resource_demands'):
+        explicit_key = 'explicit_' + key
+        if baseline.get(explicit_key) is None:
+            baseline[explicit_key] = baseline.get(key)
+    for key in ('extra','required_capabilities','resource_demands'):
+        if key in fields:
+            baseline[key] = json.loads(fields[key])
+            if key != 'extra':
+                baseline['explicit_' + key] = baseline[key]
+    bound = treatment_binding.bind_patient(baseline)
+    for key in ('required_capabilities','resource_demands'):
+        fields[key] = dumps(bound[key])
+        fields['explicit_' + key] = dumps(baseline['explicit_' + key])
+    return fields
+
+
 def create_patient(conn, now, pid, payload, actor='patient_web'):
-    fields = _clean_patient(payload)
+    _require('auto_inquiry' not in payload or type(payload['auto_inquiry']) is bool,
+             'INVALID', 'auto_inquiry는 true 또는 false입니다')
+    if 'inquiry_policy' in payload:
+        from .inquiry_workflow import _spec
+        _spec(payload['inquiry_policy'])
+    fields = _bind_treatment_fields(_clean_patient(payload))
     _require(isinstance(pid, str) and pid, 'INVALID', '환자 ID 필요')
     fields.update(id=pid, requested_at=now, state='WAITING')
     with transaction(conn):
@@ -295,6 +341,11 @@ def create_patient(conn, now, pid, payload, actor='patient_web'):
         cols = ', '.join(fields)
         conn.execute(f'INSERT INTO patients ({cols}) VALUES ({",".join("?" * len(fields))})', tuple(fields.values()))
         log(conn, now, actor, 'patient_created', pid, danger=bool(payload.get('danger_signs')))
+        db.ensure_conversation(conn, _patient(conn, pid), now)
+        if payload.get('auto_inquiry', False) or 'inquiry_policy' in payload:
+            from . import inquiry_workflow
+            inquiry_workflow.attach(conn, now, pid, payload.get('inquiry_policy', 'fixed_3'),
+                                    enabled=payload.get('auto_inquiry', False))
     return patient_view(conn, pid, now)
 
 
@@ -307,6 +358,8 @@ def update_patient(conn, now, pid, payload, actor='patient_web'):
         _require(p['state'] == 'WAITING', 'INVALID_STATE', '대기 상태에서만 수정할 수 있습니다', 409)
         sent = conn.execute('SELECT COUNT(*) FROM inquiries WHERE patient_id=?', (pid,)).fetchone()[0]
         _require(sent == 0, 'ALREADY_SENT', '병원에 보낸 뒤에는 수정하지 않습니다. 필요하면 문의를 취소하세요.', 409)
+        if set(fields) & {'extra','required_capabilities','resource_demands'}:
+            _bind_treatment_fields(fields, p)
         sets = ', '.join(f'{k}=?' for k in fields)
         conn.execute(f'UPDATE patients SET {sets}, version=version+1 WHERE id=?', (*fields.values(), pid))
         log(conn, now, actor, 'patient_updated', pid, fields=sorted(fields))
@@ -314,7 +367,9 @@ def update_patient(conn, now, pid, payload, actor='patient_web'):
 
 
 NOTIFY_TYPES = ('inquiry_responded', 'inquiry_expired', 'hospital_keeps', 'adjustment_needed', 'arrival_confirmed',
-                'destination_changed', 'inquiry_question', 'patient_cancelled', 'no_show')
+                'destination_changed', 'inquiry_question', 'patient_cancelled', 'no_show',
+                'transport_recheck_required', 'transport_conditions_restored',
+                'transport_inquiry_ready', 'transport_inquiry_exhausted')
 
 
 def patient_view(conn, pid, now):
@@ -331,6 +386,10 @@ def patient_view(conn, pid, now):
         q['can_retry'] = q['state'] in OPEN_INQUIRY and q['elapsed_seconds'] >= RETRY_MIN
         q['usable'] = q['state'] == 'ACCEPTED' and q['patient_version'] == p['version']
     p['inquiries'] = inquiries
+    from . import inquiry_workflow, transport_review, transport_reassignment
+    p['inquiry_workflow'] = inquiry_workflow.view(conn, now, pid)
+    p['transport_review'] = transport_review.view(conn, now, pid)
+    p['transport_inquiry_workflow'] = transport_reassignment.view(conn, now, pid)
     if p['destination_hospital_id']:
         h = _hospital(conn, p['destination_hospital_id'])
         p['destination'] = dict(id=h['id'], name=h['name'], address=h['address'], phone=h['phone'],
@@ -353,21 +412,29 @@ def candidates(conn, now, pid, estimator):
     need = set(p['required_capabilities'])
     listed, excluded = [], []
     for h in list_hospitals(conn, now):
+        evaluation = treatment_binding.evaluate_patient(p,
+            treatment_binding.observation_map(h.get('public_data', []), now), now)
         missing = sorted(need - set(h['capabilities']))
-        if missing:
+        capabilities_unknown = h.get('capabilities_status', 'known') == 'unknown'
+        if missing and not capabilities_unknown:
             excluded.append(dict(hospital_id=h['id'], name=h['name'], reason='NO_COMPATIBLE_CAPABILITY',
-                                 detail=missing))
+                                 detail=missing, treatment_evaluation=evaluation))
             continue
         block = blocking_restriction(conn, h['id'], need, now)
         if block:
             excluded.append(dict(hospital_id=h['id'], name=h['name'], reason='RESTRICTED',
-                                 detail=f"{block['scope']}: {block['reason']}"))
+                                 detail=f"{block['scope']}: {block['reason']}", treatment_evaluation=evaluation))
             continue
         travel = estimator.estimate((p['lat'], p['lon']), (h['lat'], h['lon']))
         res = {r['resource_type']: r for r in h['resources']}
-        reasons = [f"필요 진료 분야 보유: {', '.join(sorted(need))}"] if need else []
-        checks = []
+        reasons = [f"필요 진료 분야 보유: {', '.join(sorted(need))}"] if need and not missing else []
+        checks = treatment_binding.confirmation_checks(evaluation)
+        if missing and capabilities_unknown:
+            checks.append(f"필요 진료 분야 확인 필요: {', '.join(missing)}")
+        if h.get('public_data'):
+            checks.append('공공 API 관측값은 참고 정보이며 환자별 수용 확인 필요')
         enough = True
+        auto_eligible = True
         for k, qty in p['resource_demands'].items():
             r = res.get(k)
             if r is None or r['free'] is None:
@@ -376,6 +443,10 @@ def candidates(conn, now, pid, estimator):
             elif r['free'] < qty:
                 checks.append(f"{k} 여유 {r['free']} (필요 {qty})")
                 enough = False
+                # 오래되거나 미확인인 값은 제외 근거가 아니다. 공공 관측값은
+                # resources와 별도로 저장되므로 여기는 운영자가 확인한 자원만 본다.
+                if not r['stale']:
+                    auto_eligible = False
             else:
                 reasons.append(f"{k} 여유 {r['free']}")
             if r is not None and r['stale']:
@@ -388,7 +459,11 @@ def candidates(conn, now, pid, estimator):
         reasons.append(f"이동 약 {travel['duration_seconds'] // 60}분 ({travel['provider']})")
         listed.append(dict(hospital_id=h['id'], name=h['name'], address=h['address'], phone=h['phone'],
                            lat=h['lat'], lon=h['lon'], travel=travel, last_updated_at=h['last_updated_at'],
-                           resources_enough=enough, reasons=reasons, checks=checks))
+                           resources_enough=enough, auto_inquiry_eligible=auto_eligible,
+                           reasons=reasons, checks=checks))
+        listed[-1]['public_data'] = h.get('public_data', [])
+        listed[-1]['treatment_evaluation'] = evaluation
+        listed[-1]['treatment_requirements'] = treatment_binding.requirements_for(p)
     listed.sort(key=lambda c: (not c['resources_enough'], c['travel']['duration_seconds']))
     if not listed:
         code = 'NO_COMPATIBLE_HOSPITAL' if all(e['reason'] == 'NO_COMPATIBLE_CAPABILITY' for e in excluded) \
@@ -407,33 +482,39 @@ def _can_inquire(p):
     return p['state'] == 'WAITING' or (p['state'] in ACTIVE_TRANSPORT and p['needs_adjustment'])
 
 
-def send_inquiries(conn, now, pid, hospital_ids, actor='patient_web'):
-    """같은 병원에 진행 중인 문의가 있으면 새로 만들지 않는다 (S06 대신 UNIQUE + 재사용)."""
+def _send_inquiries(conn, now, pid, hospital_ids, actor='patient_web'):
+    """호출자의 쓰기 트랜잭션 안에서 문의를 등록한다."""
     _require(isinstance(hospital_ids, list) and hospital_ids, 'INVALID', '문의할 병원을 고르세요')
     created = []
+    p = _patient(conn, pid)
+    _require(_can_inquire(p), 'INVALID_STATE', '지금 상태에서는 문의할 수 없습니다', 409, state=p['state'])
+    for hid in dict.fromkeys(hospital_ids):
+        _hospital(conn, hid)
+        _require(hid != p['destination_hospital_id'], 'INVALID', '현재 목적 병원에는 다시 문의하지 않습니다')
+        cur = row(conn.execute('SELECT * FROM inquiries WHERE patient_id=? AND hospital_id=?',
+                               (pid, hid)).fetchone())
+        if cur and cur['state'] in OPEN_INQUIRY + ('ACCEPTED',) and cur['patient_version'] == p['version']:
+            created.append(cur['id'])
+            continue
+        if cur:
+            conn.execute("UPDATE inquiries SET state='PENDING', reason=NULL, question=NULL, answer=NULL, "
+                         "last_sent_at=?, attempts=attempts+1, responded_at=NULL, expires_at=NULL, "
+                         "patient_version=?, handled_by=NULL, version=version+1 WHERE id=?",
+                         (now, p['version'], cur['id']))
+            iid = cur['id']
+        else:
+            iid = conn.execute('INSERT INTO inquiries (patient_id, hospital_id, state, created_at, last_sent_at, '
+                               "patient_version) VALUES (?,?,'PENDING',?,?,?)",
+                               (pid, hid, now, now, p['version'])).lastrowid
+        created.append(iid)
+        log(conn, now, actor, 'inquiry_sent', pid, hid, inquiry_id=iid)
+    return created
+
+
+def send_inquiries(conn, now, pid, hospital_ids, actor='patient_web'):
+    """같은 병원에 진행 중인 문의가 있으면 재사용한다."""
     with transaction(conn):
-        p = _patient(conn, pid)
-        _require(_can_inquire(p), 'INVALID_STATE', '지금 상태에서는 문의할 수 없습니다', 409, state=p['state'])
-        for hid in dict.fromkeys(hospital_ids):
-            _hospital(conn, hid)
-            _require(hid != p['destination_hospital_id'], 'INVALID', '현재 목적 병원에는 다시 문의하지 않습니다')
-            cur = row(conn.execute('SELECT * FROM inquiries WHERE patient_id=? AND hospital_id=?',
-                                   (pid, hid)).fetchone())
-            if cur and cur['state'] in OPEN_INQUIRY + ('ACCEPTED',) and cur['patient_version'] == p['version']:
-                created.append(cur['id'])
-                continue
-            if cur:
-                conn.execute("UPDATE inquiries SET state='PENDING', reason=NULL, question=NULL, answer=NULL, "
-                             "last_sent_at=?, attempts=attempts+1, responded_at=NULL, expires_at=NULL, "
-                             "patient_version=?, handled_by=NULL, version=version+1 WHERE id=?",
-                             (now, p['version'], cur['id']))
-                iid = cur['id']
-            else:
-                iid = conn.execute('INSERT INTO inquiries (patient_id, hospital_id, state, created_at, last_sent_at, '
-                                   "patient_version) VALUES (?,?,'PENDING',?,?,?)",
-                                   (pid, hid, now, now, p['version'])).lastrowid
-            created.append(iid)
-            log(conn, now, actor, 'inquiry_sent', pid, hid, inquiry_id=iid)
+        _send_inquiries(conn, now, pid, hospital_ids, actor)
     return patient_view(conn, pid, now)
 
 
@@ -468,7 +549,7 @@ def answer_question(conn, now, pid, iid, answer, actor='patient_web'):
         _require(q['patient_id'] == pid and q['question'], 'INVALID_STATE', '답할 질문이 없습니다', 409)
         _require(q['state'] in OPEN_INQUIRY, 'INVALID_STATE', '이미 끝난 문의입니다', 409)
         conn.execute('UPDATE inquiries SET answer=?, version=version+1 WHERE id=?', (answer, iid))
-        log(conn, now, actor, 'inquiry_answered', pid, q['hospital_id'], inquiry_id=iid)
+        log(conn, now, actor, 'inquiry_answered', pid, q['hospital_id'], inquiry_id=iid, answer=answer)
     return patient_view(conn, pid, now)
 
 
@@ -515,7 +596,8 @@ def respond(conn, now, iid, action, handled_by, reason=None, question=None, expe
             conn.execute("UPDATE inquiries SET state='CHECKING', question=?, answer=NULL, handled_by=?, "
                          "version=version+1 WHERE id=?", (question, handled_by, iid))
         log(conn, now, handled_by, 'inquiry_question' if action == 'question' else 'inquiry_responded',
-            q['patient_id'], q['hospital_id'], inquiry_id=iid, action=action, reason=reason, warning=warning)
+            q['patient_id'], q['hospital_id'], inquiry_id=iid, action=action, reason=reason, warning=warning,
+            **({'question': question} if action == 'question' else {}))
         q = _inquiry(conn, iid)
     return dict(inquiry=q, duplicate=False, warning=warning)
 
@@ -568,11 +650,18 @@ def confirm_destination(conn, now, pid, iid, actor='patient_web'):
         _require(p['state'] == 'WAITING', 'INVALID_STATE', '이미 목적지가 정해졌습니다', 409, state=p['state'])
         q = _inquiry(conn, iid)
         _check_acceptance(conn, now, p, q)
+        conversation = db.ensure_conversation(conn, p, now)
         conn.execute("UPDATE patients SET state='CONFIRMED', destination_hospital_id=?, version=version+1 "
                      "WHERE id=? AND version=?", (q['hospital_id'], pid, p['version']))
         conn.execute("UPDATE inquiries SET state='CONFIRMED', version=version+1 WHERE id=?", (iid,))
         _close_other_inquiries(conn, now, pid, iid, '다른 병원 확정')
-        log(conn, now, actor, 'destination_confirmed', pid, q['hospital_id'], inquiry_id=iid)
+        from . import inquiry_workflow
+        inquiry_workflow.stop_in_transaction(conn, now, pid, reason='목적지가 확정됐습니다.')
+        event_id = log(conn, now, actor, 'destination_confirmed', pid, q['hospital_id'], inquiry_id=iid)
+        db.join_conversation_hospital(conn, conversation['id'], now, q['hospital_id'], iid,
+                                      event_id, _patient(conn, pid))
+        from . import transport_review
+        transport_review.capture_baseline_in_transaction(conn, now, pid)
     return patient_view(conn, pid, now)
 
 
@@ -595,10 +684,35 @@ def depart(conn, now, pid, estimator, lat=None, lon=None, actor='patient_web'):
     eta = now + travel['duration_seconds']
     with transaction(conn):
         p = _patient(conn, pid)
-        _require(p['version'] == before['version'], 'CONFLICT', '이동시간 계산 중 환자 상태가 바뀌었습니다', 409)
+        _require(p['version'] == before['version'] and p['location_version'] == before['location_version'],
+                 'CONFLICT', '이동시간 계산 중 환자 상태나 위치가 바뀌었습니다', 409)
         conn.execute("UPDATE patients SET state='IN_TRANSIT', departed_at=?, eta_at=?, lat=?, lon=?, "
-                     "version=version+1 WHERE id=?", (now, eta, origin[0], origin[1], pid))
+                     "location_updated_at=?,location_version=location_version+1,version=version+1 WHERE id=?",
+                     (now, eta, origin[0], origin[1], now, pid))
         log(conn, now, actor, 'departed', pid, h['id'], eta_at=eta, provider=travel['provider'])
+    return patient_view(conn, pid, now)
+
+
+def update_transport_position(conn, now, pid, lat, lon, measured_at=None, actor='patient_web'):
+    """이송 위치만 갱신한다. 임상 정보 버전·수용 응답은 위치 갱신으로 만료시키지 않는다."""
+    measured_at = now if measured_at is None else measured_at
+    _require(type(measured_at) is int and 0 <= measured_at <= now, 'INVALID',
+             'measured_at은 현재보다 미래가 아닌 UTC epoch 초입니다')
+    with transaction(conn):
+        p = _patient(conn, pid)
+        _require(p['state'] in ACTIVE_TRANSPORT, 'INVALID_STATE', '확정·이송 중인 환자의 위치만 갱신합니다', 409)
+        _require(lat is not None and lon is not None, 'LOCATION_REQUIRED', '현재 위도와 경도가 필요합니다')
+        origin = _origin(p, lat, lon)
+        _require(p['location_updated_at'] is None or measured_at >= p['location_updated_at'],
+                 'STALE_LOCATION', '이미 저장한 위치보다 오래된 관측입니다', 409)
+        _require(p['location_updated_at'] != measured_at or
+                 (p['lat'], p['lon']) == origin, 'LOCATION_CONFLICT',
+                 '동일한 관측 시각에 서로 다른 위치가 전송됐습니다', 409)
+        if (p['lat'], p['lon'], p['location_updated_at']) != (*origin, measured_at):
+            conn.execute('UPDATE patients SET lat=?,lon=?,location_updated_at=?,location_version=location_version+1 '
+                         'WHERE id=?', (*origin, measured_at, pid))
+            log(conn, now, actor, 'transport_position_updated', pid, p['destination_hospital_id'],
+                measured_at=measured_at)
     return patient_view(conn, pid, now)
 
 
@@ -612,25 +726,39 @@ def change_destination(conn, now, pid, iid, estimator, lat=None, lon=None, actor
     _check_acceptance(conn, now, before, inquiry)
     eta = None
     if before['state'] == 'IN_TRANSIT':
+        from . import transport_review, transport_reassignment
+        if transport_review.view(conn, now, pid)['enabled'] and lat is None:
+            _require(before['location_updated_at'] is not None and
+                     0 <= now - before['location_updated_at'] <= transport_reassignment.POSITION_MAX_AGE_SECONDS,
+                     'LOCATION_STALE', '현재 이송 위치를 갱신한 뒤 목적지를 변경하세요.', 409)
         origin = _origin(before, lat, lon)
         h = _hospital(conn, inquiry['hospital_id'])
         eta = now + estimator.estimate(origin, (h['lat'], h['lon']))['duration_seconds']
     with transaction(conn):
         p = _patient(conn, pid)
-        _require(p['version'] == before['version'] and p['needs_adjustment'], 'CONFLICT',
+        _require(p['version'] == before['version'] and p['location_version'] == before['location_version'] and
+                 p['needs_adjustment'], 'CONFLICT',
                  '이동시간 계산 중 환자 상태가 바뀌었습니다', 409)
         q = _inquiry(conn, iid)
         _check_acceptance(conn, now, p, q)
+        conversation = db.ensure_conversation(conn, p, now)
         old = p['destination_hospital_id']
         if p['state'] == 'IN_TRANSIT':
-            conn.execute('UPDATE patients SET lat=?, lon=? WHERE id=?', (origin[0], origin[1], pid))
+            conn.execute('UPDATE patients SET lat=?,lon=?,location_updated_at=?,location_version=location_version+1 '
+                         'WHERE id=?', (origin[0], origin[1], now, pid))
         conn.execute('UPDATE patients SET destination_hospital_id=?, eta_at=?, needs_adjustment=0, '
                      'adjustment_note=NULL, version=version+1 WHERE id=?', (q['hospital_id'], eta, pid))
         conn.execute("UPDATE inquiries SET state='CONFIRMED', version=version+1 WHERE id=?", (iid,))
         _close_other_inquiries(conn, now, pid, iid, '목적지 변경')
-        log(conn, now, actor, 'destination_changed', pid, q['hospital_id'], from_hospital=old, inquiry_id=iid,
-            eta_at=eta)
-        log(conn, now, actor, 'patient_redirected_away', pid, old, to_hospital=q['hospital_id'])
+        joined_id = log(conn, now, actor, 'destination_changed', pid, q['hospital_id'], from_hospital=old,
+                        inquiry_id=iid, eta_at=eta)
+        left_id = log(conn, now, actor, 'patient_redirected_away', pid, old, to_hospital=q['hospital_id'])
+        db.leave_conversation_hospital(conn, conversation['id'], now, left_id)
+        db.join_conversation_hospital(conn, conversation['id'], now, q['hospital_id'], iid, joined_id,
+                                      _patient(conn, pid), handoff_note=p.get('adjustment_note'))
+        from . import transport_review, transport_reassignment
+        transport_reassignment.stop_in_transaction(conn, now, pid, '새 병원으로 목적지가 변경됐습니다.')
+        transport_review.capture_baseline_in_transaction(conn, now, pid)
     return patient_view(conn, pid, now)
 
 
@@ -640,10 +768,16 @@ def cancel_patient(conn, now, pid, reason, actor='patient_web'):
     with transaction(conn):
         p = _patient(conn, pid)
         _require(p['state'] in ('WAITING',) + ACTIVE_TRANSPORT, 'INVALID_STATE', '취소할 수 없는 상태입니다', 409)
+        conversation = db.ensure_conversation(conn, p, now)
         conn.execute("UPDATE patients SET state='CANCELLED', closed_reason=?, version=version+1 WHERE id=?",
                      (reason, pid))
         _close_other_inquiries(conn, now, pid, -1, '환자 측 취소')
-        log(conn, now, actor, 'patient_cancelled', pid, p['destination_hospital_id'], reason=reason)
+        from . import inquiry_workflow
+        inquiry_workflow.stop_in_transaction(conn, now, pid, reason='환자 이송이 취소됐습니다.')
+        event_id = log(conn, now, actor, 'patient_cancelled', pid, p['destination_hospital_id'], reason=reason)
+        db.close_conversation(conn, conversation['id'], now, event_id)
+        from . import transport_review
+        transport_review.finish_in_transaction(conn, now, pid, '환자 이송이 취소됐습니다.')
     return patient_view(conn, pid, now)
 
 
@@ -663,10 +797,14 @@ def confirm_arrival(conn, now, pid, hid, actor='hospital'):
         p = _patient(conn, pid)
         _require(p['destination_hospital_id'] == hid and p['state'] in ACTIVE_TRANSPORT, 'INVALID_STATE',
                  '이 병원으로 오는 환자가 아닙니다', 409)
+        conversation = db.ensure_conversation(conn, p, now)
         conn.execute("UPDATE patients SET state='ARRIVED', arrived_at=?, needs_adjustment=0, version=version+1 "
                      "WHERE id=?", (now, pid))
         _adjust_occupied(conn, now, hid, p['resource_demands'], +1)
-        log(conn, now, actor, 'arrival_confirmed', pid, hid)
+        event_id = log(conn, now, actor, 'arrival_confirmed', pid, hid)
+        db.close_conversation(conn, conversation['id'], now, event_id)
+        from . import transport_review
+        transport_review.finish_in_transaction(conn, now, pid, '병원 도착이 확인됐습니다.')
     return patient_view(conn, pid, now)
 
 
@@ -675,10 +813,14 @@ def mark_no_show(conn, now, pid, hid, reason='미도착', actor='hospital'):
         p = _patient(conn, pid)
         _require(p['destination_hospital_id'] == hid and p['state'] in ACTIVE_TRANSPORT, 'INVALID_STATE',
                  '이 병원으로 오는 환자가 아닙니다', 409)
+        conversation = db.ensure_conversation(conn, p, now)
         conn.execute("UPDATE patients SET state='CANCELLED', closed_reason=?, version=version+1 WHERE id=?",
                      (reason, pid))
         _close_other_inquiries(conn, now, pid, -1, reason)
-        log(conn, now, actor, 'no_show', pid, hid, reason=reason)
+        event_id = log(conn, now, actor, 'no_show', pid, hid, reason=reason)
+        db.close_conversation(conn, conversation['id'], now, event_id)
+        from . import transport_review
+        transport_review.finish_in_transaction(conn, now, pid, '미도착으로 이송이 종료됐습니다.')
     return patient_view(conn, pid, now)
 
 
@@ -687,9 +829,11 @@ def discharge(conn, now, pid, hid, actor='hospital'):
         p = _patient(conn, pid)
         _require(p['destination_hospital_id'] == hid and p['state'] == 'ARRIVED', 'INVALID_STATE',
                  '도착한 환자만 퇴실 처리합니다', 409)
+        conversation = db.ensure_conversation(conn, p, now)
         conn.execute("UPDATE patients SET state='COMPLETED', version=version+1 WHERE id=?", (pid,))
         _adjust_occupied(conn, now, hid, p['resource_demands'], -1)
-        log(conn, now, actor, 'discharged', pid, hid)
+        event_id = log(conn, now, actor, 'discharged', pid, hid)
+        db.close_conversation(conn, conversation['id'], now, event_id)
     return patient_view(conn, pid, now)
 
 
@@ -703,6 +847,8 @@ def incoming(conn, now, hid):
         s.update(needs_adjustment=bool(p['needs_adjustment']), adjustment_note=p['adjustment_note'],
                  departed_at=p['departed_at'], arrived_at=p['arrived_at'],
                  eta_remaining_seconds=None if p['eta_at'] is None else max(0, p['eta_at'] - now))
+        from . import transport_review
+        s['transport_review'] = transport_review.view(conn, now, p['id'])
         out.append(s)
     return out
 
@@ -748,10 +894,13 @@ def register_external_arrival(conn, now, hid, demands, occurred_at=None, note=No
         affected = affected_patients(conn, now, hid)
         log(conn, now, actor, 'external_arrival', hospital_id=hid, external_id=eid, demands=demands,
             affected=[a['patient']['id'] for a in affected])
+        from . import transport_review
+        transport_review.scan_in_transaction(conn, now, hid)
     return dict(external_arrival_id=eid, affected=affected, hospital=hospital_view(conn, hid, now))
 
 
-def hospital_decision(conn, now, pid, hid, decision, note=None, actor='hospital'):
+def hospital_decision(conn, now, pid, hid, decision, note=None, actor='hospital',
+                      expected_review_version=None, expected_risk_signature=None):
     """기존 수용 유지 / 조정 필요 판단과 이송자 통보 (H35, H36, P37).
 
     조정 필요여도 목적지를 자동으로 바꾸거나 환자를 지우지 않는다. 이송자는 대체 병원에
@@ -763,12 +912,22 @@ def hospital_decision(conn, now, pid, hid, decision, note=None, actor='hospital'
         _require(p['destination_hospital_id'] == hid and p['state'] in ACTIVE_TRANSPORT, 'INVALID_STATE',
                  '이 병원으로 오는 환자가 아닙니다', 409)
         if decision == 'adjust':
-            conn.execute('UPDATE patients SET needs_adjustment=1, adjustment_note=?, version=version+1 WHERE id=?',
-                         (note, pid))
-            log(conn, now, actor, 'adjustment_needed', pid, hid, note=note)
+            active_job = conn.execute('SELECT enabled,source_hospital_id FROM transport_inquiry_workflows '
+                                      'WHERE patient_id=?', (pid,)).fetchone()
+            same_active_adjustment = (p['needs_adjustment'] and p['adjustment_note'] == note and
+                                     active_job is not None and active_job['enabled'] and
+                                     active_job['source_hospital_id'] == hid)
+            if not same_active_adjustment:
+                conn.execute('UPDATE patients SET needs_adjustment=1, adjustment_note=?, version=version+1 WHERE id=?',
+                             (note, pid))
+                log(conn, now, actor, 'adjustment_needed', pid, hid, note=note)
         else:
-            conn.execute('UPDATE patients SET needs_adjustment=0, adjustment_note=NULL WHERE id=?', (pid,))
+            conn.execute('UPDATE patients SET needs_adjustment=0, adjustment_note=NULL,version=version+1 WHERE id=?', (pid,))
             log(conn, now, actor, 'hospital_keeps', pid, hid, note=note)
+        from . import transport_review
+        transport_review.decision_in_transaction(conn, now, pid, hid, decision, note,
+                                                 expected_version=expected_review_version,
+                                                 expected_signature=expected_risk_signature)
     return patient_view(conn, pid, now)
 
 

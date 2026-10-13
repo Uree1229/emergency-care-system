@@ -1,7 +1,7 @@
 """공통 DB 스냅샷을 분 단위 배정 모델로 변환한다. 임상 판단을 수행하지 않는다."""
 import math
 
-from . import service
+from . import service, treatment_binding
 
 RESOURCE_TYPES = ('ed_bed', 'special_team')
 HORIZON_MINUTES = 120
@@ -18,6 +18,8 @@ def build(snapshot, estimator):
     hospitals = snapshot['hospitals']
     index = {h['id']: i for i, h in enumerate(hospitals)}
     resources = {(r['hospital_id'], r['resource_type']): r for r in snapshot['resources']}
+    public_observations = {h['id']:treatment_binding.observation_map(
+        snapshot.get('public_snapshots', []), now, h['id']) for h in hospitals}
     model = dict(now=minute(now), horizon=minute(now) + HORIZON_MINUTES,
                  version=snapshot['revision'], capacities=[], blocks=[], patients=[], destination_locks={})
     context = {}
@@ -35,7 +37,8 @@ def build(snapshot, estimator):
                                             duration=HORIZON_MINUTES + 1440, special=rtype == 'special_team',
                                             demands=demands))
         model['capacities'].append(pair)
-    for p in snapshot['patients']:
+    for raw_patient in snapshot['patients']:
+        p = treatment_binding.bind_patient(raw_patient)
         pid = p['id']
         locked = p['state'] in service.ACTIVE_TRANSPORT
         demand = p['resource_demands']
@@ -43,12 +46,21 @@ def build(snapshot, estimator):
         eligible, travel, arrivals, routes, expiries, alternatives = [], [], [], {}, [], []
         warnings = []
         missing_capabilities = []
+        treatment_evaluations = {}
         if not supported:
             warnings.append('UNSUPPORTED_RESOURCE')
         if p['priority_source'] != 'expert':
             warnings.append('PRIORITY_UNVERIFIED')
         for h in hospitals:
             hid, hi = h['id'], index[h['id']]
+            evaluation = treatment_binding.evaluate_patient(p, public_observations[hid], now)
+            treatment_evaluations[hid] = evaluation
+            # 공개 판정의 unknown/오래됨은 유효한 환자별 수용 응답을 무효화하지 않는다.
+            # 현재 운영 capacity는 별도로 검사하며 등록 시설 수를 대신 넣지 않는다.
+            if evaluation['status'] != 'MATCH':
+                warnings.append('TREATMENT_CONFIRMATION_REQUIRED:' + hid)
+            if evaluation['stale']:
+                warnings.append('PUBLIC_DATA_STALE:' + hid)
             estimate = None
             if locked and hid == p['destination_hospital_id'] and p['eta_at'] is not None:
                 arrival = max(now, p['eta_at'])
@@ -68,13 +80,16 @@ def build(snapshot, estimator):
                           for r in snapshot['restrictions'])
             if locked and hid == p['destination_hospital_id']:
                 eligible.append(hi)
-                missing_capabilities = sorted(set(p['required_capabilities']) - set(h['capabilities']))
-                if missing_capabilities:
-                    warnings.append('DESTINATION_CAPABILITY_MISSING')
+                if h.get('capabilities_status', 'known') != 'unknown':
+                    missing_capabilities = sorted(set(p['required_capabilities']) - set(h['capabilities']))
+                    if missing_capabilities:
+                        warnings.append('DESTINATION_CAPABILITY_MISSING')
                 if blocked:
                     warnings.append('DESTINATION_RESTRICTED')
                 continue
-            if estimate is None or not supported or not set(p['required_capabilities']) <= set(h['capabilities']):
+            capabilities_unknown = h.get('capabilities_status', 'known') == 'unknown'
+            if estimate is None or not supported or (not capabilities_unknown and
+                    not set(p['required_capabilities']) <= set(h['capabilities'])):
                 continue
             known = all((hid, key) in resources and resources[hid, key]['status'] != 'unknown' and
                         now - resources[hid, key]['updated_at'] <= service.STALE_AFTER for key in demand)
@@ -83,6 +98,8 @@ def build(snapshot, estimator):
                       and q['expires_at'] is not None and q['expires_at'] > now), None)
             if blocked or not known or q is None:
                 continue
+            if capabilities_unknown:
+                warnings.append('CAPABILITIES_UNVERIFIED:' + hid)
             if locked:
                 alternatives.append(dict(hospital_id=hid, inquiry_id=q['id'], expires_at=q['expires_at'],
                                          current_location_required=p['state'] == 'IN_TRANSIT'))
@@ -95,7 +112,10 @@ def build(snapshot, estimator):
         deadline = p['max_wait_seconds'] or DEFAULT_MAX_WAIT
         context[pid] = dict(patient=p, eligible=eligible, routes=routes, warnings=warnings,
                             acceptance_expiries=expiries, locked=locked, duration=duration, deadline=deadline,
-                            accepted_alternatives=alternatives, missing_capabilities=missing_capabilities)
+                            accepted_alternatives=alternatives,
+                            missing_capabilities=missing_capabilities,
+                            treatment_requirements=treatment_binding.requirements_for(p),
+                            treatment_evaluations=treatment_evaluations)
         if 'DESTINATION_RESTRICTED' in warnings:
             context[pid]['blocking_review'] = True
         # 별도 자원 모델이 필요한 환자는 누락 없이 명시적 검토 결과를 제공한다.
@@ -156,12 +176,16 @@ def present(snapshot, model, context, plan, meta):
                         and q['state'] == 'ACCEPTED' and q['patient_version'] == p['version']
                         and q['expires_at'] is not None and q['expires_at'] > snapshot['now']), None)
         result[pid] = dict(status=status, hospital_id=hid, inquiry_id=inquiry['id'] if inquiry else None,
+                           missing_capabilities=ctx['missing_capabilities'],
+                           treatment_requirements=ctx['treatment_requirements'],
+                           treatment_evaluation=ctx['treatment_evaluations'].get(hid),
+                           treatment_evaluations=ctx['treatment_evaluations'],
                            destination_locked=ctx['locked'], planned_start_at=start,
                            accepted_alternatives=ctx['accepted_alternatives'] if p['needs_adjustment'] else [],
                            planned_end_at=start + minute(ctx['duration']) * 60 if start is not None else None,
                            wait_seconds=max(0, start - p['requested_at']) if start is not None else None,
                            confirmable_now=bool(assignment and not ctx['locked'] and inquiry and not short and not unknown),
-                           warnings=warnings, missing_capabilities=ctx['missing_capabilities'], travel=ctx['routes'].get(hid),
+                           warnings=warnings, travel=ctx['routes'].get(hid),
                            assumptions=dict(parameter_source='experiment', treatment_duration_seconds=ctx['duration'],
                                             max_wait_seconds=ctx['deadline'], occupied_release='unknown_blocked_for_horizon'),
                            solver=meta)

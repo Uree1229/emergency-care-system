@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>이송 대화 · 서버 연동 시연</title>
+  <style>
+    :root{color-scheme:light;--ink:#182b35;--muted:#74818a;--line:#dfe5e5;--paper:#fff;--wash:#f2f4f2;--teal:#137d71;--teal-light:#e8f4ef;--orange:#a5662c;--orange-light:#fbf1e4}
+    *{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:14px;line-height:1.5}button,input,textarea,select{font:inherit}button,select{cursor:pointer}button:disabled{cursor:default;opacity:.45}button:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #83cbb6;outline-offset:3px}button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:10px 15px;font-weight:700}button:hover:not(:disabled){background:#f7faf8}.primary{background:var(--teal);border-color:var(--teal);color:#fff}.primary:hover:not(:disabled){background:#0d685f}.quiet{background:transparent}.danger{color:var(--orange);border-color:#e4c8a8;background:var(--orange-light)}
+    .shell{max-width:1440px;margin:auto;padding:26px 34px 20px}.topline{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}.wordmark{font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:9px}.brand-icon{width:25px;height:25px;border-radius:8px;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:21px;font-weight:400}.environment{font-size:11px;padding:4px 8px;border:1px solid #cbd7d1;border-radius:5px;font-weight:500;margin-left:5px;color:#597167}.connection{display:flex;align-items:center;gap:7px;color:#5d7770;font-size:12px}.dot{width:6px;height:6px;border-radius:50%;background:#258a70}.connection.offline{color:#a45c35}.offline .dot{background:#b56c40}
+    .intro{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:22px}.eyebrow{font-size:11px;letter-spacing:1.3px;font-weight:700;color:var(--teal);margin-bottom:7px}h1{font-size:29px;letter-spacing:-1.2px;line-height:1.3;margin:0 0 7px;font-weight:800}.intro p{margin:0;color:var(--muted);font-size:13px}.intro-actions{display:flex;gap:8px;flex-shrink:0}.case-label{font-size:11px;color:var(--muted);margin-bottom:7px;max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+    .demo-bar{padding:17px 20px;background:#e9eeea;border:1px solid #d7dfd8;border-radius:12px;margin-bottom:20px;display:grid;grid-template-columns:1fr auto;gap:12px 20px;align-items:center}.progress{display:flex;align-items:center;gap:0;min-width:0}.progress-step{display:flex;align-items:center;gap:7px;color:#93a09c;font-size:12px;font-weight:700;white-space:nowrap}.progress-step:not(:last-child):after{content:"";width:23px;height:1px;background:#cbd7cf;display:block;margin:0 10px}.step-number{height:23px;width:23px;border:1px solid #c6d1ca;border-radius:50%;display:grid;place-items:center;font-size:10px}.progress-step.done,.progress-step.current{color:#397666}.done .step-number{background:#d8e9df;border-color:#bdd7c7}.current .step-number{background:var(--teal);border-color:var(--teal);color:#fff}.demo-controls{display:flex;align-items:center;gap:8px}.demo-note{grid-column:1/-1;margin:0;font-size:11px;color:#718078}.control-hint{font-size:12px;font-weight:700;color:#416252;margin-bottom:8px}
+    .error{display:none;background:#fff2e9;border:1px solid #ebc6ae;padding:11px 14px;border-radius:8px;margin-bottom:16px;color:#8d4829;font-size:12px;align-items:center;justify-content:space-between;gap:12px}.error.visible{display:flex}.error button{border:0;padding:2px 7px;background:transparent;color:inherit}
+    .workspace{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 3px 10px #23362d03;overflow:hidden;display:flex;flex-direction:column}.panel-header{padding:18px 21px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}.identity{display:flex;align-items:center;gap:11px}.avatar{width:35px;height:35px;border-radius:11px;display:grid;place-items:center;font-weight:800;font-size:13px;background:#e9f1ed;color:#497464}.hospital-avatar{background:#edf0f5;color:#4b6179}.identity h2{font-size:15px;letter-spacing:-.3px;margin:0}.identity p{font-size:11px;color:var(--muted);margin:1px 0 0}.badge{display:inline-flex;align-items:center;white-space:nowrap;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:700;background:#edf1ef;color:#5e756a}.badge.teal{background:var(--teal-light);color:var(--teal)}.badge.orange{background:var(--orange-light);color:var(--orange)}
+    .patient-summary{padding:14px 21px 13px;border-bottom:1px solid #e8ece9}.summary-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.summary-name{font-size:13px;font-weight:800}.summary-tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}.tag{font-size:10px;color:#62756b;background:#f2f5f2;padding:3px 7px;border-radius:4px}.destination{margin-top:10px;padding-top:10px;border-top:1px dashed #e4e8e4;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:10px}.destination strong{color:var(--ink);font-weight:700;text-align:right}.inquiry-strip{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:11px 21px;border-bottom:1px solid #e8ece9}.inquiry-card{background:#f7f9f7;border-radius:7px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}.inquiry-name{font-size:10px;color:#52685e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inquiry-status{font-size:10px;white-space:nowrap;font-weight:700;color:#7a8880}.inquiry-status.accepted{color:var(--teal)}.inquiry-status.closed{color:#a0aaa4}
+    .hospital-select{max-width:195px;padding:8px 28px 8px 9px;border:1px solid var(--line);border-radius:7px;font-size:11px;color:#4a6156;background:#fff}.hospital-context{padding:14px 21px;border-bottom:1px solid #e8ece9;background:#fcfcfa;min-height:81px}.context-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;font-weight:700;margin-bottom:5px}.context-copy{margin:0;font-size:11px;color:var(--muted)}
+    .feed{height:408px;min-height:260px;overflow-y:auto;padding:19px 21px;background:#fbfcfa;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d2dcd4 transparent}.system-message{margin:0 auto 13px;max-width:94%;border:1px solid #e4eae4;border-radius:8px;background:#fff;padding:9px 11px;display:flex;align-items:flex-start;gap:8px}.system-mark{font-size:10px;font-weight:800;color:#749284;flex-shrink:0;margin-top:2px}.system-message p{font-size:11px;margin:0;line-height:1.65;color:#61766a;overflow-wrap:anywhere}.system-message time{font-size:9px;color:#a1aea5;display:block;margin-top:3px}.system-message.milestone{border-color:#c9dfd1;background:#eef7f0}.system-message.milestone p{color:#327558}.system-message.warning{border-color:#ecd6bc;background:#fff7eb}.system-message.warning p{color:#967040}.system-detail{display:block;color:#465e50;margin-top:5px;white-space:pre-wrap}.message{display:flex;flex-direction:column;align-items:flex-start;margin:15px 0;max-width:87%;width:fit-content}.message.own{align-items:flex-end;margin-left:auto}.message-name{font-size:10px;font-weight:700;color:#75877b;margin:0 2px 4px}.bubble{padding:10px 13px;font-size:12px;line-height:1.7;border:1px solid #e2e7e1;border-radius:11px 11px 11px 3px;background:#fff;white-space:pre-wrap;overflow-wrap:anywhere}.own .bubble{background:#e7f2eb;border-color:#dce9e0;border-radius:11px 11px 3px 11px;color:#315d47}.message time{font-size:9px;color:#9ba89e;margin:3px 2px 0}.empty{height:100%;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#8b9a90;padding:24px}.empty-symbol{width:46px;height:46px;border:1px solid #dfe7df;border-radius:14px;display:grid;place-items:center;font-size:21px;color:#9eb3a5;margin-bottom:13px}.empty strong{font-size:13px;font-weight:700;color:#63796b;margin-bottom:5px}.empty p{font-size:11px;line-height:1.8;margin:0;max-width:270px}.feed-label{text-align:center;font-size:10px;letter-spacing:.2px;color:#a1ada4;margin-bottom:16px}
+    .composer{padding:13px 17px 12px;background:#fff;border-top:1px solid var(--line)}.compose-row{display:flex;align-items:flex-end;gap:9px}.composer textarea{resize:none;min-width:0;flex:1;border:1px solid #dce4dd;background:#f9fbf8;border-radius:8px;padding:10px 11px;min-height:43px;max-height:110px;font-size:12px;line-height:1.6;color:var(--ink)}.composer textarea:disabled{background:#f5f7f3;color:#8d9a91}.send{height:43px;padding:0 15px;font-size:12px;flex-shrink:0}.compose-note{font-size:10px;color:#98a49a;margin:7px 1px 0;display:flex;justify-content:space-between;gap:10px}.footer{margin-top:14px;display:flex;justify-content:space-between;gap:16px;color:#86958a;font-size:10px}.footer span{max-width:600px}.spinner{display:inline-block;width:11px;height:11px;border:2px solid #ffffff66;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:-1px}@keyframes spin{to{transform:rotate(360deg)}}
+    @media(min-height:1000px){.feed{height:500px}}@media(max-width:1100px){.shell{padding:22px}.demo-bar{grid-template-columns:1fr}.demo-controls{justify-content:flex-start}.progress-step:not(:last-child):after{width:18px;margin:0 8px}.hospital-select{max-width:175px}.intro{align-items:start}.intro-actions{flex-direction:column}.panel-header{padding:16px}.patient-summary,.hospital-context{padding:13px 16px}.feed{padding:16px}.inquiry-strip{padding:10px 16px}}@media(max-width:760px){.shell{padding:18px 14px}.topline{margin-bottom:22px}.environment{font-size:9px}.connection{font-size:10px}.intro{display:block}.intro-actions{flex-direction:row;margin-top:14px}.case-label{text-align:left;max-width:100%;margin-top:12px}h1{font-size:25px}.demo-bar{padding:14px}.progress{overflow-x:auto;padding-bottom:5px}.progress-step{font-size:10px}.progress-step:not(:last-child):after{width:10px;margin:0 5px}.step-number{width:19px;height:19px}.demo-controls{flex-wrap:wrap}.demo-controls button{font-size:12px;padding:9px 11px}.workspace{grid-template-columns:1fr;gap:16px}.feed{height:370px}.panel-header{padding:16px}.footer{flex-direction:column;gap:5px}.hospital-select{max-width:190px}.demo-note{font-size:10px}.intro p{font-size:12px;line-height:1.7}}
+    .demo-bar>div{min-width:0}
+    .intro-actions{flex-wrap:wrap}.create-setting{display:flex;align-items:center;gap:6px;font-size:11px;color:#597167;white-space:nowrap}.create-setting input{accent-color:var(--teal);width:15px;height:15px}.workflow-status{grid-column:1/-1;border-top:1px solid #d7dfd8;padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}.workflow-copy{min-width:0}.workflow-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:11px;color:#597167}.workflow-detail{font-size:11px;color:#718078;margin:5px 0 0;overflow-wrap:anywhere}.workflow-status button{font-size:11px;padding:8px 11px;flex-shrink:0}.workflow-status button[hidden]{display:none}
+    .policy-setting{margin-top:10px;display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:11px;color:#597167}.policy-setting select{min-width:0;max-width:290px;border:1px solid #cbd7d1;border-radius:7px;padding:7px 10px;background:#fff;color:var(--ink);font-size:11px}.policy-setting select:disabled{opacity:.6;cursor:default}.new-policy-hint{max-width:480px;margin:5px 0 0 auto;text-align:right;font-size:10px;color:#74867a;overflow-wrap:anywhere}.workflow-decision{color:#416b56;border-left:2px solid #bdd7c7;padding-left:8px}.workflow-decision[hidden]{display:none}
+    .transport-controls{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:20px;min-width:0}.transport-controls[hidden]{display:none}.transport-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.transport-heading strong{font-size:12px}.transport-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.transport-actions button{font-size:11px;padding:8px 10px}.transport-copy{margin:7px 0 0;font-size:11px;color:#5c7367;overflow-wrap:anywhere}.transport-evidence{color:#926337;border-left:2px solid #d9ba93;padding-left:8px}.transport-evidence[hidden]{display:none}
+    @media(max-width:760px){.topline{flex-wrap:wrap}.workspace{grid-template-columns:minmax(0,1fr)}.hospital-select{min-width:0;max-width:50%}}
+    @media(max-width:760px){.policy-setting{justify-content:flex-start}.policy-setting select{flex:1;max-width:290px}.new-policy-hint{text-align:left;margin-left:0}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="topline"><div class="wordmark"><span class="brand-icon" aria-hidden="true">+</span> 이송 대화 <span class="environment">서버 연동 시연</span></div><div id="connection" class="connection"><i class="dot"></i><span>서버 연결 중</span></div></header>
+  <section class="intro"><div><div class="eyebrow">TRANSPORT CONVERSATION</div><h1>한 번의 이송, 하나의 대화.</h1><p>병원 문의부터 도착까지. 진행 상황과 병원과의 소통을 같은 방에서 이어갑니다.</p></div><div><div id="case-label" class="case-label">새 시연을 준비하고 있습니다.</div><div class="intro-actions"><button id="refresh" class="quiet" type="button">지금 새로고침</button><label class="create-setting" title="새 시연 사례를 생성할 때 적용합니다."><input id="new-auto-inquiry" type="checkbox" checked>새 시연: 서버 자동 문의</label><button id="new-case" type="button">새 시연 시작</button></div><label class="policy-setting" for="new-inquiry-policy">새 시연 문의 정책<select id="new-inquiry-policy" aria-describedby="new-policy-hint"><option value="fixed_1">고정 1곳씩 문의</option><option value="fixed_3" selected>고정 3곳씩 문의</option><option value="fixed_5">고정 5곳씩 문의</option><option value="observed_v2">관측 기반 추가 문의 V2</option></select></label><p id="new-policy-hint" class="new-policy-hint">새 이송 건에만 적용됩니다. 현재 사례의 정책은 아래에 표시합니다.</p></div></section>
+  <section class="demo-bar" aria-label="시연 진행 제어"><div><div id="control-hint" class="control-hint">환자정보를 등록하는 중입니다.</div><div id="progress" class="progress"></div></div><div class="demo-controls"><button id="next-step" class="primary" type="button" disabled>다음 단계</button><button id="change-demo" class="danger" type="button" disabled>조건 변경 시연</button></div><p class="demo-note">가상 환자·가상 병원으로 실제 서버 API를 호출합니다. 위 버튼은 시연자가 병원 회신과 이송 절차를 진행하는 제어 도구입니다.</p><div class="workflow-status" aria-live="polite"><div class="workflow-copy"><div class="workflow-line"><span id="workflow-state" class="badge">상태 확인 중</span><span id="workflow-summary">서버의 자동 문의 진행 상황을 확인합니다.</span></div><p id="workflow-detail" class="workflow-detail"></p><p id="workflow-policy" class="workflow-detail">초기 문의 정책을 확인합니다. 병원 회신과 목적지 확정은 사람이 진행합니다.</p><p id="workflow-decision" class="workflow-detail workflow-decision" hidden></p></div><button id="workflow-toggle" type="button" hidden>자동 문의 시작</button></div></section>
+  <section id="transport-controls" class="transport-controls" aria-label="이송 중 수용 조건 재확인" aria-live="polite" hidden>
+    <div class="transport-heading"><strong>도착 전 수용 조건 재확인</strong><span id="transport-state" class="badge">감시 꺼짐</span></div>
+    <p id="transport-summary" class="transport-copy">필요할 때 감시를 켜면 병원 조건 변화와 이송 건을 연결합니다.</p>
+    <p id="transport-evidence" class="transport-copy transport-evidence" hidden></p>
+    <p id="transport-workflow" class="transport-copy"></p><p id="transport-position" class="transport-copy"></p>
+    <div class="transport-actions"><button id="transport-toggle" type="button">수용 조건 감시 시작</button><button id="transport-position-refresh" type="button">시연 위치 갱신</button><button id="transport-keep" type="button">병원: 기존 수용 유지</button><button id="transport-adjust" class="danger" type="button">병원: 조정 필요</button><button id="transport-arrive" type="button">현재 병원 도착 확인</button></div>
+    <p class="transport-copy">병원 판단 이후 대체병원을 문의합니다. 새 병원의 수용 회신과 담당자의 변경 확정 전까지 현재 목적지를 유지합니다.</p>
+  </section>
+  <div id="error" class="error" role="alert"><span id="error-text"></span><button id="dismiss-error" type="button" aria-label="오류 알림 닫기">×</button></div>
+  <section class="workspace">
+    <article class="panel" aria-label="이송자 대화 화면">
+      <header class="panel-header"><div class="identity"><div class="avatar">이</div><div><h2>이송자 화면</h2><p>환자정보 · 문의 진행 · 병원 대화</p></div></div><span id="patient-state" class="badge">등록 중</span></header>
+      <div class="patient-summary"><div class="summary-top"><span class="summary-name">가상 환자 · 7세</span><span class="badge">시연 데이터</span></div><div class="summary-tags"><span class="tag">고열</span><span class="tag">소아청소년과 필요</span><span class="tag">의식 명료 · 호흡 정상</span></div><div class="destination"><span>현재 목적지</span><strong id="destination">병원 선정 전</strong></div></div>
+      <div id="inquiry-strip" class="inquiry-strip"></div>
+      <div id="patient-feed" class="feed" aria-label="이송자 대화 기록"></div>
+      <form id="patient-form" class="composer"><div class="compose-row"><textarea id="patient-input" rows="1" maxlength="2000" aria-label="이송자 메시지" placeholder="병원 확정 후 대화를 시작할 수 있습니다." disabled></textarea><button id="patient-send" class="primary send" type="submit" disabled>보내기</button></div><div class="compose-note"><span id="patient-compose-note">진행 상황은 시스템 메시지로 표시됩니다.</span><span>Enter 전송 · Shift+Enter 줄바꿈</span></div></form>
+    </article>
+    <article class="panel" aria-label="병원 대화 화면">
+      <header class="panel-header"><div class="identity"><div class="avatar hospital-avatar">병</div><div><h2>병원 화면</h2><p>확정 환자와의 대화</p></div></div><select id="hospital-select" class="hospital-select" aria-label="조회할 병원"><option value="H04">H04 · 소아전문응급센터</option><option value="H01">H01 · 권역응급의료센터</option></select></header>
+      <div class="hospital-context"><div class="context-heading"><span id="hospital-context-title">대화 참여 전</span><span id="hospital-state" class="badge">미참여</span></div><p id="hospital-context-copy" class="context-copy">수용 응답 이후 목적지가 확정되면 이 병원이 참여합니다.</p></div>
+      <div id="hospital-feed" class="feed" aria-label="병원 대화 기록"></div>
+      <form id="hospital-form" class="composer"><div class="compose-row"><textarea id="hospital-input" rows="1" maxlength="2000" aria-label="병원 메시지" placeholder="목적지 확정 후 메시지를 보낼 수 있습니다." disabled></textarea><button id="hospital-send" class="primary send" type="submit" disabled>보내기</button></div><div class="compose-note"><span id="hospital-compose-note">선택한 병원의 참여 구간만 조회합니다.</span><span>Enter 전송 · Shift+Enter 줄바꿈</span></div></form>
+    </article>
+  </section>
+  <footer class="footer"><span>수용·확정·출발·조정은 업무 API로 처리합니다. 자유메시지는 환자정보나 배정 상태를 바꾸지 않습니다.</span><span>기록은 서버 DB에 저장 · 3초마다 조회</span></footer>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+const STORE = 'emergency-care-chat-demo:v1';
+const hospitalNames = {H04:'가상 소아전문응급센터',H01:'가상 권역응급의료센터'};
+const shortNames = {H04:'소아전문응급센터',H01:'권역응급의료센터'};
+const labels = {WAITING:'병원 선정 중',CONFIRMED:'목적지 확정',IN_TRANSIT:'이송 중',ARRIVED:'도착 완료',COMPLETED:'종료',CANCELLED:'취소됨'};
+const inquiryLabels = {PENDING:'응답 대기',CHECKING:'확인 중',ACCEPTED:'수용 가능',DECLINED:'수용 불가',CONFIRMED:'목적지 확정',CANCELLED:'문의 종료',EXPIRED:'응답 만료'};
+const workflowLabels = {NOT_STARTED:'수동 문의',QUEUED:'자동 문의 대기',RUNNING:'자동 문의 진행 중',AWAITING_CONFIRMATION:'수용 응답 확보 · 확정 대기',EXHAUSTED:'자동 탐색 종료 · 추가 판단 필요',PAUSED:'자동 문의 일시중지',COMPLETED:'초기 문의 완료',ERROR:'자동 문의 오류'};
+const transportLabels = {NOT_STARTED:'수용 조건 감시 꺼짐',MONITORING:'수용 조건 감시 중',RECHECK_REQUIRED:'병원 재확인 필요',SEARCHING:'대체병원 탐색 중',AWAITING_CHANGE:'대체 수용 확보 · 변경 판단 대기',EXHAUSTED:'대체 탐색 종료 · 추가 판단 필요',PAUSED:'수용 조건 감시 일시중지',COMPLETED:'이송 감시 종료',ERROR:'감시 오류'};
+const alternativeLabels = {NOT_STARTED:'대체 문의 전',QUEUED:'대체 문의 대기',RUNNING:'대체 문의 진행 중',AWAITING_POSITION:'최신 위치 확인 필요',AWAITING_CHANGE:'대체 수용 확보',EXHAUSTED:'자동 탐색 한도 도달',PAUSED:'대체 문의 일시중지',COMPLETED:'대체 문의 종료',ERROR:'대체 문의 오류'};
+const fallbackPolicies = [
+  {name:'fixed_1',label:'고정 1곳씩 문의',batch_size:1,wait_seconds:60,review_seconds:60},
+  {name:'fixed_3',label:'고정 3곳씩 문의',batch_size:3,wait_seconds:60,review_seconds:60},
+  {name:'fixed_5',label:'고정 5곳씩 문의',batch_size:5,wait_seconds:60,review_seconds:60},
+  {name:'observed_v2',label:'관측 기반 추가 문의 V2',batch_size:1,wait_seconds:120,review_seconds:15,config:{observation_timeout_seconds:180}},
+  {name:'observed_v3',label:'관측 기반 V3',batch_size:1,review_seconds:15,config:{}}
+];
+const decisionLabels = {bounded_wait_expansion:'추가 문의 대기 상한이 지나 다음 후보에 문의합니다.',fixed_wave:'설정한 문의 규모에 따라 다음 후보에 문의합니다.',initial_best:'이동시간과 관측된 회신 비용을 비교해 첫 병원을 선택했습니다.',wait_for_hedge:'추가 문의 기준이 될 때까지 기존 회신을 기다립니다.',hedge_better_candidate:'관측한 회신과 대기시간을 바탕으로 후보에 추가 문의합니다.',pending_preferred:'현재 문의 중인 후보의 회신을 우선 기다립니다.',concurrency_cap:'정책상 대기 문의 한도에 따라 기존 회신을 기다립니다.',no_candidates:'현재 추가로 문의할 후보가 없습니다.',contact_budget:'추가 문의 병원 수 한도에 도달했습니다.'};
+let inquiryPolicies = fallbackPolicies;
+let pid = null, patient = null, selectedHospital = 'H04', busy = false, syncPromise = null, generation = 0;
+let views = {}, pendingMessages = {}, sending = new Set();
+const requestedPid = new URLSearchParams(location.search).get('pid');
+if (requestedPid && /^[\w-]+$/.test(requestedPid)) pid=requestedPid;
+else try { pid = localStorage.getItem(STORE); } catch (_) {}
+function view(key) { return views[key] || (views[key] = {items:new Map(),event:0,message:0,data:null,notParticipant:false}); }
+function setError(message) { $('error-text').textContent = message; $('error').classList.add('visible'); }
+function clearError() { $('error').classList.remove('visible'); }
+function setConnection(ok) { $('connection').classList.toggle('offline',!ok); $('connection').lastElementChild.textContent = ok ? '연결됨 · 3초마다 갱신' : '연결 확인 필요'; }
+async function api(path, body, method) {
+  const response = await fetch(path,{method:method || (body === undefined ? 'GET':'POST'),headers:{'Content-Type':'application/json'},body:body === undefined ? undefined:JSON.stringify(body)});
+  let data; try { data = await response.json(); } catch (_) { throw new Error('서버 응답을 읽을 수 없습니다.'); }
+  if (!response.ok) { const error = new Error(data.message || data.error || '요청을 처리하지 못했습니다.'); error.code=data.error; error.status=response.status; throw error; }
+  return data;
+}
+function patientPath(suffix='') { return '/api/patients/' + encodeURIComponent(pid) + suffix; }
+function hospitalPath(hid,suffix='') { return '/api/hospitals/' + encodeURIComponent(hid) + '/patients/' + encodeURIComponent(pid) + suffix; }
+function workflow() { return patient?.inquiry_workflow || {state:'NOT_STARTED',enabled:false,round_no:0,contacted_count:0,pending_count:0}; }
+function transportReview() { return patient?.transport_review || {state:'NOT_STARTED',enabled:false,evidence:{issues:[]}}; }
+function alternativeWorkflow() { return patient?.transport_inquiry_workflow || {state:'NOT_STARTED',enabled:false,contacted_hospital_ids:[],valid_accepted_inquiry_ids:[],pending_count:0}; }
+function alternativeInquiry(states) {
+  const flow=alternativeWorkflow();
+  return (patient?.inquiries || []).find(q=>q.hospital_id!==patient.destination_hospital_id && states.includes(q.state) &&
+    (flow.contacted_hospital_ids || []).includes(q.hospital_id) &&
+    (q.state==='ACCEPTED'?(flow.valid_accepted_inquiry_ids || []).includes(q.id):q.patient_version===patient.version));
+}
+function policyDescription(policy) {
+  if(policy?.name==='observed_v3' || policy?.config?.max_wait_seconds){
+    const config=policy.config || {};
+    return '최초 1곳 · '+(policy.review_seconds || 15)+'초마다 검토'+(config.max_wait_seconds?' · 추가 문의 대기 상한 '+config.max_wait_seconds+'초':' · 대기 상한은 서버 설정 확인')+(config.history_window_seconds?' · 최근 '+(config.history_window_seconds/60)+'분 회신 사용':'');
+  }
+  if(policy?.name==='observed_v2')return '최초 1곳 · '+(policy.review_seconds || 15)+'초마다 검토 · 관측 기반 추가 문의 (추가 문의 대기 기준 '+(policy.wait_seconds || 120)+'초)';
+  return '최대 '+(policy?.batch_size || 3)+'곳씩 문의 · '+(policy?.wait_seconds || 60)+'초 대기 기준';
+}
+function renderNewPolicy() {
+  const policy=inquiryPolicies.find(item=>item.name===$('new-inquiry-policy').value) || fallbackPolicies[1];
+  $('new-policy-hint').textContent=$('new-auto-inquiry').checked ? '새 이송 건에만 적용: '+policyDescription(policy)+'. 실험 설정이며 현재 사례 정책은 바뀌지 않습니다.' : '새 이송 건을 수동 모드로 만듭니다. 문의 정책은 전송하지 않습니다.';
+}
+async function loadPolicies() {
+  try {
+    const data=await api('/api/inquiry-policies');
+    const policies=Array.isArray(data.policies)?data.policies.filter(item=>item && fallbackPolicies.some(fallback=>fallback.name===item.name)):[];
+    if(policies.length)inquiryPolicies=policies;
+  }catch(_){/* 서버 목록을 읽지 못하면 명시된 기본 선택지를 유지한다. */}
+  const selected=$('new-inquiry-policy').value;
+  $('new-inquiry-policy').innerHTML=inquiryPolicies.map(item=>'<option value="'+escapeHTML(item.name)+'">'+escapeHTML(item.label || item.name)+'</option>').join('');
+  $('new-inquiry-policy').value=inquiryPolicies.some(item=>item.name===selected)?selected:(inquiryPolicies.some(item=>item.name==='fixed_3')?'fixed_3':inquiryPolicies[0].name);
+  renderNewPolicy();
+}
+function decisionDescription(decision) {
+  const raw=typeof decision.reason==='string'?decision.reason:'';
+  const message=decisionLabels[raw] || (/[가-힣]/.test(raw)?raw.slice(0,180):'현재 후보와 회신 상태를 확인했습니다.');
+  const hospitals=Array.isArray(decision.hospital_ids)?decision.hospital_ids.map(hid=>shortNames[hid] || hid):[];
+  const at=Number.isFinite(decision.at)?new Date(decision.at*1000).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}):null;
+  return '마지막 판단'+(at?' '+at:'')+' · '+message+(hospitals.length?' 문의 대상: '+hospitals.join(', '):'');
+}
+function preferredInquiry(states) {
+  const matches=(patient?.inquiries || []).filter(q=>states.includes(q.state));
+  return matches.find(q=>q.hospital_id==='H04') || matches[0];
+}
+async function fetchView(key,path,expectedGeneration) {
+  const target = view(key);
+  for (let page=0;page<12;page++) {
+    let data;
+    try { data = await api(path + '?event_cursor=' + target.event + '&message_cursor=' + target.message + '&limit=200'); }
+    catch(error) {
+      if (error.code==='NOT_PARTICIPANT') {
+        target.notParticipant=true; target.data=null;
+        if(key!=='patient') {
+          const inquiryData=await api('/api/hospitals/'+encodeURIComponent(key)+'/inquiries');
+          if(expectedGeneration!==generation)return;
+          target.inquiry=[...inquiryData.open,...inquiryData.recent].find(item=>item.patient_id===pid) || null;
+        }
+        return;
+      }
+      throw error;
+    }
+    if (expectedGeneration !== generation) return;
+    target.data=data; target.notParticipant=false;
+    for (const item of data.items) target.items.set(item.id,item);
+    target.event=data.cursors.event_id; target.message=data.cursors.message_id;
+    if (!data.has_more) break;
+  }
+}
+async function sync() {
+  if (!pid) return;
+  if (syncPromise) return syncPromise;
+  const ownGeneration=generation;
+  syncPromise=(async()=>{
+    const data=await api(patientPath());
+    if(!data.inquiry_workflow)data.inquiry_workflow=await api(patientPath('/inquiry-workflow'));
+    if (ownGeneration!==generation) return;
+    for(const q of data.inquiries || [])if(q.hospital_name){hospitalNames[q.hospital_id]=q.hospital_name;shortNames[q.hospital_id]=q.hospital_name.replace(/^가상\s*/, '');}
+    if (!patient && hospitalNames[data.destination_hospital_id]) { selectedHospital=data.destination_hospital_id; $('hospital-select').value=selectedHospital; }
+    patient=data;
+    const ownHospital=selectedHospital;
+    await Promise.all([fetchView('patient',patientPath('/conversation'),ownGeneration),fetchView(ownHospital,hospitalPath(ownHospital,'/conversation'),ownGeneration)]);
+    if (ownGeneration!==generation) return;
+    setConnection(true); render();
+  })().catch(error=>{setConnection(false);setError(error.status===404 ? '저장된 시연 사례를 찾을 수 없습니다. ‘새 시연 시작’을 눌러주세요.' : error.message);throw error;}).finally(()=>{syncPromise=null;});
+  return syncPromise;
+}
+function nextAction() {
+  if (!patient) return {label:'연결 확인 중',disabled:true,hint:'서버에서 시연 사례를 불러옵니다.',stage:0};
+  if (patient.state==='WAITING') {
+    const flow=workflow(), validIds=flow.valid_accepted_inquiry_ids;
+    const accepted=(patient.inquiries || []).filter(q=>q.state==='ACCEPTED' && (Array.isArray(validIds)?validIds.includes(q.id):q.usable));
+    const acceptedInquiry=accepted.find(q=>q.hospital_id==='H04') || accepted[0];
+    if(acceptedInquiry)return {label:'④ 목적지 확정',action:'confirm',inquiry:acceptedInquiry,hint:(shortNames[acceptedInquiry.hospital_id] || acceptedInquiry.hospital_id)+'의 수용 응답을 받았습니다. 사람이 목적지를 확정하면 병원이 대화에 참여합니다.',stage:2};
+    const q=preferredInquiry(['CHECKING','PENDING']);
+    if(!q && flow.enabled)return {label:patient.inquiries.length?'서버가 다음 후보 확인 중':'서버가 후보를 탐색 중',disabled:true,hint:'서버가 후보를 선정하고 수용 문의를 진행합니다. 병원의 응답은 시연 버튼으로 처리합니다.',stage:patient.inquiries.length?1:0};
+    if (!q && !patient.inquiries.length) return {label:'① 병원에 문의 보내기',action:'inquire',hint:'수동 모드입니다. 버튼을 눌러 두 병원에 수용 여부를 문의합니다.',stage:0};
+    const hospital=q && (shortNames[q.hospital_id] || q.hospital_id);
+    if (q?.state==='PENDING') return {label:'② 병원 확인 중 응답',action:'checking',inquiry:q,hint:hospital+'에 문의가 등록됐습니다. 병원 담당자의 확인 중 응답을 시연합니다.',stage:1};
+    if (q?.state==='CHECKING') return {label:'③ 수용 가능 응답',action:'accept',inquiry:q,hint:hospital+'이 확인 중으로 회신했습니다. 수용 가능 응답을 시연합니다.',stage:1};
+    return {label:'병원에 다시 문의',action:'inquire',hint:'문의 상태를 확인하고 다시 요청합니다.',stage:1};
+  }
+  if (patient.needs_adjustment && transportReview().enabled && ['CONFIRMED','IN_TRANSIT'].includes(patient.state)) {
+    const flow=alternativeWorkflow(), stage=patient.state==='IN_TRANSIT'?4:3;
+    const accepted=alternativeInquiry(['ACCEPTED']);
+    if(accepted)return {label:'대체병원 목적지 변경',action:'alternative-change',inquiry:accepted,stage,hint:(shortNames[accepted.hospital_id] || accepted.hospital_id)+'의 유효한 수용 회신을 확보했습니다. 담당자가 변경을 확정하기 전까지 기존 목적지를 유지합니다.'};
+    const q=alternativeInquiry(['PENDING','CHECKING']);
+    if(q?.state==='PENDING')return {label:'대체병원 확인 중 응답',action:'checking',inquiry:q,stage,hint:(shortNames[q.hospital_id] || q.hospital_id)+'에 서버가 대체 수용을 문의했습니다. 병원의 확인 중 응답을 시연합니다.'};
+    if(q?.state==='CHECKING')return {label:'대체병원 수용 가능 응답',action:'accept',inquiry:q,stage,hint:(shortNames[q.hospital_id] || q.hospital_id)+'의 수용 응답을 시연합니다. 수용 회신만으로 목적지가 바뀌지는 않습니다.'};
+    return {label:flow.state==='AWAITING_POSITION'?'시연 위치 갱신 필요':flow.state==='EXHAUSTED'?'대체 탐색 종료 · 추가 판단 필요':'서버가 대체병원 탐색 중',disabled:true,stage,hint:flow.stop_reason || '서버가 대체 후보를 확인합니다. 현재 목적지는 유지됩니다. 병원 판단으로 수용을 유지하거나 현재 병원 도착을 확인할 수 있습니다.'};
+  }
+  if (patient.state==='CONFIRMED') return {label:'⑤ 출발 등록',action:'depart',hint:'병원이 대화에 참여했습니다. 양쪽 화면에서 메시지를 주고받을 수 있습니다.',stage:3};
+  if (patient.state==='IN_TRANSIT') return {label:'⑥ 병원 도착 확인',action:'arrive',hint:(view('patient').data?.hospital_sessions.length || 0)>1 ? '새 병원으로 목적지가 변경됐습니다. 이전 병원을 선택해 기록 분리를 확인하세요.' : '이송 중입니다. 조건 변경을 시연하거나 도착을 확인할 수 있습니다.',stage:4};
+  return {label:'이송 종료',disabled:true,hint:'이송 대화가 종료됐습니다. 기록을 조회하거나 새 시연을 시작하세요.',stage:5};
+}
+function renderFeed(element,key,ownRole) {
+  const target=view(key), nearBottom=element.scrollHeight-element.scrollTop-element.clientHeight<90;
+  const items=[...target.items.values()].sort((a,b)=>{for(let i=0;i<3;i++){const d=a.order_key[i]-b.order_key[i];if(d)return d;}return 0;});
+  if (!items.length) {
+    element.innerHTML=key==='patient' ? '<div class="empty"><div class="empty-symbol">↗</div><strong>이송 대화를 준비하고 있습니다.</strong><p>환자정보 등록과 병원 문의 과정이 이곳에 표시됩니다.</p></div>' : '<div class="empty"><div class="empty-symbol">↔</div><strong>아직 대화에 참여하지 않았습니다.</strong><p>이 병원이 목적지로 확정되면 이송자와의 대화를 시작합니다. 수용 가능 응답만으로는 참여하지 않습니다.</p></div>';
+    return;
+  }
+  const count=element.dataset.count || '0';
+  element.innerHTML='<div class="feed-label">이송 건별 대화 기록</div>'+items.map(item=>{
+    const time=new Date(item.at*1000).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
+    if(item.kind==='system') {
+      const css=['destination_confirmed','destination_changed','arrival_confirmed'].includes(item.type)?' milestone':['adjustment_needed','transport_recheck_required'].includes(item.type)?' warning':'';
+      const detail=item.type==='inquiry_question'?item.data?.question:item.type==='inquiry_answered'?item.data?.answer:null;
+      return '<div class="system-message'+css+'"><span class="system-mark">SYS</span><div><p>'+escapeHTML(item.text)+(detail?'<span class="system-detail">'+escapeHTML(detail)+'</span>':'')+'</p><time>'+time+'</time></div></div>';
+    }
+    return '<div class="message'+(item.sender_role===ownRole?' own':'')+'"><div class="message-name">'+escapeHTML(item.sender_name)+'</div><div class="bubble">'+escapeHTML(item.text)+'</div><time>'+time+'</time></div>';
+  }).join('');
+  element.dataset.count=String(items.length);
+  if (nearBottom || count==='0') element.scrollTop=element.scrollHeight;
+}
+function renderComposer(side,target,allowed) {
+  const disabled=busy || sending.has(side) || !allowed;
+  $(side+'-input').disabled=disabled; $(side+'-send').disabled=disabled;
+  const closed=target.data?.conversation.state==='CLOSED';
+  $(side+'-input').placeholder=closed ? '이송이 종료되어 기록 조회만 가능합니다.' : allowed ? '전달할 내용을 입력하세요.' : side==='patient' ? '병원 확정 후 대화를 시작할 수 있습니다.' : '현재 참여 중인 병원만 메시지를 보낼 수 있습니다.';
+}
+function transportIssue(issue) {
+  const resourceName=({ed_bed:'진료 자리',special_team:'전문팀',icu:'중환자실 자리',ventilator:'인공호흡기'})[issue.resource_type] || issue.resource_type;
+  if(issue.kind==='resource_shortfall')return resourceName+' · 확정 수요 '+issue.committed+', 현재 가용 '+(issue.capacity-issue.occupied)+' (재확인 필요)';
+  if(issue.kind==='resource_unknown')return resourceName+' · 현재 상태 미확인';
+  if(issue.kind==='resource_stale')return resourceName+' · 갱신 시각 재확인 필요';
+  if(issue.kind==='capability_missing')return '진료 분야 변경 · '+(issue.capabilities || []).join(', ');
+  if(issue.kind==='capability_unknown')return '필요 진료 분야 상태 미확인';
+  if(issue.kind==='restriction')return (issue.scope==='all'?'기관 전체':issue.scope)+' 제한 · '+issue.reason+(issue.status==='recheck'?' (제한 종료 후 재확인 필요)':'');
+  return '환자의 필수 치료 조건 변경';
+}
+function renderTransport(controlsBusy) {
+  const active=!!patient && ['CONFIRMED','IN_TRANSIT'].includes(patient.state), review=transportReview(), flow=alternativeWorkflow();
+  $('transport-controls').hidden=!active;
+  $('transport-state').textContent=transportLabels[review.state] || review.state;
+  $('transport-state').dataset.state=review.state;
+  $('transport-state').className='badge '+(['RECHECK_REQUIRED','EXHAUSTED','ERROR'].includes(review.state)?'orange':review.enabled?'teal':'');
+  $('transport-summary').textContent=review.enabled ? '현재 목적지: '+(hospitalNames[patient?.destination_hospital_id] || patient?.destination_hospital_id)+' · '+(review.policy?.label || review.policy_name || '고정 문의')+' / '+(review.state==='RECHECK_REQUIRED'?'병원에서 기존 환자의 수용 유지 여부를 판단해야 합니다.':review.acknowledged_signature && review.acknowledged_signature===review.risk_signature?'병원이 현재 조건에서 판단한 내용이 기록됐습니다.':'신규 환자용 여유가 없어져도 기존 확정 수요를 유지할 수 있으면 경로를 유지합니다.') : '감시 시작은 선택 사항입니다. 켜지 않으면 기존 수동 조건 변경 시연으로 진행합니다.';
+  const issues=review.evidence?.issues || [];
+  $('transport-evidence').hidden=!review.enabled || !issues.length;
+  $('transport-evidence').textContent=issues.map(transportIssue).join(' / ');
+  const contacts=(flow.contacted_hospital_ids || []).map(hid=>shortNames[hid] || hid);
+  $('transport-workflow').textContent=(alternativeLabels[flow.state] || flow.state)+' · 대체 문의 '+(flow.contacted_count || 0)+'곳 · 응답 대기 '+(flow.pending_count || 0)+'곳 · 유효 수용 '+(flow.valid_accepted_inquiry_ids?.length || 0)+'곳'+(contacts.length?' / '+contacts.join(', '):'')+(flow.last_error || flow.stop_reason?' / '+(flow.last_error || flow.stop_reason):'');
+  const positionAt=patient?.location_updated_at, positionAge=Number.isFinite(positionAt)?Math.max(0,Math.floor(Date.now()/1000)-positionAt):null;
+  $('transport-position').textContent='시연 위치 '+(Number.isFinite(patient?.lat)&&Number.isFinite(patient?.lon)?patient.lat.toFixed(4)+', '+patient.lon.toFixed(4):'미확인')+' · '+(positionAge===null?'최근 측정 시각 없음':positionAge+'초 전 갱신')+' · 버튼은 저장된 가상 좌표의 시각을 갱신합니다. 실제 GPS를 수집하지 않습니다.';
+  $('transport-toggle').textContent=review.enabled?'수용 조건 감시 일시중지':'수용 조건 감시 시작';
+  $('transport-toggle').disabled=controlsBusy || !active;
+  $('transport-position-refresh').disabled=controlsBusy || !active || !Number.isFinite(patient?.lat) || !Number.isFinite(patient?.lon);
+  for(const id of ['transport-keep','transport-adjust']) { $(id).hidden=!review.enabled; $(id).disabled=controlsBusy || !active || !review.enabled; }
+  $('transport-arrive').hidden=!review.enabled || patient?.state!=='IN_TRANSIT';
+  $('transport-arrive').disabled=controlsBusy;
+}
+function render() {
+  const action=nextAction(),pv=view('patient'),hv=view(selectedHospital);
+  const controlsBusy=busy || sending.size>0;
+  $('case-label').textContent=pid ? '이송 건 · '+pid : '서버 연결 중';
+  $('control-hint').textContent=action.hint;
+  $('next-step').textContent=busy?'처리 중…':action.label;
+  $('next-step').disabled=controlsBusy || !!action.disabled;
+  $('change-demo').disabled=controlsBusy || !patient || patient.state!=='IN_TRANSIT' || (!transportReview().enabled && !['H04','H01'].includes(patient.destination_hospital_id));
+  $('new-case').disabled=controlsBusy; $('refresh').disabled=controlsBusy; $('hospital-select').disabled=controlsBusy;
+  $('new-auto-inquiry').disabled=controlsBusy;
+  $('new-inquiry-policy').disabled=controlsBusy || !$('new-auto-inquiry').checked;
+  renderNewPolicy();
+  const flow=workflow(), flowState=flow.state || 'NOT_STARTED';
+  $('workflow-state').textContent=workflowLabels[flowState] || flowState;
+  $('workflow-state').dataset.state=flowState;
+  $('workflow-state').className='badge '+(['ERROR','EXHAUSTED'].includes(flowState)?'orange':flow.enabled?'teal':'');
+  $('workflow-summary').textContent=patient ? '문의 '+(flow.round_no || 0)+'차 · 연락한 병원 '+(flow.contacted_count || 0)+'곳 · 응답 대기 '+(flow.pending_count || 0)+'곳' : '서버의 자동 문의 진행 상황을 확인합니다.';
+  $('workflow-detail').textContent=flow.last_error || flow.stop_reason || (flow.enabled ? '서버가 초기 문의를 진행합니다. 수용 응답을 받은 뒤 목적지는 사람이 확정합니다.' : '자동 문의를 시작하거나 기존 시연 버튼으로 수동 진행할 수 있습니다.');
+  const policy=flow.policy;
+  const fallback=policy && inquiryPolicies.find(item=>item.name===policy.name);
+  $('workflow-policy').textContent=policy ? '현재 사례 정책: '+(policy.label || fallback?.label || policy.name || '고정 문의')+(policy.version?' · 버전 '+policy.version:'')+' / '+policyDescription(policy)+'. 초기 문의의 실험 설정이며 목적지는 사람이 확정합니다.' : '현재 사례는 자동 문의를 시작하지 않았습니다. 조건 변경 후 재문의는 수동 시연합니다.';
+  $('workflow-policy').dataset.policy=policy?.name || '';
+  $('workflow-decision').hidden=!flow.latest_decision;
+  $('workflow-decision').textContent=flow.latest_decision?decisionDescription(flow.latest_decision):'';
+  $('workflow-toggle').hidden=!patient || patient.state!=='WAITING';
+  $('workflow-toggle').disabled=controlsBusy;
+  $('workflow-toggle').textContent=flow.enabled?'자동 문의 일시중지':'자동 문의 시작';
+  renderTransport(controlsBusy);
+  $('progress').innerHTML=['환자 등록','병원 문의','수용 응답','목적지 확정','이송','도착'].map((text,i)=>'<div class="progress-step '+(i<action.stage?'done':i===action.stage?'current':'')+'"><span class="step-number">'+(i<action.stage?'✓':i+1)+'</span>'+text+'</div>').join('');
+  $('patient-state').textContent=labels[patient?.state] || '등록 중';
+  $('patient-state').className='badge '+(patient?.state==='IN_TRANSIT'?'teal':'');
+  $('destination').textContent=patient?.destination_hospital_id ? hospitalNames[patient.destination_hospital_id] || patient.destination_hospital_id : '병원 선정 전';
+  const hospitalIds=[...new Set(['H04','H01',...(patient?.inquiries || []).map(q=>q.hospital_id),selectedHospital])];
+  $('hospital-select').innerHTML=hospitalIds.map(hid=>'<option value="'+escapeHTML(hid)+'"'+(hid===selectedHospital?' selected':'')+'>'+escapeHTML(hid+' · '+(shortNames[hid] || hid))+'</option>').join('');
+  $('inquiry-strip').innerHTML=hospitalIds.map(hid=>{const q=patient?.inquiries.find(q=>q.hospital_id===hid);return '<div class="inquiry-card"><span class="inquiry-name">'+escapeHTML(shortNames[hid] || hid)+'</span><span class="inquiry-status '+(['ACCEPTED','CONFIRMED'].includes(q?.state)?'accepted':['CANCELLED','DECLINED','EXPIRED'].includes(q?.state)?'closed':'')+'">'+(q?inquiryLabels[q.state]:'문의 전')+'</span></div>';}).join('');
+  const participating=!!hv.data?.active_hospital_session;
+  const historical=!!hv.data && !participating;
+  const ownInquiry=hv.notParticipant ? hv.inquiry : patient?.inquiries.find(q=>q.hospital_id===selectedHospital);
+  $('hospital-state').textContent=participating?'대화 참여 중':historical?'참여 종료':'미참여';
+  $('hospital-state').className='badge '+(participating?'teal':historical?'orange':'');
+  $('hospital-context-title').textContent=participating ? '가상 환자 · 7세 / 고열' : historical ? '이 병원의 참여 구간 기록' : ownInquiry ? '수용 문의 · '+(inquiryLabels[ownInquiry.state] || ownInquiry.state) : '아직 수용 문의가 없습니다.';
+  const eta=hv.data?.patient.eta_at ? new Date(hv.data.patient.eta_at*1000).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}) : null;
+  $('hospital-context-copy').textContent=participating ? (hv.data.handoff?.note ? '인계 메모: '+hv.data.handoff.note : eta ? '도착 예정 '+eta+' · 이송자와 대화할 수 있습니다.' : '목적지가 확정되어 이송자와 대화할 수 있습니다.') : historical ? '참여 기간의 기록만 조회합니다. 이후 다른 병원과 나눈 대화는 표시되지 않습니다.' : '회신과 확정은 별도 단계입니다. 목적지 확정 이후 공동 대화가 열립니다.';
+  renderFeed($('patient-feed'),'patient','patient'); renderFeed($('hospital-feed'),selectedHospital,'hospital');
+  renderComposer('patient',pv,!!pv.data?.can_send && !!pv.data?.active_hospital_session);
+  renderComposer('hospital',hv,!!hv.data?.can_send);
+  $('patient-compose-note').textContent=pv.data?.conversation.state==='CLOSED'?'이송 종료 · 기록 조회만 가능':'병원 회신과 서버 상태를 같은 흐름에서 확인합니다.';
+  $('hospital-compose-note').textContent=historical?'참여 종료 · 이후 대화 조회·새 메시지 전송 불가':'선택한 병원의 참여 구간만 조회합니다.';
+}
+async function run(action) {
+  if(busy || sending.size)return; busy=true;clearError();render();
+  try { if(syncPromise)await syncPromise.catch(()=>{}); await action(); await sync(); }
+  catch(error){setError(error.message);await sync().catch(()=>{});}
+  finally{busy=false;render();}
+}
+async function createCase() {
+  if(pid) {
+    let old;
+    try{old=await api(patientPath());}catch(error){if(error.status!==404)throw error;}
+    if(old && ['WAITING','CONFIRMED','IN_TRANSIT'].includes(old.state))await api(patientPath('/cancel'),{reason:'새 시연 시작'});
+    else if(old?.state==='ARRIVED')await api(hospitalPath(old.destination_hospital_id,'/discharge'),{handled_by:'시연 담당자'});
+  }
+  const newId='CHAT-'+uuid();
+  const payload={id:newId,auto_inquiry:$('new-auto-inquiry').checked,reporter_role:'transporter',consent:true,age:7,symptoms:'고열 (가상 환자)',consciousness:'alert',breathing:'normal',required_capabilities:['소아청소년과'],resource_demands:{ed_bed:1},lat:35.1595,lon:126.8526};
+  if(payload.auto_inquiry)payload.inquiry_policy=$('new-inquiry-policy').value;
+  await api('/api/patients',payload);
+  pid=newId;patient=null;generation++;views={};pendingMessages={};selectedHospital='H04';$('hospital-select').value='H04';
+  $('patient-input').value='';$('hospital-input').value='';
+  try{localStorage.setItem(STORE,pid);}catch(_){}
+  const currentUrl=new URL(location.href);currentUrl.searchParams.set('pid',pid);history.replaceState(null,'',currentUrl);
+}
+async function advance() {
+  const next=nextAction(), action=next.action;
+  if(action==='inquire')await api(patientPath('/inquiries'),{hospital_ids:['H04','H01']});
+  else if(action==='checking' || action==='accept'){
+    const q=next.inquiry;
+    await api('/api/inquiries/'+q.id+'/respond',{action:action,handled_by:(shortNames[q.hospital_id] || q.hospital_id)+' 시연 담당자'});
+  }else if(action==='confirm'){
+    await api(patientPath('/confirm'),{inquiry_id:next.inquiry.id});
+    selectedHospital=next.inquiry.hospital_id;
+  }
+  else if(action==='depart')await api(patientPath('/depart'),{lat:35.1595,lon:126.8526});
+  else if(action==='arrive')await api(hospitalPath(patient.destination_hospital_id,'/arrive'),{handled_by:'시연 담당자'});
+  else if(action==='alternative-change'){
+    await api(patientPath('/change-destination'),{inquiry_id:next.inquiry.id,lat:patient.lat,lon:patient.lon});
+    selectedHospital=next.inquiry.hospital_id;$('hospital-select').value=selectedHospital;
+  }
+}
+async function changeDestination() {
+  const current=patient.destination_hospital_id, next=current==='H04'?'H01':'H04';
+  if(transportReview().enabled){
+    const hospital=await api('/api/hospitals/'+encodeURIComponent(current));
+    const resource=(hospital.resources || []).find(item=>item.resource_type==='ed_bed');
+    if(!resource)throw new Error('시연 병원의 ed_bed 자원 정보를 찾을 수 없습니다.');
+    await api('/api/hospitals/'+encodeURIComponent(current)+'/external-arrivals',{resource_demands:{ed_bed:Math.max(1,resource.capacity-resource.occupied)},note:'가상 상황: 신규 환자 유입으로 기존 확정 수요의 수용 조건 재확인 필요',handled_by:'시연 병원 담당자'});
+    return;
+  }
+  if(!patient.needs_adjustment)await api(hospitalPath(current,'/decision'),{decision:'adjust',note:'가상 상황: 추가 중증환자 유입으로 수용 조건 재확인 필요',handled_by:(shortNames[current] || current)+' 시연 담당자'});
+  const update=await api(patientPath('/inquiries'),{hospital_ids:[next]});
+  const q=update.inquiries.find(q=>q.hospital_id===next);
+  if(q.state!=='ACCEPTED')await api('/api/inquiries/'+q.id+'/respond',{action:'accept',handled_by:(shortNames[next] || next)+' 시연 담당자'});
+  await api(patientPath('/change-destination'),{inquiry_id:q.id,lat:35.1500,lon:126.8570});
+  selectedHospital=next;$('hospital-select').value=next;
+}
+async function send(side) {
+  if(busy || sending.has(side) || !pid)return;
+  const input=$(side+'-input'), body=input.value.trim();if(!body)return;
+  const target=view(side==='patient'?'patient':selectedHospital),session=target.data?.active_hospital_session?.id ?? null;
+  if(!target.data?.can_send || session===null)return;
+  const cacheKey=side==='patient'?'patient':selectedHospital;
+  let pending=pendingMessages[cacheKey];
+  if(pending && pending.body===body && pending.hospital_session_id!==session){delete pendingMessages[cacheKey];setError('대화 상대가 변경됐습니다. 메시지 내용을 확인한 뒤 다시 보내주세요.');return;}
+  if(!pending || pending.body!==body)pending=pendingMessages[cacheKey]={body,client_message_id:uuid(),hospital_session_id:session,sender_name:side==='patient'?'시연 이송자':(shortNames[selectedHospital] || selectedHospital)+' 담당자'};
+  const path=side==='patient'?patientPath('/messages'):hospitalPath(selectedHospital,'/messages');
+  sending.add(side);clearError();render();
+  try {
+    const result=await api(path,pending);target.items.set(result.message.id,result.message);input.value='';delete pendingMessages[cacheKey];render();$(side+'-feed').scrollTop=$(side+'-feed').scrollHeight;
+    await sync();
+  }catch(error){setError(error.message);await sync().catch(()=>{});}
+  finally{sending.delete(side);render();input.focus();}
+}
+$('next-step').addEventListener('click',()=>run(advance));
+$('workflow-toggle').addEventListener('click',()=>run(async()=>{patient.inquiry_workflow=await api(patientPath('/inquiry-workflow'),{enabled:!workflow().enabled});}));
+$('new-inquiry-policy').addEventListener('change',renderNewPolicy);
+$('new-auto-inquiry').addEventListener('change',render);
+$('change-demo').addEventListener('click',()=>run(changeDestination));
+$('transport-toggle').addEventListener('click',()=>run(async()=>{const enabled=!transportReview().enabled;patient.transport_review=await api(patientPath('/transport-review'),{enabled,policy_name:transportReview().policy_name || workflow().policy?.name || 'fixed_3'});}));
+$('transport-position-refresh').addEventListener('click',()=>run(async()=>{await api(patientPath('/transport-position'),{lat:patient.lat,lon:patient.lon},'PATCH');}));
+for(const [id,decision] of [['transport-keep','keep'],['transport-adjust','adjust']])$(id).addEventListener('click',()=>run(async()=>{const review=transportReview();await api(hospitalPath(patient.destination_hospital_id,'/decision'),{decision,note:decision==='keep'?'가상 병원 판단: 기존 환자의 수용 조건을 유지할 수 있음':'가상 병원 판단: 기존 환자의 수용 조건 유지가 어려워 대체병원 확인 요청',handled_by:'시연 병원 담당자',expected_review_version:review.version,expected_risk_signature:review.risk_signature});}));
+$('transport-arrive').addEventListener('click',()=>run(async()=>{await api(hospitalPath(patient.destination_hospital_id,'/arrive'),{handled_by:'시연 담당자'});}));
+$('new-case').addEventListener('click',()=>run(createCase));
+$('refresh').addEventListener('click',()=>sync().catch(()=>{}));
+$('dismiss-error').addEventListener('click',clearError);
+$('hospital-select').addEventListener('change',async()=>{selectedHospital=$('hospital-select').value;$('hospital-input').value='';render();if(syncPromise)await syncPromise.catch(()=>{});await sync().catch(()=>{});});
+for(const side of ['patient','hospital']) {
+  $(side+'-form').addEventListener('submit',event=>{event.preventDefault();send(side);});
+  $(side+'-input').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();send(side);}});
+}
+render();
+loadPolicies().finally(()=>{if(pid)sync().catch(()=>{});else run(createCase);});
+setInterval(()=>{if(!busy)sync().catch(()=>{});},3000);
+</script>
+</body>
+</html>

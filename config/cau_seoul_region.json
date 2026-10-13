@@ -1,0 +1,15 @@
+{
+  "id": "cau_seoul_adjacent_districts",
+  "label": "중앙대학교 서울캠퍼스와 인접 5개 구의 실제 응급의료기관",
+  "origin_districts": [
+    {"region": "서울특별시", "district": "동작구"}
+  ],
+  "candidate_districts": [
+    {"region": "서울특별시", "district": "동작구"},
+    {"region": "서울특별시", "district": "관악구"},
+    {"region": "서울특별시", "district": "영등포구"},
+    {"region": "서울특별시", "district": "서초구"},
+    {"region": "서울특별시", "district": "용산구"}
+  ],
+  "note": "시연의 초기 수집 범위이며 전체 서울 또는 실제 이송지침의 탐색 한도를 의미하지 않음. 병원별 수용 확답은 별도 응답이 필요함."
+}

@@ -31,3 +31,9 @@ usb_import_backups/
 
 # 서버 실행 DB·API 수집 원본
 data/
+
+/emergency-app/*.db
+/emergency-app/*.db-*
+/emergency-app/*.sqlite*
+.local-preview/
+outputs/source_snapshots/

@@ -1,5 +1,8 @@
 # 공통 서버 (시연용)
 
+키 없이 전체 연결 흐름을 테스트하려면 `python -m server.team_demo --scenario normal`을 실행합니다. [설치·실행·역할별 조작 순서](../docs/TEAM_TEST_GUIDE.md).
+
+
 병원 웹과 환자 웹이 함께 쓰는 JSON API 서버입니다. API·DB는 Python 표준 라이브러리를 사용하고, 배정 워커는 OR-Tools를 사용합니다.
 임상 현장과 연결된 시스템이 아니고, 기본 데이터는 모두 가상(`source='synthetic'`)입니다.
 
