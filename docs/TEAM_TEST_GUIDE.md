@@ -9,7 +9,7 @@
 Python **3.11 이상**과 Git을 준비합니다. 처음 받는 경우:
 
 ```powershell
-git clone --branch codex/team-integration-20261013 https://github.com/Uree1229/emergency-care-system.git
+git clone https://github.com/Uree1229/emergency-care-system.git
 cd emergency-care-system
 ```
 
