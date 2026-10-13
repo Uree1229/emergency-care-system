@@ -1,7 +1,8 @@
 """Synthetic allocation prototype, integer time slots; not a clinical policy.
 
-Absolute times preserve elapsed waiting across replans. Departed patients use
-fixed assignments and still consume resources. No production hospital connection.
+Absolute times preserve elapsed waiting across replans. destination_locks keep
+the hospital while allowing a new start; fixed keeps both. Existing patients
+continue to consume resources. No production hospital connection.
 """
 from pathlib import Path
 import copy
@@ -43,6 +44,17 @@ def check_input(data):
         raise ValueError('fixed assignment refers to unknown patient')
     if any(a is None for a in data.get('fixed', {}).values()):
         raise ValueError('fixed patients must have an assignment')
+    if not set(data.get('destination_locks', {})) <= set(ids):
+        raise ValueError('destination lock refers to unknown patient')
+    for pid, h in data.get('destination_locks', {}).items():
+        p = next(p for p in data['patients'] if p['id'] == pid)
+        if type(h) is not int or h not in p['eligible']:
+            raise ValueError('invalid locked hospital')
+    for p in data['patients']:
+        if 'arrivals' in p and (len(p['arrivals']) != len(caps) or
+                               any(type(v) is not int or v < 0 for v in p['arrivals'])):
+            raise ValueError('invalid absolute arrival times')
+        check_demands(p)
     for b in data.get('blocks', []):
         if type(b['h']) is not int or not 0 <= b['h'] < len(caps):
             raise ValueError('invalid blocked hospital')
@@ -50,13 +62,33 @@ def check_input(data):
             raise ValueError('invalid blocked interval')
         if type(b['special']) is not bool:
             raise ValueError('invalid blocked resource')
+        check_demands(b)
+
+
+def demands(entry):
+    return entry.get('demands', [1, int(entry['special'])])
+
+
+def check_demands(entry):
+    d = demands(entry)
+    if len(d) != 2 or any(type(v) is not int or v < 0 for v in d) or not any(d):
+        raise ValueError('invalid resource demand counts')
+
+
+def eligible(data, p):
+    lock = data.get('destination_locks', {}).get(p['id'])
+    return p['eligible'] if lock is None else [lock]
 
 
 def upper(data, p):
+    if p['id'] in data.get('destination_locks', {}):
+        return data['horizon']  # 기존 목적지는 유지하고, 기한 초과는 재확인 대상으로 보고한다.
     return min(data['horizon'], p['release'] + p['deadline'])
 
 
 def earliest(data, p, h):
+    if 'arrivals' in p:
+        return max(data['now'], p['arrivals'][h])
     return max(data['now'], p['release']) + p['travel'][h]
 
 
@@ -65,7 +97,8 @@ def intervals(data, plan):
     for p in data['patients']:
         a = plan.get(p['id'])
         if a is not None:
-            entries.append(dict(h=a['h'], start=a['start'], duration=p['duration'], special=p['special']))
+            entries.append(dict(h=a['h'], start=a['start'], duration=p['duration'], special=p['special'],
+                                demands=demands(p)))
     return entries
 
 
@@ -76,8 +109,8 @@ def capacity_ok(data, plan):
         start, end = max(data['now'], b['start']), b['start'] + b['duration']
         if start >= end:
             continue
-        for resource in range(2 if b['special'] else 1):
-            for at, delta in ((start, 1), (end, -1)):
+        for resource, demand in enumerate(demands(b)):
+            for at, delta in ((start, demand), (end, -demand)):
                 key = (b['h'], resource, at)
                 events[key] = events.get(key, 0) + delta
     load = {}
@@ -98,11 +131,13 @@ def validate(data, plan):
         if p['id'] in fixed and a != fixed[p['id']]:
             return False
         if a is None:
+            if p['id'] in data.get('destination_locks', {}):
+                return False
             continue
         if not isinstance(a, dict) or set(a) != {'h', 'start'}:
             return False
         h, start = a['h'], a['start']
-        if type(h) is not int or type(start) is not int or h not in p['eligible']:
+        if type(h) is not int or type(start) is not int or h not in eligible(data, p):
             return False
         lower = p['release'] + p['travel'][h] if p['id'] in fixed else earliest(data, p, h)
         if not lower <= start <= upper(data, p):
@@ -119,13 +154,15 @@ def score(data, plan, policy):
 
 def greedy(data):
     plan = {p['id']: copy.deepcopy(data.get('fixed', {}).get(p['id'])) for p in data['patients']}
-    if not validate(data, plan):
+    initial_data = dict(data, destination_locks={})
+    if not validate(initial_data, plan):
         return None
-    for p in sorted(data['patients'], key=lambda p: (-p['priority'], p['release'], p['id'])):
+    for p in sorted(data['patients'], key=lambda p: (p['id'] not in data.get('destination_locks', {}),
+                                                    -p['priority'], p['release'], p['id'])):
         if p['id'] in data.get('fixed', {}):
             continue
         choices = []
-        for h in p['eligible']:
+        for h in eligible(data, p):
             for start in range(earliest(data, p, h), upper(data, p) + 1):
                 plan[p['id']] = dict(h=h, start=start)
                 if capacity_ok(data, plan):
@@ -135,6 +172,8 @@ def greedy(data):
         if choices:
             start, _, h = min(choices)
             plan[p['id']] = dict(h=h, start=start)
+        elif p['id'] in data.get('destination_locks', {}):
+            return None
     return plan
 
 
@@ -148,11 +187,12 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
     meta = dict(snapshot_version=data['version'], policy=policy, stages=[],
                 hint_rejected=hint is not None and not validate(data, hint), fallback=False,
                 budget_seconds=seconds, lex_optimal=False)
-    if incumbent is None:
+    if incumbent is None and seconds == 0:
         meta.update(status='NEEDS_REVIEW', reason='Fixed assignments or existing occupancy conflict with current constraints',
                     elapsed_seconds=time.perf_counter() - started)
         return None, meta
-    if hint is not None and not meta['hint_rejected'] and score(data, hint, policy) < score(data, incumbent, policy):
+    if hint is not None and not meta['hint_rejected'] and (incumbent is None or
+                                                         score(data, hint, policy) < score(data, incumbent, policy)):
         incumbent = copy.deepcopy(hint)
     if seconds == 0:
         meta.update(status='BUDGET_EXHAUSTED', fallback=True, objective=list(score(data, incumbent, policy)),
@@ -161,13 +201,15 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
 
     model = cp_model.CpModel()
     resources = [[[], []] for _ in data['capacities']]
+    resource_counts = [[[], []] for _ in data['capacities']]
     for k, b in enumerate(intervals(data, data.get('fixed', {}))):
         start, end = max(data['now'], b['start']), b['start'] + b['duration']
         if start < end:
             itv = model.new_fixed_size_interval_var(start, end - start, f'fixed{k}')
-            resources[b['h']][0].append(itv)
-            if b['special']:
-                resources[b['h']][1].append(itv)
+            for r, demand in enumerate(demands(b)):
+                if demand:
+                    resources[b['h']][r].append(itv)
+                    resource_counts[b['h']][r].append(demand)
     misses = {g: [] for g in GROUPS}
     delays = {g: [] for g in GROUPS}
     variables, missing = {}, {}
@@ -178,9 +220,11 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
             continue
         miss = model.new_bool_var('miss_' + pid)
         missing[pid] = miss
+        if pid in data.get('destination_locks', {}):
+            model.add(miss == 0)
         misses[g].append(miss)
         selected = []
-        for h in p['eligible']:
+        for h in eligible(data, p):
             low, high = earliest(data, p, h), upper(data, p)
             if low > high:
                 continue
@@ -189,9 +233,10 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
             model.add(start >= low).only_enforce_if(x)
             model.add(start == 0).only_enforce_if(x.Not())
             itv = model.new_optional_fixed_size_interval_var(start, p['duration'], x, f'i_{pid}_{h}')
-            resources[h][0].append(itv)
-            if p['special']:
-                resources[h][1].append(itv)
+            for r, demand in enumerate(demands(p)):
+                if demand:
+                    resources[h][r].append(itv)
+                    resource_counts[h][r].append(demand)
             variables[pid, h] = (x, start)
             selected.append(x)
             delays[g].append(start - p['release'] * x)
@@ -199,7 +244,7 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
     for h, pair in enumerate(resources):
         for r, itvs in enumerate(pair):
             if itvs:
-                model.add_cumulative(itvs, [1] * len(itvs), data['capacities'][h][r])
+                model.add_cumulative(itvs, resource_counts[h][r], data['capacities'][h][r])
     objectives = ([sum(sum(misses[g]) for g in GROUPS)] if policy == 'total_first' else [])
     objectives += [sum(misses[g]) for g in GROUPS] + [sum(delays[g]) for g in GROUPS]
     found = False
@@ -213,11 +258,12 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
             continue
         model.minimize(obj)
         # A valid incumbent provides both a hint and a stage-specific upper bound.
-        model.add(obj <= score(data, incumbent, policy)[index])
+        if incumbent is not None:
+            model.add(obj <= score(data, incumbent, policy)[index])
         model.clear_hints()
-        for pid, miss in missing.items():
+        for pid, miss in missing.items() if incumbent is not None else []:
             model.add_hint(miss, int(incumbent[pid] is None))
-        for (pid, h), (x, start) in variables.items():
+        for (pid, h), (x, start) in variables.items() if incumbent is not None else []:
             a = incumbent[pid]
             active = a is not None and a['h'] == h
             model.add_hint(x, int(active))
@@ -244,7 +290,7 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
         found = True
         # Equal values in the active stage may leave lower objectives worse.
         # Keep the better full incumbent while retaining this stage's proof.
-        if score(data, candidate, policy) <= score(data, incumbent, policy):
+        if incumbent is None or score(data, candidate, policy) <= score(data, incumbent, policy):
             incumbent = candidate
         value = score(data, incumbent, policy)[index]
         stage.update(value=value, bound=solver.best_objective_bound)
@@ -253,6 +299,9 @@ def solve(data, policy='severity_first', seconds=3.0, hint=None):
         model.add(obj == value)
     else:
         meta.update(status='OPTIMAL', lex_optimal=True)
+    if incumbent is None:
+        meta.update(status='NEEDS_REVIEW', elapsed_seconds=time.perf_counter() - started)
+        return None, meta
     meta.update(fallback=not found and not meta['lex_optimal'], objective=list(score(data, incumbent, policy)),
                 elapsed_seconds=time.perf_counter() - started)
     assert validate(data, incumbent)
@@ -295,7 +344,8 @@ def exhaustive(data, policy):
         if p['id'] in data.get('fixed', {}):
             options.append([data['fixed'][p['id']]])
         else:
-            options.append([None] + [dict(h=h, start=s) for h in p['eligible']
+            options.append(([None] if p['id'] not in data.get('destination_locks', {}) else []) +
+                           [dict(h=h, start=s) for h in eligible(data, p)
                            for s in range(earliest(data, p, h), upper(data, p)+1)])
     best = None
     for assignments in itertools.product(*options):

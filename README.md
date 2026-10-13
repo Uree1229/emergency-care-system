@@ -8,12 +8,12 @@
 
 | 구성 | 상태 | 위치 |
 |---|---|---|
-| 공통 JSON API와 SQLite 서버 | 가상 병원·환자, 문의·응답, 목적지 확정, 이동·도착, 돌발 유입 처리 | [`server/`](server/README.md), [`docs/API.md`](docs/API.md) |
+| 공통 JSON API와 SQLite 서버 | 문의·응답·이송, 백그라운드 배정, 결과 조회, 돌발 유입 재평가 | [`server/`](server/README.md), [`docs/API.md`](docs/API.md) |
 | 배정 솔버 실험 | 환자 우선순위, 이동시간, 진료 자리·전문팀 용량, 계산시간 제한과 대체안 | [`solver_improved.py`](solver_improved.py) |
 | B0/B1 가상 비교 | 순차 문의와 병렬 문의·변경 알림 비교, 30개 seed와 민감도 분석 | [`simulation/`](simulation/run.py), [`simulation_results/summary.md`](simulation_results/summary.md) |
 | 단독 화면 프로토타입 | 문의·응답 흐름을 보여주는 정적 시연 | [`prototype/index.html`](prototype/index.html) |
 
-병원용 웹과 환자용 모바일 웹은 공통 서버에 연결되지 않았습니다. 서버의 후보 목록은 규칙 기반이며 솔버 결과가 아닙니다. 이동 중 치료 시작시각 재평가(A26), 실제 공공 API 응답 검증·연결, B2(솔버 연결) 비교도 진행 과제입니다. 자세한 내용은 [현재 상태와 다음 작업](docs/PROJECT_STATUS.md)에 기록했습니다.
+병원 웹은 공통 서버에 연결되어 있습니다. 환자 웹의 독립 DB를 공통 API로 전환하는 작업은 남아 있습니다. 후보 목록은 문의할 병원을 찾는 규칙 기반 목록이고, 수용 응답 이후 배정안은 별도의 추천 API로 제공합니다. 실제 공공 API 응답 검증·연결, 실제 점유 종료시각 연계, B2 비교는 진행 과제입니다. 자세한 내용은 [현재 상태와 다음 작업](docs/PROJECT_STATUS.md)에 기록했습니다.
 
 ## 빠른 실행
 
@@ -25,12 +25,12 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m server.app --seed --scenario sudden --port 8000
 ```
 
-서버 주소는 `http://127.0.0.1:8000`입니다. 브라우저 화면은 아직 연결되지 않았으므로 API 요청·응답 예시는 [API 명세](docs/API.md)를 참고하세요. 서버 종료는 터미널에서 `Ctrl+C`를 누릅니다. `py` 명령이 없다면 설치된 Python 3.12 이상의 실행 파일로 위 명령을 실행하면 됩니다.
+서버 주소는 `http://127.0.0.1:8000`입니다. 배정 워커도 함께 시작합니다. 병원 웹 실행은 [화면 README](hospital-ui/README.md), 환자 웹 연결은 [API 명세](docs/API.md)를 참고하세요. 서버 종료는 터미널에서 `Ctrl+C`를 누릅니다. `py` 명령이 없다면 설치된 Python 3.12 이상의 실행 파일로 위 명령을 실행하면 됩니다.
 
 테스트와 실험은 별도 터미널에서 실행합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest test_server test_solver_improved test_simulation -v
+.\.venv\Scripts\python.exe -m unittest test_server test_solver_improved test_simulation test_planning -v
 .\.venv\Scripts\python.exe -m simulation.run --seeds 30 --sensitivity
 ```
 

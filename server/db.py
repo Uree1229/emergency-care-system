@@ -118,6 +118,35 @@ def connect(path):
 
 def init(conn):
     conn.executescript(SCHEMA)
+    # 기존 시연 DB도 삭제 없이 확장한다. 여러 번 실행해도 데이터는 보존된다.
+    columns = {r['name'] for r in conn.execute('PRAGMA table_info(patients)')}
+    additions = {
+        'name': 'TEXT', 'birth': 'TEXT', 'address': 'TEXT', 'guardian': 'TEXT',
+        'guardian_phone': 'TEXT', 'consciousness': 'TEXT', 'breathing': 'TEXT',
+        'treatment_duration_seconds': 'INTEGER', 'max_wait_seconds': 'INTEGER',
+    }
+    for name, definition in additions.items():
+        if name not in columns:
+            conn.execute(f'ALTER TABLE patients ADD COLUMN {name} {definition}')
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS planning_state (
+        id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL DEFAULT 0,
+        completed_revision INTEGER NOT NULL DEFAULT -1, lease_until INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT, lease_owner TEXT
+    );
+    INSERT OR IGNORE INTO planning_state(id) VALUES(1);
+    CREATE TABLE IF NOT EXISTS planning_results (
+        patient_id TEXT PRIMARY KEY REFERENCES patients(id), revision INTEGER NOT NULL,
+        created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, data TEXT NOT NULL
+    );
+    """)
+    # 입력 변경과 재계산 요청은 같은 트랜잭션에서 기록된다. 결과 저장은 재계산을 유발하지 않는다.
+    for table in ('hospitals', 'resources', 'restrictions', 'patients', 'inquiries', 'external_arrivals'):
+        for action in ('INSERT', 'UPDATE', 'DELETE'):
+            conn.execute(f'''CREATE TRIGGER IF NOT EXISTS planning_{table}_{action}
+                AFTER {action} ON {table} BEGIN
+                UPDATE planning_state SET revision=revision+1 WHERE id=1;
+                END''')
 
 
 @contextmanager
