@@ -114,7 +114,7 @@ def make_world(seed, cfg=CONFIG):
                     h.active.append([r.randint(5, 90), {res: 1}])
         hospitals.append(h)
     patients, t, i = [], 0.0, 0
-    while True:
+    while cfg['arrival_rate'] > 0:
         t += r.expovariate(cfg['arrival_rate'])
         if t >= cfg['horizon']:
             break
@@ -131,7 +131,7 @@ def make_world(seed, cfg=CONFIG):
     walkins = []
     for h in hospitals:
         t, j = 0.0, 0
-        while True:
+        while cfg['walkin_rate'] > 0:
             t += r.expovariate(cfg['walkin_rate'])
             if t >= cfg['horizon']:
                 break
@@ -184,9 +184,9 @@ class SolverPolicy(ParallelGreedyPolicy):
 # ---------------------------------------------------------------- 시뮬레이터
 
 class Simulation:
-    def __init__(self, seed, policy, cfg=CONFIG):
+    def __init__(self, seed, policy, cfg=CONFIG, world=None):
         self.seed, self.policy, self.cfg = seed, policy, cfg
-        hs, ps, self.walkins = make_world(seed, cfg)
+        hs, ps, self.walkins = make_world(seed, cfg) if world is None else world
         self.hospitals = {h.id: h for h in hs}
         self.patients = {p.id: p for p in ps}
         self.pending = sorted(ps, key=lambda p: p.t_req)

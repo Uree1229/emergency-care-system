@@ -1,0 +1,828 @@
+{
+  "counts": {
+    "allocation/all_high": 120,
+    "allocation/all_low": 120,
+    "allocation/already_overdue": 120,
+    "allocation/baseline": 120,
+    "allocation/bed_bottleneck": 120,
+    "allocation/compound_failure": 120,
+    "allocation/duration_underestimate": 120,
+    "allocation/expired_acceptances": 120,
+    "allocation/few_acceptances": 120,
+    "allocation/fixed_treatment": 120,
+    "allocation/fully_occupied": 120,
+    "allocation/future_walkin": 120,
+    "allocation/heterogeneous_hospitals": 120,
+    "allocation/known_release": 120,
+    "allocation/locked_conflict": 120,
+    "allocation/locked_destination": 120,
+    "allocation/locked_overdue": 120,
+    "allocation/long_distance": 120,
+    "allocation/long_treatment": 120,
+    "allocation/many_hospitals": 120,
+    "allocation/many_patients": 120,
+    "allocation/mass_casualty": 120,
+    "allocation/missing_resource_info": 120,
+    "allocation/multi_bed_demand": 120,
+    "allocation/near_full": 120,
+    "allocation/no_compatible": 120,
+    "allocation/no_response": 120,
+    "allocation/no_special_team": 120,
+    "allocation/one_hospital": 120,
+    "allocation/one_patient": 120,
+    "allocation/pessimistic_capacity": 120,
+    "allocation/quiet": 120,
+    "allocation/rural": 120,
+    "allocation/scarce_department": 120,
+    "allocation/self_reported_low": 120,
+    "allocation/short_horizon": 120,
+    "allocation/short_treatment": 120,
+    "allocation/small_region": 120,
+    "allocation/stale_capacity": 120,
+    "allocation/stress_above_demo_limit": 120,
+    "allocation/surge": 120,
+    "allocation/team_bottleneck": 120,
+    "allocation/team_only_demand": 120,
+    "allocation/tight_deadlines": 120,
+    "allocation/travel_overestimate": 120,
+    "allocation/travel_underestimate": 120,
+    "allocation/unknown_priority": 120,
+    "allocation/unknown_release": 120,
+    "allocation/unobserved_walkin": 120,
+    "allocation/zero_beds": 120,
+    "episode/compound": 30,
+    "episode/fast_response": 30,
+    "episode/five_inquiries": 30,
+    "episode/high_nonresponse": 30,
+    "episode/long_treatment": 30,
+    "episode/low_occupancy": 30,
+    "episode/many_walkins": 30,
+    "episode/mass_casualty": 30,
+    "episode/near_full": 30,
+    "episode/no_walkins": 30,
+    "episode/normal": 30,
+    "episode/one_inquiry": 30,
+    "episode/quiet": 30,
+    "episode/rural_majority": 30,
+    "episode/short_timeout": 30,
+    "episode/short_treatment": 30,
+    "episode/slow_response": 30,
+    "episode/surge": 30,
+    "episode/total_nonresponse": 30,
+    "episode/variable_response": 30,
+    "golden/deadline_equal": 1,
+    "golden/deadline_one_late": 1,
+    "golden/elapsed_not_reset": 1,
+    "golden/fixed_collision": 1,
+    "golden/lock_can_delay": 1,
+    "golden/lock_impossible": 1,
+    "golden/multi_demand": 1,
+    "golden/no_acceptance": 1,
+    "golden/no_patients": 1,
+    "golden/priority_tradeoff": 1,
+    "golden/release_equals_start": 1,
+    "golden/scarce_choice": 1,
+    "golden/team_absent": 1,
+    "golden/team_only": 1,
+    "golden/zero_capacity": 1,
+    "server/cancel_transit": 10,
+    "server/cancel_waiting": 10,
+    "server/danger_signs": 10,
+    "server/decline_all": 10,
+    "server/duplicate_response": 10,
+    "server/expired_acceptance": 10,
+    "server/invalid_consent": 10,
+    "server/last_bed_race": 10,
+    "server/no_show": 10,
+    "server/nonresponse_retry": 10,
+    "server/normal": 10,
+    "server/parallel_acceptance": 10,
+    "server/question_answer": 10,
+    "server/restriction_after_accept": 10,
+    "server/restriction_recheck": 10,
+    "server/stale_resource": 10,
+    "server/unknown_patient": 10,
+    "server/unknown_resource": 10,
+    "server/walkin_keep": 10,
+    "server/walkin_redirect": 10
+  },
+  "files": [
+    {
+      "bytes": 10472157,
+      "path": "allocation.jsonl.gz",
+      "records": 6000,
+      "sha256": "b99a16a2bdec35689eeff73a20c38c863d8c5e361f0249edc91744d833d6b134"
+    },
+    {
+      "bytes": 3342194,
+      "path": "episodes.jsonl.gz",
+      "records": 600,
+      "sha256": "f27032d0d4ac610fe5aeee1931ae520d637e7100ebde43512b6ee63502a34cbd"
+    },
+    {
+      "bytes": 6405,
+      "path": "server_cases.jsonl.gz",
+      "records": 200,
+      "sha256": "79bb8654b2bb53a4e2e10f60a79bc02ac191f27aca6ad12785a6b2636420ea72"
+    },
+    {
+      "bytes": 1401,
+      "path": "golden_cases.jsonl.gz",
+      "records": 15,
+      "sha256": "a51390bca353134136aaf841e31967ce68bc8919057a086a9ff8fc4d527bd52f"
+    }
+  ],
+  "generator": "python -m datasets.generate",
+  "generator_sha256": "aa88907275a5dbcc375aa09180e5bfbc8a41dca0f467e803bd9bb06af53c9e58",
+  "limitations": [
+    "분포·비율·치료시간·최대 대기는 실험 설정이며 실제 통계나 임상 기준이 아님",
+    "allocation의 actual과 episode의 미래 사건은 사후 검증 전용",
+    "train/validation/test는 실험 조정·검증 분할이며 학습된 의료 모델이 아님",
+    "배정되지 못하는 사례·기존 목적지 충돌도 유효한 평가 입력",
+    "합성 가정의 범위 밖 상황과 실제 의료 현장에 대한 효과를 증명하지 않음"
+  ],
+  "profiles": {
+    "allocation": [
+      {
+        "changes": {},
+        "description": "일반적인 혼합 환자·병원",
+        "id": "baseline"
+      },
+      {
+        "changes": {
+          "occupied": 0.1,
+          "patients": 5
+        },
+        "description": "적은 환자와 충분한 자원",
+        "id": "quiet"
+      },
+      {
+        "changes": {
+          "patients": 1
+        },
+        "description": "환자 한 명·여러 선택지",
+        "id": "one_patient"
+      },
+      {
+        "changes": {
+          "hospitals": 1,
+          "patients": 12
+        },
+        "description": "병원 한 곳에 수요 집중",
+        "id": "one_hospital"
+      },
+      {
+        "changes": {
+          "hospitals": 3
+        },
+        "description": "병원 세 곳의 작은 진료권",
+        "id": "small_region"
+      },
+      {
+        "changes": {
+          "hospitals": 32
+        },
+        "description": "병원 32곳의 넓은 선택지",
+        "id": "many_hospitals"
+      },
+      {
+        "changes": {
+          "patients": 64
+        },
+        "description": "환자 64명의 최대 시연 규모",
+        "id": "many_patients"
+      },
+      {
+        "changes": {
+          "hospitals": 64,
+          "patients": 128
+        },
+        "description": "환자 128명·병원 64곳; 서버 크기 제한 밖",
+        "id": "stress_above_demo_limit"
+      },
+      {
+        "changes": {
+          "deadline": [
+            40,
+            160
+          ],
+          "hospitals": 4,
+          "travel": [
+            30,
+            100
+          ]
+        },
+        "description": "긴 이동시간의 의료공백지역",
+        "id": "rural"
+      },
+      {
+        "changes": {
+          "deadline": [
+            120,
+            300
+          ],
+          "horizon": 360,
+          "travel": [
+            90,
+            240
+          ]
+        },
+        "description": "진료권 밖 장거리 이동",
+        "id": "long_distance"
+      },
+      {
+        "changes": {
+          "occupied": 0.8,
+          "patients": 64
+        },
+        "description": "급증한 환자와 높은 점유율",
+        "id": "surge"
+      },
+      {
+        "changes": {
+          "beds": [
+            1,
+            4
+          ],
+          "hospitals": 5,
+          "patients": 64
+        },
+        "description": "소수 병원에 다수 환자 발생",
+        "id": "mass_casualty"
+      },
+      {
+        "changes": {
+          "occupied": 0.95
+        },
+        "description": "거의 모든 병상이 점유됨",
+        "id": "near_full"
+      },
+      {
+        "changes": {
+          "hold_occupancy": true,
+          "occupied": 1.0
+        },
+        "description": "모든 병상이 현재 점유됨",
+        "id": "fully_occupied"
+      },
+      {
+        "changes": {
+          "beds": [
+            0,
+            0
+          ]
+        },
+        "description": "진료 자리 용량이 0",
+        "id": "zero_beds"
+      },
+      {
+        "changes": {
+          "special_share": 1.0,
+          "teams": [
+            0,
+            0
+          ]
+        },
+        "description": "전문팀이 없는 병원",
+        "id": "no_special_team"
+      },
+      {
+        "changes": {
+          "beds": [
+            8,
+            16
+          ],
+          "special_share": 1.0,
+          "teams": [
+            1,
+            1
+          ]
+        },
+        "description": "자리보다 전문팀이 부족",
+        "id": "team_bottleneck"
+      },
+      {
+        "changes": {
+          "beds": [
+            1,
+            2
+          ],
+          "teams": [
+            3,
+            5
+          ]
+        },
+        "description": "전문팀보다 자리가 부족",
+        "id": "bed_bottleneck"
+      },
+      {
+        "changes": {
+          "beds": [
+            0,
+            24
+          ],
+          "eligibility": 0.25,
+          "teams": [
+            0,
+            6
+          ]
+        },
+        "description": "자원·치료 가능 분야의 큰 차이",
+        "id": "heterogeneous_hospitals"
+      },
+      {
+        "changes": {
+          "mode": "scarce_department"
+        },
+        "description": "특정 분야는 첫 병원만 가능",
+        "id": "scarce_department"
+      },
+      {
+        "changes": {
+          "eligibility": 0.0
+        },
+        "description": "모든 환자의 치료 가능 병원이 없음",
+        "id": "no_compatible"
+      },
+      {
+        "changes": {
+          "acceptance_share": 0.2
+        },
+        "description": "적합 병원 중 일부만 수용 응답",
+        "id": "few_acceptances"
+      },
+      {
+        "changes": {
+          "acceptance_share": 0.0
+        },
+        "description": "모든 병원 미응답: 배정 불가",
+        "id": "no_response"
+      },
+      {
+        "changes": {
+          "mode": "expired_acceptances"
+        },
+        "description": "수용 응답이 모두 만료됨",
+        "id": "expired_acceptances"
+      },
+      {
+        "changes": {
+          "priorities": [
+            4
+          ]
+        },
+        "description": "모든 환자가 높은 우선순위",
+        "id": "all_high"
+      },
+      {
+        "changes": {
+          "priorities": [
+            1
+          ]
+        },
+        "description": "모든 환자가 낮은 우선순위",
+        "id": "all_low"
+      },
+      {
+        "changes": {
+          "mode": "unknown_priority"
+        },
+        "description": "미확인 위험도는 보수적으로 높은 군",
+        "id": "unknown_priority"
+      },
+      {
+        "changes": {
+          "mode": "self_reported_low"
+        },
+        "description": "낮은 자기신고도 전문가 확인 전 높은 군",
+        "id": "self_reported_low"
+      },
+      {
+        "changes": {
+          "deadline": [
+            1,
+            10
+          ],
+          "travel": [
+            1,
+            20
+          ]
+        },
+        "description": "짧은 최대 대기 설정",
+        "id": "tight_deadlines"
+      },
+      {
+        "changes": {
+          "mode": "already_overdue",
+          "now": 120
+        },
+        "description": "최초 요청부터 최대 대기를 이미 초과",
+        "id": "already_overdue"
+      },
+      {
+        "changes": {
+          "duration": [
+            120,
+            240
+          ]
+        },
+        "description": "긴 치료 점유시간",
+        "id": "long_treatment"
+      },
+      {
+        "changes": {
+          "duration": [
+            1,
+            5
+          ]
+        },
+        "description": "짧은 치료 점유시간",
+        "id": "short_treatment"
+      },
+      {
+        "changes": {
+          "mode": "multi_bed_demand"
+        },
+        "description": "환자별 여러 자리 요구: 자원 양 경계시험",
+        "id": "multi_bed_demand"
+      },
+      {
+        "changes": {
+          "mode": "team_only_demand"
+        },
+        "description": "전문팀만 요구하는 추상 자원 경계시험",
+        "id": "team_only_demand"
+      },
+      {
+        "changes": {
+          "mode": "known_release"
+        },
+        "description": "현재 점유 종료시각을 알고 있음",
+        "id": "known_release"
+      },
+      {
+        "changes": {
+          "hold_occupancy": true
+        },
+        "description": "현재 점유 종료시각을 모름",
+        "id": "unknown_release"
+      },
+      {
+        "changes": {
+          "mode": "stale_capacity"
+        },
+        "description": "표시 용량이 실제 가동 용량보다 큼",
+        "id": "stale_capacity"
+      },
+      {
+        "changes": {
+          "mode": "pessimistic_capacity"
+        },
+        "description": "표시 용량이 실제보다 작음",
+        "id": "pessimistic_capacity"
+      },
+      {
+        "changes": {
+          "mode": "unobserved_walkin"
+        },
+        "description": "시스템 미사용 환자 점유가 아직 관측되지 않음",
+        "id": "unobserved_walkin"
+      },
+      {
+        "changes": {
+          "mode": "future_walkin"
+        },
+        "description": "이동 중 새로운 환자가 먼저 도착",
+        "id": "future_walkin"
+      },
+      {
+        "changes": {
+          "mode": "travel_underestimate"
+        },
+        "description": "이동시간을 실제보다 짧게 추정",
+        "id": "travel_underestimate"
+      },
+      {
+        "changes": {
+          "mode": "travel_overestimate"
+        },
+        "description": "이동시간을 실제보다 길게 추정",
+        "id": "travel_overestimate"
+      },
+      {
+        "changes": {
+          "mode": "duration_underestimate"
+        },
+        "description": "치료 점유시간을 실제보다 짧게 추정",
+        "id": "duration_underestimate"
+      },
+      {
+        "changes": {
+          "mode": "missing_resource_info"
+        },
+        "description": "일부 자원 상태를 몰라 가용량 0으로 처리",
+        "id": "missing_resource_info"
+      },
+      {
+        "changes": {
+          "lock_share": 0.3
+        },
+        "description": "이동 중 환자의 목적지는 유지",
+        "id": "locked_destination"
+      },
+      {
+        "changes": {
+          "lock_share": 0.5,
+          "mode": "locked_overdue"
+        },
+        "description": "이동 중 환자의 대기 설정 기한 초과",
+        "id": "locked_overdue"
+      },
+      {
+        "changes": {
+          "mode": "locked_conflict"
+        },
+        "description": "기존 목적지에서 수용 불가능: 검토 필요",
+        "id": "locked_conflict"
+      },
+      {
+        "changes": {
+          "mode": "fixed_treatment"
+        },
+        "description": "이미 시작한 치료 구간 고정",
+        "id": "fixed_treatment"
+      },
+      {
+        "changes": {
+          "deadline": [
+            60,
+            180
+          ],
+          "horizon": 15
+        },
+        "description": "계획 기간 밖의 가능한 치료는 배정하지 않음",
+        "id": "short_horizon"
+      },
+      {
+        "changes": {
+          "acceptance_share": 0.35,
+          "mode": "compound_failure",
+          "occupied": 0.8,
+          "patients": 64,
+          "travel": [
+            20,
+            70
+          ]
+        },
+        "description": "수요 급증·지연 정보·긴 이동·미응답의 복합 상황",
+        "id": "compound_failure"
+      }
+    ],
+    "episode": [
+      {
+        "changes": {},
+        "description": "기본 수요·응답",
+        "id": "normal"
+      },
+      {
+        "changes": {
+          "arrival_rate": 0.05
+        },
+        "description": "낮은 환자 발생률",
+        "id": "quiet"
+      },
+      {
+        "changes": {
+          "arrival_rate": 0.45
+        },
+        "description": "환자 발생률 3배",
+        "id": "surge"
+      },
+      {
+        "changes": {
+          "arrival_rate": 1.0
+        },
+        "description": "매분 평균 환자 1명",
+        "id": "mass_casualty"
+      },
+      {
+        "changes": {
+          "init_occupancy": 0.95
+        },
+        "description": "높은 초기 점유율",
+        "id": "near_full"
+      },
+      {
+        "changes": {
+          "init_occupancy": 0.1
+        },
+        "description": "낮은 초기 점유율",
+        "id": "low_occupancy"
+      },
+      {
+        "changes": {
+          "resp_median": 0.5
+        },
+        "description": "빠른 병원 응답",
+        "id": "fast_response"
+      },
+      {
+        "changes": {
+          "resp_median": 8.0
+        },
+        "description": "느린 병원 응답",
+        "id": "slow_response"
+      },
+      {
+        "changes": {
+          "resp_sigma": 1.3
+        },
+        "description": "응답시간 변동이 큼",
+        "id": "variable_response"
+      },
+      {
+        "changes": {
+          "nonresponse": 0.7
+        },
+        "description": "미응답 비율 70%",
+        "id": "high_nonresponse"
+      },
+      {
+        "changes": {
+          "nonresponse": 1.0
+        },
+        "description": "병원이 모두 미응답",
+        "id": "total_nonresponse"
+      },
+      {
+        "changes": {
+          "walkin_rate": 0.0
+        },
+        "description": "미등록 환자 유입 없음",
+        "id": "no_walkins"
+      },
+      {
+        "changes": {
+          "walkin_rate": 0.06
+        },
+        "description": "미등록 환자 유입 10배",
+        "id": "many_walkins"
+      },
+      {
+        "changes": {
+          "rural_share": 0.6
+        },
+        "description": "의료공백지역 발생 비율 60%",
+        "id": "rural_majority"
+      },
+      {
+        "changes": {
+          "duration_mean": 10
+        },
+        "description": "평균 치료 점유 10분",
+        "id": "short_treatment"
+      },
+      {
+        "changes": {
+          "duration_mean": 120
+        },
+        "description": "평균 치료 점유 120분",
+        "id": "long_treatment"
+      },
+      {
+        "changes": {
+          "k_parallel": 1
+        },
+        "description": "동시 문의 수 1곳",
+        "id": "one_inquiry"
+      },
+      {
+        "changes": {
+          "k_parallel": 5
+        },
+        "description": "동시 문의 수 5곳",
+        "id": "five_inquiries"
+      },
+      {
+        "changes": {
+          "timeout": 2
+        },
+        "description": "미응답 대기 설정 2분",
+        "id": "short_timeout"
+      },
+      {
+        "changes": {
+          "arrival_rate": 0.45,
+          "init_occupancy": 0.9,
+          "nonresponse": 0.5,
+          "resp_median": 6,
+          "walkin_rate": 0.03
+        },
+        "description": "수요·점유·미등록 유입·미응답 복합 증가",
+        "id": "compound"
+      }
+    ],
+    "server": [
+      {
+        "description": "정상 문의·수용·확정·출발·도착·퇴실",
+        "id": "normal"
+      },
+      {
+        "description": "복수 수용 응답 후 목적지 하나 확정",
+        "id": "parallel_acceptance"
+      },
+      {
+        "description": "미응답 60초 경고·120초 재문의",
+        "id": "nonresponse_retry"
+      },
+      {
+        "description": "수용 응답 만료 후 확정 차단",
+        "id": "expired_acceptance"
+      },
+      {
+        "description": "마지막 한 자리에 두 환자가 수용 응답을 받음",
+        "id": "last_bed_race"
+      },
+      {
+        "description": "A 이동 중 B 유입·조정 요청·다른 병원 수용·목적지 변경",
+        "id": "walkin_redirect"
+      },
+      {
+        "description": "돌발 유입 후 병원 수용 유지·자동 변경 없음",
+        "id": "walkin_keep"
+      },
+      {
+        "description": "수용 뒤 병원 전체 제한·확정 차단",
+        "id": "restriction_after_accept"
+      },
+      {
+        "description": "제한 종료 예정 이후 재확인 필요 상태",
+        "id": "restriction_recheck"
+      },
+      {
+        "description": "자원 미확인 경고·추천에서 제외",
+        "id": "unknown_resource"
+      },
+      {
+        "description": "갱신이 늦은 자원 정보·추천에서 제외",
+        "id": "stale_resource"
+      },
+      {
+        "description": "나이·위치·의식·호흡을 모르는 입력",
+        "id": "unknown_patient"
+      },
+      {
+        "description": "위험 신호 입력 시 119 안내",
+        "id": "danger_signs"
+      },
+      {
+        "description": "후보 병원 모두 수용 불가",
+        "id": "decline_all"
+      },
+      {
+        "description": "병원 추가 질문·환자 답변 후 수용",
+        "id": "question_answer"
+      },
+      {
+        "description": "문의·수용 응답 뒤 환자 취소",
+        "id": "cancel_waiting"
+      },
+      {
+        "description": "이동 중 취소·예정 수요 해제",
+        "id": "cancel_transit"
+      },
+      {
+        "description": "수용 버튼 중복 처리",
+        "id": "duplicate_response"
+      },
+      {
+        "description": "확정·출발 후 병원 미도착 처리",
+        "id": "no_show"
+      },
+      {
+        "description": "동의 없는 입력 거절·환자 미생성",
+        "id": "invalid_consent"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "seed_counts": {
+    "allocation": 120,
+    "episode": 30,
+    "server": 10
+  },
+  "source": "synthetic",
+  "splits": {
+    "allocation/test": 600,
+    "allocation/train": 4800,
+    "allocation/validation": 600,
+    "episode/test": 60,
+    "episode/train": 480,
+    "episode/validation": 60,
+    "golden/regression": 15,
+    "server/test": 20,
+    "server/train": 160,
+    "server/validation": 20
+  },
+  "total_records": 6815
+}
