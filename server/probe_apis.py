@@ -5,10 +5,14 @@ data/api_probe/에 남긴다. 그 결과를 보고 api_field_mapping.md를 채�
 
 사용:
     set DATA_GO_KR_KEY=발급받은_일반_인증키(Decoding)
-    python -m server.probe_apis --stage1 광주광역시
-    python -m server.probe_apis --only nmc_rltm_beds --rows 5
+    python -m server.probe_apis --stage1 광주광역시 --stage2 동구
+    python -m server.probe_apis --only nmc_rltm_beds --stage1 광주광역시 --stage2 동구 --rows 5
 
-엔드포인트 경로와 파라미터는 활용가이드로 확인 전이므로 verified=False다. 확인 후 고친다.
+NMC 경로·파라미터는 공식 명세 확인(spec_verified=True) 상태다.
+목록·가용병상·중증질환은 2026-10-11 경기 6시·충남 2시 실제 인증 호출을 확인(verified=True)했다.
+중증질환의 verified는 통신 확인이며 숫자 코드의 자동 임상 해석을 뜻하지 않는다.
+심평원 목록과 상세 5종은 활용 신청 후 2026-10-11 실제 인증 호출을 확인했다.
+연결 기관 수와 미연결 사유는 data/hira_sync/latest.json의 결과를 따른다.
 인증키는 저장 파일·출력에서 지운다.
 """
 import argparse
@@ -24,14 +28,14 @@ from pathlib import Path
 ENDPOINTS = {
     # 국립중앙의료원 전국 응급의료기관 정보 조회 서비스 (data.go.kr 15000563)
     'nmc_hospital_list': dict(url='https://apis.data.go.kr/B552657/ErmctInfoInqireService/getEgytListInfoInqire',
-                              params=['Q0', 'Q1'], verified=False, purpose='응급의료기관 목록·주소·좌표'),
+                              params=['Q0', 'Q1'], spec_verified=True, verified=True, purpose='응급의료기관 목록·주소·좌표'),
     'nmc_rltm_beds': dict(url='https://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire',
-                          params=['STAGE1', 'STAGE2'], verified=False, purpose='응급실 실시간 가용병상'),
+                          params=['STAGE1', 'STAGE2'], spec_verified=True, verified=True, purpose='응급실 실시간 가용병상'),
     'nmc_severe_accept': dict(url='https://apis.data.go.kr/B552657/ErmctInfoInqireService/getSrsillDissAceptncPosblInfoInqire',
-                              params=['STAGE1', 'STAGE2'], verified=False, purpose='중증질환자 수용 가능 정보'),
+                              params=['STAGE1', 'STAGE2'], spec_verified=True, verified=True, purpose='중증질환자 수용 가능 정보'),
     # 건강보험심사평가원 병원정보서비스 (data.go.kr 15001698)
     'hira_hospital_basis': dict(url='https://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList',
-                                params=['sidoCd'], verified=False, purpose='요양기관 기본정보·암호화 기관기호'),
+                                params=['sidoCd'], spec_verified=True, verified=True, purpose='요양기관 기본정보·암호화 기관기호'),
 }
 # 시도 이름을 파라미터마다 넣는다. 심평원 sidoCd는 코드값이라 --sido-cd로 따로 받는다.
 STAGE_PARAMS = {'Q0', 'STAGE1'}
@@ -45,7 +49,7 @@ def scrub(text, key):
 
 
 def fetch(url, params, key, timeout=15):
-    query = urllib.parse.urlencode({'serviceKey': key, **params})
+    query = urllib.parse.urlencode({'ServiceKey': urllib.parse.unquote(key), **params})
     started = time.time()
     with urllib.request.urlopen(f'{url}?{query}', timeout=timeout) as resp:
         body = resp.read().decode('utf-8', errors='replace')
@@ -81,6 +85,8 @@ def main():
     ap.add_argument('--only', choices=sorted(ENDPOINTS))
     ap.add_argument('--out', default='data/api_probe')
     args = ap.parse_args()
+    if args.only in (None, 'nmc_rltm_beds', 'nmc_severe_accept') and not args.stage2:
+        ap.error('가용병상·중증질환 조회에는 --stage2 시군구가 필요합니다')
     key = os.environ.get('DATA_GO_KR_KEY')
     if not key:
         raise SystemExit('DATA_GO_KR_KEY 환경변수에 공공데이터포털 인증키를 넣어 주세요.')
@@ -99,7 +105,7 @@ def main():
                 params[p] = args.stage2
             elif p == 'sidoCd' and args.sido_cd:
                 params[p] = args.sido_cd
-        entry = dict(purpose=ep['purpose'], verified=ep['verified'], url=ep['url'], params=params)
+        entry = dict(purpose=ep['purpose'], spec_verified=ep['spec_verified'], verified=ep['verified'], url=ep['url'], params=params)
         try:
             status, ctype, body, elapsed = fetch(ep['url'], params, key)
             body = scrub(body, key)

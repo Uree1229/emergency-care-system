@@ -27,6 +27,11 @@
   #server { width: 190px; } #handler { width: 110px; }
   #conn { margin-left: auto; font-size: 13px; color: #A9B1BD; }
   #conn.bad { color: #FFB27A; font-weight: 700; }
+  .connection-panel { margin:16px 24px 0; padding:14px 18px; background:#fff; border:1px solid var(--line); border-radius:10px; line-height:1.6; overflow-wrap:anywhere; }
+  .connection-panel strong { display:block; font-size:16px; }
+  .connection-panel .local-note { margin-top:6px; color:var(--blue); font-weight:700; }
+  .public-observations { width:100%; border-collapse:collapse; font-size:14px; }
+  .public-observations th,.public-observations td { padding:8px 10px; border-bottom:1px solid #E4E7EC; text-align:left; }
 
   main { display: flex; gap: 20px; padding: 20px 24px; align-items: flex-start; }
   #listCol { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -75,70 +80,37 @@
   .btn-small { height: 40px; padding: 0 14px; border: 1px solid #C3C9D2; border-radius: 8px; background: #fff; }
   .note { font-size: 13px; color: var(--muted); }
 
-  /* 우리 병원 자원: 헤더 밑 가로 한 줄 */
-  .resbar { background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 24px; display: flex; gap: 10px 28px; align-items: center; flex-wrap: wrap; }
-  .resbar-title { font-size: 13px; font-weight: 700; color: var(--muted); }
-  .res-item { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-  .res-item .k { font-size: 14px; }
-  .res-item .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .res-item .v small { font-size: 13px; font-weight: 400; color: var(--muted); }
-  .res-item .d { font-size: 12px; color: var(--muted); }
-  .res-item.zero .v { color: var(--orange); }
-  .res-item.over .v { color: var(--red); }
-  button.res-item { border: 1px solid transparent; background: none; padding: 4px 8px; margin: -4px -8px; border-radius: 8px; color: inherit; text-align: left; }
-  button.res-item:hover { border-color: var(--line); background: #F7F8FA; }
-  button.res-item.selected { border-color: var(--blue); background: var(--blue-bg); }
-  .restr-chip { margin-left: auto; white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: #fff;
-                border-radius: 8px; padding: 6px 12px; font-size: 14px; color: var(--ink); }
-  .restr-chip.on { border-color: var(--red); background: var(--red-bg); color: var(--red); font-weight: 700; }
-  .restr-chip.recheck { border-color: var(--orange-line); background: var(--orange-bg); color: var(--orange); font-weight: 700; }
-  .warnbox { grid-column: span 2; background: var(--orange-bg); color: var(--orange); border-radius: 8px; padding: 10px 14px; line-height: 1.6; }
-  .warnbox.red { background: var(--red-bg); color: var(--red); }
-  .warnbox button { margin-left: 8px; height: 32px; padding: 0 10px; border: 1px solid currentColor; border-radius: 6px; background: #fff; color: inherit; font-weight: 700; }
-  .rlist { padding: 4px 22px 0; display: flex; flex-direction: column; }
-  .rrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #EEF0F3; flex-wrap: wrap; }
-  .rrow:last-child { border-bottom: 0; }
-  .res-item.dummy .k::after { content: ' (가상)'; font-size: 12px; color: var(--muted); }
-
-  /* 시연 메뉴 (헤더 오른쪽) */
-  .demo-menu { position: relative; }
-  .demo-menu summary { list-style: none; cursor: pointer; height: 36px; display: flex; align-items: center; padding: 0 12px;
-                       border: 1px solid #3A4656; border-radius: 6px; font-size: 14px; color: #C9D0DA; }
-  .demo-menu summary::-webkit-details-marker { display: none; }
-  .demo-pop { position: absolute; right: 0; top: 42px; z-index: 10; width: 240px; background: var(--card); color: var(--ink);
-              border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
-              box-shadow: 0 6px 20px rgba(27, 36, 48, .18); }
-  .demo-pop button { height: 40px; border: 1px solid var(--blue); border-radius: 8px; background: #fff; color: var(--blue); font-weight: 700; }
-
-  /* 최근 처리 (기본 접힘) */
-  .recent-wrap summary { cursor: pointer; font-size: 17px; font-weight: 700; margin: 10px 0 8px; display: flex; gap: 8px; align-items: center; }
-  .count.gray { background: var(--gray-bg); }
-  .recent-wrap summary { list-style: none; }
-  .recent-wrap summary::-webkit-details-marker { display: none; }
-  .recent-wrap summary::before { content: '▸'; font-size: 13px; color: var(--muted); }
-  .recent-wrap[open] summary::before { content: '▾'; }
-
-  /* 도착 예정 · 영향 환자 · 직접 내원 */
-  .card.short { border-color: var(--red); background: #FFF6F5; }
-  .card.short.selected { border: 2px solid var(--red); }
-  .shortbox { grid-column: span 2; background: var(--red-bg); color: var(--red); border-radius: 8px; padding: 10px 14px; line-height: 1.6; }
-  .shortbox b { font-weight: 700; }
-  .guide { grid-column: span 2; background: #F7F8FA; border-radius: 8px; padding: 10px 14px; font-size: 14px; line-height: 1.6; color: var(--muted); }
-  .adjbox { grid-column: span 2; background: var(--orange-bg); color: var(--orange); border-radius: 8px; padding: 10px 14px; font-weight: 700; }
-  .btn-keep { flex: 1; border: 0; background: var(--blue); color: #fff; }
-  .btn-adjust { border: 1px solid var(--orange-line); background: #fff; color: var(--orange); }
-  .btn-arrive { border: 1px solid var(--blue); background: #fff; color: var(--blue); }
-  .btn-sub { height: 40px; padding: 0 14px; border: 1px solid #C3C9D2; border-radius: 8px; background: #fff; color: var(--muted); }
-  .chip.on-o { border: 2px solid var(--orange-line); color: var(--orange); font-weight: 700; }
-  .ext-form { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
-  .ext-row { display: flex; align-items: center; gap: 12px; }
-  .ext-row label { width: 90px; font-weight: 700; }
-  .stepper { display: flex; align-items: center; gap: 6px; }
-  .stepper button { width: 38px; height: 38px; border: 1px solid #C3C9D2; border-radius: 8px; background: #fff; font-size: 18px; }
-  .stepper output { min-width: 28px; text-align: center; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-
   #notice { min-height: 22px; margin: 0 0 10px; font-weight: 700; }
   #notice.err { color: var(--red); } #notice.ok { color: var(--blue); }
+  .workspace-tabs { display:flex; gap:8px; padding:16px 24px 0; flex-wrap:wrap; }
+  .workspace-tabs button { border:1px solid var(--line); border-radius:8px; padding:10px 16px; background:#fff; color:var(--muted); }
+  .workspace-tabs button.active { background:var(--blue); color:#fff; border-color:var(--blue); font-weight:700; }
+  [hidden] { display:none !important; }
+  .stack { display:flex; flex-direction:column; gap:14px; }
+  .resource-card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .resource-card label { display:flex; flex-direction:column; gap:5px; min-width:95px; }
+  .resource-card input,.resource-card select { width:120px; max-width:100%; height:40px; border:1px solid #C3C9D2; border-radius:8px; padding:6px 9px; }
+  .resource-card h3 { margin:0 0 12px; }
+  .review-issues { margin:0; padding-left:20px; line-height:1.8; }
+  .availability-warning { grid-column:1/-1; padding:12px 14px; border-radius:8px; background:var(--orange-bg); color:var(--orange); line-height:1.6; }
+  .availability-warning.blocked { background:var(--red-bg); color:var(--red); }
+  .availability-warning button { margin:8px 8px 0 0; }
+  .restriction-row { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .restriction-form .row { align-items:flex-end; margin-bottom:12px; }
+  .restriction-form select { width:180px; }
+  .wide { grid-column:1/-1; }
+  textarea { font:inherit; border:1px solid #C3C9D2; border-radius:8px; padding:10px; width:100%; resize:vertical; }
+  .chat { margin-top:16px; }
+  .chat-log { padding:16px 20px; max-height:360px; overflow:auto; display:flex; flex-direction:column; gap:10px; }
+  .chat-item { background:#F1F3F7; border-radius:8px; padding:10px 12px; font-size:14px; overflow-wrap:anywhere; }
+  .chat-item.mine { background:var(--blue-bg); }
+  .chat-item.system { border-left:3px solid var(--orange-line); background:#FFF8F1; }
+  .chat-item .body { white-space:pre-wrap; margin-top:5px; }
+  #incomingList { display:flex; flex-direction:column; gap:10px; }
+  #chatStatus { overflow-wrap:anywhere; }
+  .sub,.note,.field .v { overflow-wrap:anywhere; }
+  @media(max-width:920px) { main{ flex-direction:column; padding:16px; } #listCol,#detailCol{width:100%;} header{padding:14px 16px;gap:10px;} .workspace-tabs{padding:14px 16px 0;} }
+  @media(max-width:500px) { .grid{padding:16px;gap:14px;} .panel-head,.actions{padding:16px;} .panel-head{flex-wrap:wrap;} .btn{padding:0 12px;font-size:14px;} .btn-accept{font-size:16px;} .q-input{min-width:150px;} #server{width:170px;} }
 </style>
 </head>
 <body>
@@ -148,35 +120,53 @@
   <label>담당자 <input id="handler" placeholder="이름" aria-label="담당자 이름"></label>
   <label>서버 <input id="server" aria-label="서버 주소"></label>
   <span id="conn" role="status">연결 확인 중…</span>
-  <details class="demo-menu">
-    <summary>시연 ▾</summary>
-    <div class="demo-pop">
-      <span class="note">발표 시연용 가상 데이터를 만듭니다.</span>
-      <button type="button" id="demoBtn">+ 새 문의 발생</button>
-      <button type="button" id="demoTransportBtn">+ 이송 중 환자 만들기</button>
-    </div>
-  </details>
 </header>
-<div id="resourceBar" class="resbar" aria-label="우리 병원 자원"><span class="resbar-title">우리 병원 자원</span><span class="note">불러오는 중…</span></div>
+
+<aside class="connection-panel" aria-label="연결 대상 및 시연 안내">
+  <strong id="hospitalContext">병원 정보를 불러오는 중입니다.</strong>
+  <div class="sub" id="serverContext"></div>
+  <div id="localDemoNote" class="local-note" hidden></div>
+  <a id="patientViewLink" hidden target="_blank" rel="noopener">같은 환자의 이송자 화면 열기</a>
+</aside>
+
+<nav class="workspace-tabs" aria-label="업무 선택">
+  <button type="button" class="active" data-tab="inquiries">수용 문의</button>
+  <button type="button" data-tab="incoming">도착 예정 · 이송 대화</button>
+  <button type="button" data-tab="resources">병원 자원</button>
+  <button type="button" data-tab="restrictions">수용 제한</button>
+</nav>
 
 <main>
   <section id="listCol" aria-label="문의 목록">
+    <div id="inquiryLists">
     <h2>대기 중인 문의 <span class="count" id="openCount">0</span></h2>
     <div id="openList"></div>
-    <h2 style="margin-top:10px; justify-content:space-between">
-      <span style="display:flex;gap:8px;align-items:center">도착 예정 <span class="count" id="incomingCount">0</span></span>
-      <button type="button" class="btn-small" id="externalBtn">+ 직접 내원 등록</button>
-    </h2>
-    <div id="incomingList"></div>
-    <details id="recentWrap" class="recent-wrap">
-      <summary>최근 처리 <span class="count gray" id="recentCount">0</span></summary>
-      <div id="recentList"></div>
-    </details>
+    <h2 style="margin-top:10px">최근 처리</h2>
+    <div id="recentList"></div>
+    </div>
+    <div id="incomingLists" hidden>
+      <h2>확정 · 이송 · 도착 환자 <span class="count" id="incomingCount">0</span></h2>
+      <p class="note">수용 응답 후 이송자가 목적지를 확정하면 여기에 표시됩니다.</p>
+      <div id="incomingList"></div>
+    </div>
+    <div id="resourceHelp" hidden class="empty">운영자가 확인한 총량과 실제 점유를 관리합니다. 확정 이송 수요는 서버가 별도로 계산합니다.</div>
+    <div id="restrictionHelp" hidden class="empty">기관 전체 또는 필요한 진료 분야의 수용 제한을 관리합니다. 종료 예정이 지나면 자동 정상화하지 않고 재확인 필요로 표시합니다.</div>
   </section>
 
   <section id="detailCol" aria-label="문의 상세">
     <div id="notice" role="status" aria-live="polite"></div>
     <div id="detail"><div class="empty">왼쪽에서 문의를 선택하세요.</div></div>
+    <div id="incomingDetail" hidden></div>
+    <div id="resourceDetail" hidden class="stack"></div>
+    <div id="restrictionDetail" hidden class="stack"></div>
+    <section id="hospitalChat" hidden class="panel chat" aria-label="이송 대화">
+      <div class="panel-head"><div><h3>이송 대화</h3><div class="sub" id="chatStatus">환자를 선택하세요.</div></div></div>
+      <div id="chatLog" class="chat-log" aria-live="polite"></div>
+      <form id="chatForm" class="actions">
+        <textarea id="chatBody" rows="2" maxlength="2000" placeholder="이송자에게 전달할 내용" aria-label="병원 메시지"></textarea>
+        <div class="row"><button type="submit" id="chatSend" class="btn-small" disabled>메시지 보내기</button><span class="note">자유대화만으로 수용 상태나 목적지는 바뀌지 않습니다.</span></div>
+      </form>
+    </section>
   </section>
 </main>
 
@@ -184,6 +174,7 @@
 // ---------------------------------------------------------------- 설정
 const POLL_MS = 3000;                          // 2~3초마다 조회 (API.md 공통 규칙)
 const DECLINE_REASONS = ['인력', '장비', '병상', '진료 불가', '기타'];
+const RESTRICT_REASONS = ['병상 포화', '전문의 부재', '장비 고장', '기타'];
 const params = new URLSearchParams(location.search);
 
 const $ = (id) => document.getElementById(id);
@@ -192,28 +183,26 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
 
-let serverBase = params.get('server') || store.get('serverBase', 'http://127.0.0.1:8000');
+let serverBase = params.get('server') || (location.pathname.startsWith('/hospital/') ? location.origin : store.get('serverBase', 'http://127.0.0.1:8000'));
 let hid = params.get('hid') || store.get('hid', 'H07');
 let data = { open: [], recent: [] };
 let fetchedAt = Date.now();
 let selectedId = null;
-let view = 'inquiry';            // 오른쪽 상세에 보여줄 것: inquiry(문의) | patient(도착 예정 환자) | external(직접 내원 등록)
-let selectedPid = null;          // 선택한 도착 예정 환자 ID
-let incomingData = { incoming: [], affected: [] };
-let adjustReason = null;         // 조정 필요 사유 (선택식)
-const ADJUST_REASONS = ['병상 부족', '전문의 부재', '장비', '기타'];
-const ext = { ed_bed: 1, special_team: 0 };   // 직접 내원 등록 입력값
-let selectedRtype = null;        // 수정 중인 자원 종류 (ed_bed / special_team)
-let draftOccupied = null;        // 저장 전 '치료 중' 입력값
-const RESTRICT_REASONS = ['병상 포화', '전문의 부재', '장비 고장', '기타'];
-const RESTRICT_DURATIONS = [['30분', 1800], ['1시간', 3600], ['2시간', 7200], ['미정', null]];
-const rform = { scope: 'all', reason: null, dur: 3600 };   // 수용 제한 등록 입력값
 let declineReason = null;
 let busy = false;
 const seen = new Set();          // 이미 본 문의 id (새 문의 표시용)
 const newUntil = new Map();      // id -> 새 문의 표시 종료 시각
 let firstLoad = true;
 let lastSig = '';
+let activeTab = 'inquiries', polling = false, contextVersion = 0;
+let incomingData = {incoming:[],affected:[],planning:[]}, hospitalData = null;
+let selectedPatientId = params.get('pid') || null, selectedPatient = null;
+let landingPatientId = selectedPatientId;
+let incomingSig = '', resourceSig = '';
+const reviewDrafts = new Map(), resourceDrafts = new Map();
+let externalDraft = {resource_type:null,amount:'1',note:''};
+let restrictionDraft = {scope:'all',reason:'',duration:'3600',note:''};
+let chat = null, chatLoading = false, chatSending = false, chatPending = null;
 
 $('server').value = serverBase;
 $('handler').value = store.get('handler', '');
@@ -225,8 +214,8 @@ const STATE = {
   CONFIRMED: ['목적지 확정', 't-blue'],
 };
 const SOURCE = { self: '자기신고', expert: '전문가 확인', unknown: '미확인' };
-const ROLE = { self: '본인', guardian: '보호자', transporter: '구급대원' };
-const RESOURCE = { ed_bed: '응급병상', special_team: '전문팀' };
+const ROLE = { self: '본인', guardian: '보호자', transporter: '이송자' };
+const RESOURCE = { ed_bed: '응급병상', special_team: '전문팀', operating_room:'수술실', icu_bed:'중환자실 병상', nicu_bed:'신생아 중환자실 병상', delivery_bed:'분만실 병상', pediatric_bed:'소아 병상', isolation_bed:'격리 병상' };
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -255,6 +244,53 @@ function stateLabel(q) {
 function demands(p) {
   return Object.entries(p.resource_demands || {}).map(([k, n]) => `${RESOURCE[k] || k} ${n}`).join(' · ') || '-';
 }
+function etaText(p) {
+  if(p.state === 'ARRIVED') return `${kst(p.arrived_at)} 도착`;
+  if(!p.eta_at) return '도착 예정 미정';
+  const remaining = p.eta_remaining_seconds == null ? null : Math.max(0,p.eta_remaining_seconds-Math.floor((Date.now()-fetchedAt)/1000));
+  return `${kst(p.eta_at)} 도착 예정${remaining == null ? '' : ` (${Math.ceil(remaining/60)}분 남음)`}`;
+}
+function scopeLabel(scope) { return scope === 'all' ? '기관 전체' : scope; }
+function restrictionStatus(restriction) {
+  const now = Math.floor(Date.now()/1000);
+  if(restriction.cleared_at != null) return 'cleared';
+  if(restriction.ends_at != null && restriction.ends_at <= now) return 'recheck';
+  if(restriction.starts_at != null && restriction.starts_at > now) return 'scheduled';
+  return restriction.status || 'active';
+}
+function acceptAvailability(patient) {
+  if(!hospitalData) return {blocked:false,messages:['운영 자원 정보를 불러오는 중입니다. 수용 여부를 직접 확인하세요.']};
+  const capabilities = new Set(patient.required_capabilities || []), messages = [];
+  let blocked = false;
+  for(const restriction of hospitalData.restrictions || []) {
+    if(restriction.scope !== 'all' && !capabilities.has(restriction.scope)) continue;
+    const status = restrictionStatus(restriction);
+    if(status === 'active') { blocked=true; messages.push(`수용 제한 중: ${scopeLabel(restriction.scope)} · ${restriction.reason}. 제한을 해제해야 수용할 수 있습니다.`); }
+    else if(status === 'recheck') messages.push(`수용 제한 재확인 필요: ${scopeLabel(restriction.scope)} · ${restriction.reason}. 종료 예정이 지났지만 정상 상태로 확인된 것은 아닙니다.`);
+  }
+  for(const [type,need] of Object.entries(patient.resource_demands || {})) {
+    const resource=(hospitalData.resources || []).find(item=>item.resource_type===type), label=RESOURCE[type] || type;
+    if(!resource || resource.status==='unknown' || resource.free == null) messages.push(`${label}: 운영 여유 미확인. 공개 가용 수만으로 수용을 확정하지 않으며 병원 판단이 필요합니다.`);
+    else if(resource.free < need) { blocked=true;messages.push(`${label}: 신규 여유 ${Math.max(0,resource.free)}, 필요 ${need}. 운영 자원을 갱신하거나 수용 불가로 응답하세요.`); }
+    else if(resource.stale) messages.push(`${label}: 운영 정보가 오래되었습니다. 현재 여유를 확인한 뒤 응답하세요.`);
+  }
+  return {blocked,messages};
+}
+function renderHospitalContext() {
+  const h = hospitalData;
+  const source = h?.source === 'public' ? '실제 병원 · 공공 API 정보' : h?.source === 'synthetic' ? '가상 병원 데이터' : '병원 정보 조회 중';
+  $('hospitalContext').textContent = `${h?.name || hid} · ${source}`;
+  $('serverContext').textContent = `연결 서버: ${serverBase} · 병원 ID: ${hid}`;
+  let local = false;
+  try { local = ['127.0.0.1','localhost','[::1]'].includes(new URL(serverBase).hostname); } catch {}
+  $('localDemoNote').hidden = !local;
+  $('localDemoNote').textContent = h?.source === 'public'
+    ? '로컬 시연입니다. 병원 이름과 공개 정보는 실제 데이터이며, 문의·응답·채팅은 이 PC의 서버에만 저장됩니다. 실제 병원으로 전송되지 않습니다.'
+    : '로컬 시연입니다. 문의·응답·채팅은 이 PC의 서버에서만 처리됩니다.';
+  const link = $('patientViewLink');
+  link.hidden = !selectedPatientId;
+  if(selectedPatientId) link.href = `${serverBase}/patient/?pid=${encodeURIComponent(selectedPatientId)}`;
+}
 
 // ---------------------------------------------------------------- 서버 통신
 async function api(path, opts = {}) {
@@ -267,29 +303,51 @@ async function api(path, opts = {}) {
 }
 
 async function loadHospitals() {
+  const version=contextVersion;
   try {
     const list = await api('/api/hospitals');
+    if(version !== contextVersion)return;
     $('hospital').innerHTML = list.map((h) =>
-      `<option value="${esc(h.id)}">${esc(h.id)} · ${esc(h.name)}</option>`).join('');
+      `<option value="${esc(h.id)}">${esc(h.name)} · ${esc(h.id)}${h.source === 'public' ? ' · 실제 병원' : h.source === 'synthetic' ? ' · 가상 병원' : ''}</option>`).join('');
     if (!list.some((h) => h.id === hid) && list.length) hid = list[0].id;
     $('hospital').value = hid;
+    renderHospitalContext();
   } catch {
+    if(version !== contextVersion)return;
     $('hospital').innerHTML = `<option value="${esc(hid)}">${esc(hid)}</option>`;
   }
 }
 
 async function poll() {
-  if (busy) return;
+  if (busy || polling) return;
+  polling = true;
+  const version = contextVersion, hospitalId = hid, base = serverBase;
   try {
-    // 문의 목록과 도착 예정 목록을 같이 받아옴
-    const [next, inc] = await Promise.all([
-      api(`/api/hospitals/${encodeURIComponent(hid)}/inquiries`),
-      api(`/api/hospitals/${encodeURIComponent(hid)}/incoming`),
+    const [next, incomingNext, hospitalNext] = await Promise.all([
+      api(`/api/hospitals/${encodeURIComponent(hospitalId)}/inquiries`),
+      api(`/api/hospitals/${encodeURIComponent(hospitalId)}/incoming`),
+      api(`/api/hospitals/${encodeURIComponent(hospitalId)}`),
     ]);
-    // 시간 말고 바뀐 게 없으면 다시 그리지 않음 (버튼 클릭이 끊기지 않도록)
-    const sig = JSON.stringify([next, inc], (k, v) => (k === 'elapsed_seconds' || k === 'eta_remaining_seconds' ? undefined : v));
+    if (version !== contextVersion || base !== serverBase || hospitalId !== hid) return;
+    // 경과시간 말고 바뀐 게 없으면 다시 그리지 않음 (버튼 클릭이 끊기지 않도록)
+    const sig = JSON.stringify(next, (k, v) => (k === 'elapsed_seconds' ? undefined : v));
     const changed = sig !== lastSig; lastSig = sig;
-    data = next; incomingData = inc; fetchedAt = Date.now();
+    data = next; fetchedAt = Date.now();
+    incomingData = incomingNext; hospitalData = hospitalNext;
+    const incomingNextSig = JSON.stringify(incomingNext, (k,v) => ['eta_remaining_seconds','last_checked_at'].includes(k) ? undefined : v);
+    const resourceNextSig = JSON.stringify({resources:hospitalNext.resources,restrictions:hospitalNext.restrictions,capabilities:hospitalNext.capabilities,public_data:hospitalNext.public_data},(k,v)=>k==='age_seconds'?undefined:v);
+    const incomingChanged = incomingNextSig !== incomingSig;
+    const resourceChanged = resourceNextSig !== resourceSig;
+    incomingSig = incomingNextSig; resourceSig = resourceNextSig;
+    const found = incomingData.incoming.find(p => p.id === selectedPatientId);
+    if (found) selectedPatient = found;
+    if(landingPatientId) {
+      const incoming = incomingData.incoming.find(p => p.id === landingPatientId);
+      const inquiry = [...data.open,...data.recent].find(q => q.patient?.id === landingPatientId);
+      if(incoming) { selectedPatientId=incoming.id; selectedPatient=incoming; landingPatientId=null; setTab('incoming'); }
+      else if(inquiry) { selectedId=inquiry.id; landingPatientId=null; setTab('inquiries'); }
+    }
+    renderHospitalContext();
     for (const q of data.open) {
       if (!seen.has(q.id) && !firstLoad) newUntil.set(q.id, Date.now() + 15000);
       seen.add(q.id);
@@ -298,86 +356,14 @@ async function poll() {
     $('conn').textContent = '마지막 갱신 ' + new Date().toLocaleTimeString('ko-KR') + ' · 3초마다 자동 갱신';
     $('conn').className = '';
     if (changed) render();
-    loadResources();
+    if (incomingChanged) renderIncoming();
+    if (resourceChanged) { renderResources(); renderRestrictions(); if(!changed) renderDetail(); }
+    if (activeTab === 'incoming' && selectedPatientId) await pollChat();
   } catch (e) {
+    if (version !== contextVersion) return;
     $('conn').textContent = e.status ? e.message : '서버에 연결할 수 없습니다. 서버가 켜져 있는지 확인하세요.';
     $('conn').className = 'bad';
-  }
-}
-
-// ---------------------------------------------------------------- 피드백 1: 우리 병원 자원
-// 응급병상·전문팀은 서버 값(GET /api/hospitals/{hid}), 나머지는 아직 데이터가 없어 가상 값
-const DUMMY_RESOURCES = [['수술 가능 의사', '2명'], ['CT', '사용 가능']];
-let resSig = '';
-
-async function loadResources() {
-  try {
-    const h = await api(`/api/hospitals/${encodeURIComponent(hid)}`);
-    hospitalInfo = h;
-    const rows = h.resources.map((r) => {
-      const cls = r.free < 0 ? 'over' : r.free === 0 ? 'zero' : '';
-      const detail = `치료 중 ${r.occupied} · 도착 예정 ${r.expected}${r.stale ? ' · 오래된 정보' : ''}`;
-      const sel = view === 'resource' && selectedRtype === r.resource_type ? 'selected' : '';
-      return `<button type="button" class="res-item ${cls} ${sel}" data-rtype="${esc(r.resource_type)}" title="눌러서 치료 중 수 수정"><span class="k">${esc(RESOURCE[r.resource_type] || r.resource_type)}</span>
-        <span class="v">${r.free < 0 ? '초과 ' + (-r.free) : r.free}<small> / ${r.capacity} 남음</small></span>
-        <span class="d">(${esc(detail)})</span></button>`;
-    });
-    const dummy = DUMMY_RESOURCES.map(([k, v]) =>
-      `<div class="res-item dummy"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`);
-    const rs = h.restrictions || [];
-    const act = rs.filter((r) => r.status === 'active'), rc = rs.filter((r) => r.status === 'recheck');
-    const rcls = rc.length ? 'recheck' : act.length ? 'on' : '';
-    const rtext = rc.length ? `제한 종료 예정 지남 · 재확인 필요 ${rc.length}건`
-      : act.length ? `수용 제한 중 · ${act.map((r) => scopeLabel(r.scope)).join(', ')}` : '수용 제한 없음 · 관리';
-    const rtitle = rs.map((r) => `${scopeLabel(r.scope)}: ${r.reason}`).join('\n') || '수용 제한 등록·해제';
-    const chip = `<button type="button" class="restr-chip ${rcls}" id="restrBtn" title="${esc(rtitle)}">${esc(rtext)}</button>`;
-    const html = '<span class="resbar-title">우리 병원 자원</span>' + [...rows, ...dummy].join('') + chip;
-    if (html !== resSig) {
-      $('resourceBar').innerHTML = html; resSig = html;
-      if ((view === 'resource' || view === 'restrict' || view === 'inquiry') && !busy) renderDetail();   // 수정 화면이 열려 있으면 최신 값으로 다시 그림 (입력 중인 값은 유지)
-    }   // 바뀐 게 있을 때만 다시 그림
-  } catch {
-    $('resourceBar').innerHTML = '<span class="resbar-title">우리 병원 자원</span><span class="note">자원 정보를 불러오지 못했습니다.</span>';
-    resSig = '';
-  }
-}
-
-// ---------------------------------------------------------------- 피드백 2: 시연용 새 문의 발생
-// 서버의 환자 웹 API를 그대로 써서 ① 가상 환자 생성 → ② 이 병원에 문의를 보냄
-let hospitalInfo = null;
-const DEMO_CASES = [
-  { age: 67, symptoms: '흉통 30분 지속, 식은땀', required_capabilities: ['심장내과'], resource_demands: { ed_bed: 1, special_team: 1 }, priority: 4, danger_signs: ['흉통 지속'] },
-  { age: 58, symptoms: '오른쪽 팔다리 힘 빠짐, 말이 어눌함', required_capabilities: ['신경외과'], resource_demands: { ed_bed: 1, special_team: 1 }, priority: 4, danger_signs: ['편측 마비'] },
-  { age: 7, symptoms: '고열 39.5도, 처짐', required_capabilities: ['소아청소년과'], resource_demands: { ed_bed: 1 }, priority: 2, danger_signs: [] },
-  { age: 34, symptoms: '넘어져 손목 변형, 통증', required_capabilities: ['정형외과'], resource_demands: { ed_bed: 1 }, priority: 1, danger_signs: [] },
-  { age: 74, symptoms: '호흡곤란, 산소포화도 88%', required_capabilities: ['응급의학'], resource_demands: { ed_bed: 1 }, priority: 2, danger_signs: [] },
-];
-
-async function createDemoInquiry() {
-  const btn = $('demoBtn');
-  btn.disabled = true;
-  try {
-    // 이 병원이 진료할 수 있는 사례만 골라서 무작위로 하나 (없으면 응급의학 사례)
-    const caps = new Set(hospitalInfo?.capabilities || []);
-    const fit = DEMO_CASES.filter((c) => c.required_capabilities.every((x) => caps.has(x)));
-    const pick = (fit.length ? fit : DEMO_CASES.slice(-1))[Math.floor(Math.random() * (fit.length || 1))];
-    const pid = 'SIM-' + Date.now().toString(36).toUpperCase();
-    await api('/api/patients', { method: 'POST', body: JSON.stringify({
-      id: pid, reporter_role: 'transporter', consent: true, contact: '010-0000-0000',
-      age: pick.age, symptoms: pick.symptoms, onset_at: Math.floor(Date.now() / 1000) - 1200,
-      required_capabilities: pick.required_capabilities, resource_demands: pick.resource_demands,
-      danger_signs: pick.danger_signs, priority: pick.priority, priority_source: 'expert',
-      lat: hospitalInfo?.lat ?? null, lon: hospitalInfo?.lon ?? null,
-    }) });
-    await api(`/api/patients/${pid}/inquiries`, { method: 'POST', body: JSON.stringify({ hospital_ids: [hid] }) });
-    notice(`새 문의가 들어왔습니다: ${pick.age}세 · ${pick.symptoms}`, false);
-    lastSig = '';
-    await poll();
-  } catch (e) {
-    notice('새 문의를 만들지 못했습니다: ' + e.message, true);
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { polling = false; }
 }
 
 async function respond(action, extra = {}) {
@@ -385,7 +371,8 @@ async function respond(action, extra = {}) {
   if (!q) return;
   const handler = $('handler').value.trim();
   if (!handler) { notice('담당자 이름을 먼저 입력하세요.', true); $('handler').focus(); return; }
-  busy = true; render();
+  if(action==='accept' && acceptAvailability(q.patient).blocked) { notice('현재 수용 제한 또는 확인된 자원 부족이 있습니다. 상세 안내를 확인하세요.',true);renderDetail();return; }
+  busy = true; lockContext(); render();
   try {
     const body = { action, handled_by: handler, ...extra };
     if (action === 'accept' || action === 'decline') body.expected_version = q.version;
@@ -403,6 +390,7 @@ async function respond(action, extra = {}) {
     notice(msg, true);
   } finally {
     busy = false;
+    lockContext();
     lastSig = '';
     await poll();
   }
@@ -425,7 +413,7 @@ function render() {
   $('openList').innerHTML = open.length ? open.map((q) => {
     const p = q.patient, [sev, sevCls] = severityTag(p), [st, stCls] = stateLabel(q);
     const isNew = (newUntil.get(q.id) || 0) > Date.now();
-    return `<button type="button" class="card ${view === 'inquiry' && q.id === selectedId ? 'selected' : ''} ${q.overdue ? 'overdue' : ''}" data-id="${q.id}">
+    return `<button type="button" class="card ${q.id === selectedId ? 'selected' : ''} ${q.overdue ? 'overdue' : ''}" data-id="${q.id}">
       <div class="top"><span class="tag ${sevCls}">${esc(sev)}</span>
         <span style="display:flex;gap:6px">${isNew ? '<span class="tag t-new">새 문의</span>' : ''}
         ${q.overdue ? `<span class="tag t-mid">미응답 <span data-elapsed="${q.id}">${esc(elapsed(q))}</span></span>` : `<span class="tag ${stCls}">${esc(st)}</span>`}</span></div>
@@ -436,62 +424,22 @@ function render() {
     </button>`;
   }).join('') : '<div class="empty">대기 중인 문의가 없습니다.</div>';
 
-  $('recentCount').textContent = data.recent.length;
   $('recentList').innerHTML = data.recent.length ? `<div class="recent">${data.recent.slice(0, 8).map((q) => {
     const [st, stCls] = stateLabel(q);
     return `<div><span>${esc(q.patient.age ?? '?')}세 · ${esc(q.patient.symptoms)}</span>
       <span class="tag ${stCls}">${esc(st)}${q.reason ? ' · ' + esc(q.reason) : ''}</span></div>`;
   }).join('')}</div>` : '<div class="empty">아직 처리한 문의가 없습니다.</div>';
 
-  renderIncoming();
   renderDetail();
 }
 
-// ---------------------------------------------------------------- 도착 예정 목록
-const TRANSPORT = { CONFIRMED: ['미출발', 't-gray'], IN_TRANSIT: ['이송 중', 't-blue'], ARRIVED: ['도착', 't-gray'] };
-
-function shortfallOf(pid) {
-  return incomingData.affected.find((a) => a.patient.id === pid) || null;
-}
-function etaLeft(p) {
-  if (p.eta_remaining_seconds == null) return null;
-  return Math.max(0, p.eta_remaining_seconds - Math.floor((Date.now() - fetchedAt) / 1000));
-}
-function etaText(p) {
-  if (p.state === 'ARRIVED') return `${kst(p.arrived_at)} 도착`;
-  if (!p.eta_at) return '도착 예정 미정';
-  const left = etaLeft(p);
-  return `${kst(p.eta_at)} 도착 예정 (${Math.ceil(left / 60)}분 남음)`;
-}
-
-function renderIncoming() {
-  const list = incomingData.incoming;
-  $('incomingCount').textContent = list.length;
-  $('incomingList').innerHTML = list.length ? list.map((p) => {
-    const short = shortfallOf(p.id), [st, stCls] = TRANSPORT[p.state] || [p.state, 't-gray'];
-    const [sev, sevCls] = severityTag(p);
-    const sel = view === 'patient' && selectedPid === p.id;
-    return `<button type="button" class="card ${short ? 'short' : ''} ${sel ? 'selected' : ''}" data-pid="${esc(p.id)}">
-      <div class="top"><span class="tag ${sevCls}">${esc(sev)}</span>
-        <span style="display:flex;gap:6px">${short ? '<span class="tag t-high">자리 부족</span>' : ''}
-        ${p.needs_adjustment ? '<span class="tag t-mid">조정 요청함</span>' : ''}<span class="tag ${stCls}">${esc(st)}</span></span></div>
-      <div class="title">${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</div>
-      <div class="meta"><span data-eta="${esc(p.id)}">${esc(etaText(p))}</span><span>${esc(demands(p))}</span></div>
-    </button>`;
-  }).join('') : '<div class="empty">이 병원으로 오는 환자가 없습니다.</div>';
-}
-
 function renderDetail() {
-  if (view === 'patient') return renderPatientDetail();
-  if (view === 'external') return renderExternalForm();
-  if (view === 'resource') return renderResourceDetail();
-  if (view === 'restrict') return renderRestrictions();
   const q = current();
   if (!q) { $('detail').innerHTML = '<div class="empty">왼쪽에서 문의를 선택하세요.</div>'; return; }
   const p = q.patient, [sev, sevCls] = severityTag(p), [st, stCls] = stateLabel(q);
   const isOpen = data.open.some((x) => x.id === q.id);
+  const availability = acceptAvailability(p);
   const dis = busy ? 'disabled' : '';
-  const block = acceptBlock(p);
   const prevInput = $('questionInput');
   const prevText = prevInput ? prevInput.value : '';
   const hadFocus = document.activeElement === prevInput;
@@ -505,6 +453,7 @@ function renderDetail() {
         <span class="tag ${stCls}">${esc(st)}</span></div>
     </div>
     <div class="grid">
+      ${isOpen && availability.messages.length ? `<div class="availability-warning ${availability.blocked ? 'blocked' : ''}" role="status"><b>${availability.blocked ? '현재 수용 응답 제한' : '수용 전 확인 사항'}</b><ul class="review-issues">${availability.messages.map(message=>`<li>${esc(message)}</li>`).join('')}</ul><button class="btn-small" type="button" data-open-tab="resources">운영 자원 확인</button><button class="btn-small" type="button" data-open-tab="restrictions">수용 제한 확인</button></div>` : ''}
       ${(p.danger_signs || []).length ? `<div class="danger">위험 신호: ${esc(p.danger_signs.join(', '))}</div>` : ''}
       <div class="field"><div class="k">중증도</div>
         <div class="v"><span class="tag ${sevCls}">${esc(sev)}</span>${p.priority_source === 'unknown' ? ' <span class="note">미확인은 높은 우선순위로 다룹니다</span>' : ` <span class="tag t-gray">${esc(SOURCE[p.priority_source] || p.priority_source)}</span>`}</div></div>
@@ -515,13 +464,11 @@ function renderDetail() {
       <div class="field"><div class="k">증상 발생</div><div class="v">${esc(kst(p.onset_at))}</div></div>
       ${isOpen ? `<div class="field"><div class="k">경과</div><div class="v"><span data-elapsed="${q.id}">${esc(elapsed(q))}</span>${q.overdue ? ' · <b style="color:var(--orange)">미응답 확인 필요</b>' : ''}</div></div>`
         : `<div class="field"><div class="k">응답</div><div class="v">${esc(kst(q.responded_at))} · ${esc(q.handled_by || '-')}</div></div>`}
-      ${isOpen && block ? `<div class="warnbox ${block.kind === 'restrict' ? 'red' : ''}">${esc(block.text)}
-        <button type="button" data-open="${block.kind}">${block.kind === 'restrict' ? '제한 관리' : '자원 수정'}</button></div>` : ''}
       ${q.question ? `<div class="qa"><b>병원 질문</b> ${esc(q.question)}<br><b>환자 답변</b> ${q.answer ? esc(q.answer) : '<span class="note">아직 답변이 없습니다</span>'}</div>` : ''}
     </div>
     ${isOpen ? `<div class="actions">
       <div class="row">
-        <button type="button" class="btn btn-accept" data-act="accept" ${dis || (block ? 'disabled' : '')}>수용 가능</button>
+        <button type="button" class="btn btn-accept" data-act="accept" ${dis || (availability.blocked ? 'disabled' : '')}>수용 가능</button>
         <button type="button" class="btn btn-check" data-act="checking" ${dis}>확인 중</button>
       </div>
       <div class="row"><span class="note">수용 불가 사유:</span>
@@ -540,362 +487,209 @@ function renderDetail() {
   if (input && hadFocus) input.focus();
 }
 
-// ---------------------------------------------------------------- 도착 예정 환자 상세 (영향 표시 · 유지/조정 · 도착/미도착/퇴실)
-function renderPatientDetail() {
-  const p = incomingData.incoming.find((x) => x.id === selectedPid);
-  if (!p) { $('detail').innerHTML = '<div class="empty">이 환자는 더 이상 도착 예정 목록에 없습니다.</div>'; return; }
-  const short = shortfallOf(p.id), [sev, sevCls] = severityTag(p), [st, stCls] = TRANSPORT[p.state] || [p.state, 't-gray'];
-  const dis = busy ? 'disabled' : '';
-  const active = p.state === 'CONFIRMED' || p.state === 'IN_TRANSIT';
-  const prev = $('adjustNote'); const prevText = prev ? prev.value : ''; const hadFocus = document.activeElement === prev;
-
-  const shortHtml = short ? `<div class="shortbox"><b>자리 부족</b> · ${short.shortfalls.map((s) =>
-      `${esc(RESOURCE[s.resource_type] || s.resource_type)} 필요 ${s.need}, 앞 순서 환자를 받고 남는 자리 ${Math.max(0, s.free_after_earlier)}`).join(' / ')}</div>
-    <div class="guide">새 환자를 받을 여유가 없어진 것과, 이미 받기로 한 이 환자의 치료 조건을 유지할 수 없는 것은 다릅니다.
-      이 환자를 계속 받을 수 있는지 판단해 주세요. 시스템은 목적지를 자동으로 바꾸지 않습니다.</div>` : '';
-
-  const actions = active ? `<div class="actions">
-      <div class="row">
-        <button type="button" class="btn btn-keep" data-pact="keep" ${dis}>기존 수용 유지</button>
-        <button type="button" class="btn btn-arrive" data-pact="arrive" ${dis}>도착 확인</button>
-      </div>
-      <div class="row"><span class="note">조정 필요 사유:</span>
-        ${ADJUST_REASONS.map((r) => `<button type="button" class="chip ${adjustReason === r ? 'on-o' : ''}" data-adj="${esc(r)}" ${dis}>${esc(r)}</button>`).join('')}
-      </div>
-      <div class="row">
-        <input class="q-input" id="adjustNote" placeholder="추가 메모 (선택, 구급대에 함께 전달)" aria-label="조정 메모">
-        <button type="button" class="btn btn-adjust" data-pact="adjust" ${dis || (adjustReason ? '' : 'disabled')}>조정 필요</button>
-      </div>
-      <div class="row"><button type="button" class="btn-sub" data-pact="no-show" ${dis}>미도착 처리</button>
-        <span class="note">조정 필요를 누르면 구급대가 다른 병원에 다시 문의합니다. 새 병원이 수용할 때까지 이 병원의 도착 예정은 유지됩니다.</span></div>
-    </div>` : `<div class="actions"><div class="row">
-        <button type="button" class="btn btn-arrive" data-pact="discharge" ${dis}>퇴실 처리</button>
-        <span class="note">퇴실하면 치료 중 자원이 비워집니다.</span></div></div>`;
-
-  $('detail').innerHTML = `<div class="panel">
-    <div class="panel-head">
-      <div><div class="sub">도착 예정 환자 · ${esc(p.id)}</div><h3>${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</h3></div>
-      <div style="text-align:right"><div class="sub">${p.state === 'ARRIVED' ? '도착' : '도착 예정'}</div>
-        <div style="font-size:20px;font-weight:700">${esc(kst(p.state === 'ARRIVED' ? p.arrived_at : p.eta_at))}</div>
-        <span class="tag ${stCls}">${esc(st)}</span></div>
-    </div>
-    <div class="grid">
-      ${shortHtml}
-      ${p.needs_adjustment ? `<div class="adjbox">조정 요청함: ${esc(p.adjustment_note || '-')} · 구급대가 다른 병원을 찾는 중입니다</div>` : ''}
-      ${(p.danger_signs || []).length ? `<div class="danger">위험 신호: ${esc(p.danger_signs.join(', '))}</div>` : ''}
-      <div class="field"><div class="k">중증도</div><div class="v"><span class="tag ${sevCls}">${esc(sev)}</span></div></div>
-      <div class="field"><div class="k">필요 진료</div><div class="v">${esc((p.required_capabilities || []).join(', ') || '-')}</div></div>
-      <div class="field"><div class="k">필요 자원</div><div class="v">${esc(demands(p))}</div></div>
-      <div class="field"><div class="k">입력자 · 연락처</div>
-        <div class="v">${esc(ROLE[p.reporter_role] || p.reporter_role)} · ${p.contact ? esc(p.contact) : '-'}</div></div>
-      ${active ? `<div class="field"><div class="k">남은 시간</div><div class="v" data-eta="${esc(p.id)}">${esc(etaText(p))}</div></div>` : ''}
-    </div>
-    ${actions}
-  </div>`;
-  const note = $('adjustNote');
-  if (note && prevText) note.value = prevText;
-  if (note && hadFocus) note.focus();
-}
-
-// ---------------------------------------------------------------- 직접 내원 등록 (시스템 밖 환자)
-function renderExternalForm() {
-  const dis = busy ? 'disabled' : '';
-  const prev = $('extNote'); const prevText = prev ? prev.value : ''; const hadFocus = document.activeElement === prev;
-  const step = (k, label) => `<div class="ext-row"><label>${label}</label><div class="stepper">
-      <button type="button" data-step="${k}" data-d="-1" aria-label="${label} 줄이기" ${dis}>−</button>
-      <output>${ext[k]}</output>
-      <button type="button" data-step="${k}" data-d="1" aria-label="${label} 늘리기" ${dis}>+</button></div></div>`;
-  $('detail').innerHTML = `<div class="panel">
-    <div class="panel-head"><div><div class="sub">시스템을 거치지 않고 들어온 환자</div><h3>직접 내원 등록</h3></div></div>
-    <div class="ext-form">
-      <div class="note">직접 방문하거나 다른 경로로 들어온 환자가 쓰는 자원을 입력합니다. 등록하면 바로 '치료 중'에 반영되고, 자리가 모자라게 된 도착 예정 환자가 표시됩니다.</div>
-      ${step('ed_bed', '응급병상')}
-      ${step('special_team', '전문팀')}
-      <div class="ext-row"><label for="extNote">메모</label>
-        <input class="q-input" id="extNote" placeholder="예: 심정지 환자 직접 내원"></div>
-      <div class="row"><button type="button" class="btn btn-keep" id="extSubmit" ${dis || (ext.ed_bed + ext.special_team ? '' : 'disabled')}>등록하고 영향 확인</button></div>
-      <div class="note">등록한 건을 나중에 해제하는 기능은 아직 서버에 없습니다. 퇴실 시 자원은 자원 수정으로 반영해야 합니다.</div>
-    </div></div>`;
-  const note = $('extNote');
-  if (note && prevText) note.value = prevText;
-  if (note && hadFocus) note.focus();
-}
-
-// ---------------------------------------------------------------- 수용 제한 관리
-function scopeLabel(scope) { return scope === 'all' ? '기관 전체' : scope; }
-function remainText(r) {
-  if (!r.ends_at) return '종료 예정 미정';
-  const left = r.ends_at - Math.floor(Date.now() / 1000);
-  return left > 0 ? `${kst(r.ends_at)} 종료 예정 (${Math.ceil(left / 60)}분 남음)` : `${kst(r.ends_at)} 종료 예정이 지남`;
-}
-
-// 수용 가능을 누르기 전에 서버가 막을 이유를 미리 계산 (서버 규칙과 같게: 제한 중이면 막고, 남은 자리가 모자라면 막음)
-function acceptBlock(p) {
-  if (!hospitalInfo) return null;
-  const caps = new Set(p.required_capabilities || []);
-  const r = (hospitalInfo.restrictions || []).find((x) => x.status === 'active' && (x.scope === 'all' || caps.has(x.scope)));
-  if (r) return { kind: 'restrict', text: `수용 제한 중입니다: ${scopeLabel(r.scope)} · ${r.reason}. 제한을 해제해야 수용할 수 있습니다.` };
-  const short = Object.entries(p.resource_demands || {}).map(([k, need]) => {
-    const res = (hospitalInfo.resources || []).find((x) => x.resource_type === k);
-    return res && res.free !== null && res.free < need ? `${RESOURCE[k] || k} 남은 자리 ${Math.max(0, res.free)} (필요 ${need})` : null;
-  }).filter(Boolean);
-  if (short.length) return { kind: 'resource', text: `자리가 부족합니다: ${short.join(', ')}. 자원을 갱신하거나 수용 불가로 응답하세요.`, rtype: Object.keys(p.resource_demands || {})[0] };
-  return null;
-}
-
-function renderRestrictions() {
-  const dis = busy ? 'disabled' : '';
-  const rs = hospitalInfo?.restrictions || [];
-  const scopes = ['all', ...(hospitalInfo?.capabilities || [])];
-  const prev = $('rNote'); const prevText = prev ? prev.value : ''; const hadFocus = document.activeElement === prev;
-  const list = rs.length ? rs.map((r) => `<div class="rrow">
-      <div><b>${esc(scopeLabel(r.scope))}</b> · ${esc(r.reason)}
-        <div class="note">${esc(kst(r.starts_at))} 시작 · ${esc(remainText(r))}</div></div>
-      <div class="row">
-        ${r.status === 'recheck' ? '<span class="tag t-mid">재확인 필요</span>' : r.status === 'active' ? '<span class="tag t-high">제한 중</span>' : '<span class="tag t-gray">시작 전</span>'}
-        ${r.status === 'recheck' ? `<button type="button" class="btn-small" data-rext="${r.id}" ${dis}>1시간 연장</button>` : ''}
-        <button type="button" class="btn-small" data-rclear="${r.id}" ${dis}>해제</button>
-      </div></div>`).join('') : '<div class="note" style="padding:12px 0">등록된 수용 제한이 없습니다.</div>';
-  $('detail').innerHTML = `<div class="panel">
-    <div class="panel-head"><div><div class="sub">새 환자를 받을 수 없을 때 등록</div><h3>수용 제한 관리</h3></div></div>
-    <div class="rlist">${list}</div>
-    <div class="ext-form" style="border-top:1px solid #E4E7EC">
-      <div class="row"><span class="note" style="width:90px">범위</span>
-        ${scopes.map((sc) => `<button type="button" class="chip ${rform.scope === sc ? 'on' : ''}" data-rscope="${esc(sc)}" ${dis}>${esc(scopeLabel(sc))}</button>`).join('')}</div>
-      <div class="row"><span class="note" style="width:90px">사유</span>
-        ${RESTRICT_REASONS.map((x) => `<button type="button" class="chip ${rform.reason === x ? 'on' : ''}" data-rreason="${esc(x)}" ${dis}>${esc(x)}</button>`).join('')}</div>
-      <div class="row"><span class="note" style="width:90px">종료 예정</span>
-        ${RESTRICT_DURATIONS.map(([l, sec]) => `<button type="button" class="chip ${rform.dur === sec ? 'on' : ''}" data-rdur="${sec ?? ''}" ${dis}>${esc(l)}</button>`).join('')}</div>
-      <div class="row"><span class="note" style="width:90px">메모</span>
-        <input class="q-input" id="rNote" placeholder="선택 (예: CT 점검 중)"></div>
-      <div class="row"><button type="button" class="btn btn-decline" id="rSubmit" ${dis || (rform.reason ? '' : 'disabled')}>제한 등록</button></div>
-      <div class="note">제한 중에는 이 범위가 필요한 환자의 후보 목록에서 빠지고 수용 응답이 막힙니다. 종료 예정 시각이 지나도 자동으로 풀리지 않고 '재확인 필요'로 표시됩니다.</div>
-    </div></div>`;
-  const note = $('rNote');
-  if (note && prevText) note.value = prevText;
-  if (note && hadFocus) note.focus();
-}
-
-async function restrictCall(path, opts, okMsg) {
-  busy = true; renderDetail();
-  try { await api(path, opts); notice(okMsg, false); return true; }
-  catch (e) { notice(e.message, true); return false; }
-  finally { busy = false; resSig = ''; await loadResources(); lastSig = ''; await poll(); renderDetail(); }
-}
-async function addRestriction(scope, reason, dur) {
-  const handler = needHandler(); if (!handler) return false;
-  const ends_at = dur ? Math.floor(Date.now() / 1000) + dur : null;
-  return restrictCall(`/api/hospitals/${encodeURIComponent(hid)}/restrictions`,
-    { method: 'POST', body: JSON.stringify({ scope, reason, ends_at, handled_by: handler }) },
-    `수용 제한을 등록했습니다: ${scopeLabel(scope)} · ${reason}`);
-}
-async function submitRestriction() {
-  const memo = $('rNote').value.trim();
-  const ok = await addRestriction(rform.scope, rform.reason + (memo ? ' - ' + memo : ''), rform.dur);
-  if (ok) { rform.reason = null; if ($('rNote')) $('rNote').value = ''; renderDetail(); }
-}
-async function clearRestriction(rid, quiet) {
-  return restrictCall(`/api/hospitals/${encodeURIComponent(hid)}/restrictions/${rid}`, { method: 'DELETE' },
-    quiet || '수용 제한을 해제했습니다.');
-}
-async function extendRestriction(rid) {
-  // 서버에 수정 API가 없어서, 같은 범위·사유로 새로 등록한 뒤 기존 건을 해제
-  const r = (hospitalInfo?.restrictions || []).find((x) => String(x.id) === String(rid));
-  if (!r) return;
-  if (await addRestriction(r.scope, r.reason, 3600)) await clearRestriction(rid, '수용 제한을 1시간 연장했습니다.');
-}
-
-// ---------------------------------------------------------------- 자원 수정 (치료 중 수)
-function renderResourceDetail() {
-  const r = (hospitalInfo?.resources || []).find((x) => x.resource_type === selectedRtype);
-  if (!r) { $('detail').innerHTML = '<div class="empty">자원 정보를 불러오는 중입니다.</div>'; return; }
-  if (draftOccupied === null) draftOccupied = r.occupied;
-  const dis = busy ? 'disabled' : '';
-  const free = r.capacity - draftOccupied - r.expected;
-  const changed = draftOccupied !== r.occupied;
-  const name = RESOURCE[r.resource_type] || r.resource_type;
-  $('detail').innerHTML = `<div class="panel">
-    <div class="panel-head"><div><div class="sub">우리 병원 자원 · 마지막 갱신 ${esc(kst(r.updated_at))}${r.stale ? ' · 오래된 정보' : ''}</div>
-      <h3>${esc(name)} 치료 중 수 수정</h3></div></div>
-    <div class="grid">
-      <div class="field"><div class="k">전체</div><div class="v">${r.capacity}</div></div>
-      <div class="field"><div class="k">도착 예정 (서버 자동 계산)</div><div class="v">${r.expected}</div></div>
-      <div class="field"><div class="k">치료 중</div>
-        <div class="v stepper">
-          <button type="button" data-occ="-1" aria-label="치료 중 줄이기" ${dis}>−</button>
-          <output>${draftOccupied}</output>
-          <button type="button" data-occ="1" aria-label="치료 중 늘리기" ${dis}>+</button>
-          ${changed ? `<span class="note">현재 ${r.occupied}</span>` : ''}
-        </div></div>
-      <div class="field"><div class="k">저장하면 남는 자리</div>
-        <div class="v" style="font-size:20px;font-weight:700;color:${free < 0 ? 'var(--red)' : free === 0 ? 'var(--orange)' : 'inherit'}">${free < 0 ? '초과 ' + (-free) : free}</div></div>
-      <div class="guide">환자가 퇴실하거나 직접 내원 환자가 나가서 자리가 비면 치료 중 수를 줄이세요. 줄이면 자리 부족 표시가 풀릴 수 있습니다.</div>
-    </div>
-    <div class="actions"><div class="row">
-      <button type="button" class="btn btn-keep" id="resSave" ${dis || (changed ? '' : 'disabled')}>저장</button>
-      <button type="button" class="btn-sub" id="resReset" ${dis || (changed ? '' : 'disabled')}>되돌리기</button>
-    </div></div>
-  </div>`;
-}
-
-async function saveResource() {
-  const handler = needHandler(); if (!handler) return;
-  const r = (hospitalInfo?.resources || []).find((x) => x.resource_type === selectedRtype);
-  if (!r) return;
-  busy = true; renderDetail();
-  try {
-    await api(`/api/hospitals/${encodeURIComponent(hid)}/resources/${encodeURIComponent(r.resource_type)}`, {
-      method: 'PUT',
-      body: JSON.stringify({ capacity: r.capacity, occupied: draftOccupied, status: r.status, handled_by: handler, expected_version: r.version }),
-    });
-    notice(`${RESOURCE[r.resource_type] || r.resource_type} 치료 중 수를 ${draftOccupied}(으)로 저장했습니다.`, false);
-  } catch (e) {
-    notice(e.body?.error === 'CONFLICT' ? '다른 담당자가 먼저 자원을 바꿨습니다. 최신 값으로 다시 불러왔으니 다시 입력하세요.' : e.message, true);
-  } finally {
-    draftOccupied = null; busy = false;
-    resSig = ''; await loadResources(); lastSig = ''; await poll();
-    renderDetail();
-  }
-}
-
-// ---------------------------------------------------------------- 병원 처리 요청 공통
-function needHandler() {
-  const handler = $('handler').value.trim();
-  if (!handler) { notice('담당자 이름을 먼저 입력하세요.', true); $('handler').focus(); }
-  return handler;
-}
-async function hospitalAction(path, body, okMsg) {
-  busy = true; renderDetail();
-  try {
-    const r = await api(path, { method: 'POST', body: JSON.stringify(body) });
-    notice(okMsg, false);
-    return r;
-  } catch (e) {
-    notice(e.message, true);
-    return null;
-  } finally {
-    busy = false; lastSig = ''; await poll(); loadResources();
-  }
-}
-async function patientAction(act) {
-  const handler = needHandler(); if (!handler) return;
-  const p = incomingData.incoming.find((x) => x.id === selectedPid); if (!p) return;
-  const base = `/api/hospitals/${encodeURIComponent(hid)}/patients/${encodeURIComponent(p.id)}`;
-  if (act === 'keep' || act === 'adjust') {
-    const memo = $('adjustNote')?.value.trim();
-    const note = act === 'adjust' ? adjustReason + (memo ? ' - ' + memo : '') : (memo || null);
-    const r = await hospitalAction(`${base}/decision`, { decision: act, note, handled_by: handler },
-      act === 'keep' ? '기존 수용을 유지한다고 구급대에 알렸습니다.' : `조정 필요(${note})를 구급대에 알렸습니다.`);
-    if (r) adjustReason = null;
-  } else if (act === 'arrive') {
-    await hospitalAction(`${base}/arrive`, { handled_by: handler }, '도착을 확인했습니다. 자원이 치료 중으로 바뀌었습니다.');
-  } else if (act === 'no-show') {
-    await hospitalAction(`${base}/no-show`, { reason: '미도착', handled_by: handler }, '미도착으로 처리했습니다.');
-  } else if (act === 'discharge') {
-    await hospitalAction(`${base}/discharge`, { handled_by: handler }, '퇴실 처리했습니다. 자원이 비워졌습니다.');
-  }
-}
-async function submitExternal() {
-  const handler = needHandler(); if (!handler) return;
-  const demandsBody = {};
-  if (ext.ed_bed) demandsBody.ed_bed = ext.ed_bed;
-  if (ext.special_team) demandsBody.special_team = ext.special_team;
-  const note = $('extNote').value.trim() || null;
-  const r = await hospitalAction(`/api/hospitals/${encodeURIComponent(hid)}/external-arrivals`,
-    { resource_demands: demandsBody, note, handled_by: handler }, '직접 내원 환자를 등록했습니다.');
-  if (r && r.affected.length) {
-    // 영향받은 환자가 있으면 바로 그 환자 상세로 이동
-    view = 'patient'; selectedPid = r.affected[0].patient.id;
-    notice(`직접 내원 환자를 등록했습니다. 자리가 부족해진 도착 예정 환자 ${r.affected.length}명을 확인하세요.`, true);
-    render();
-  }
-}
-
-// ---------------------------------------------------------------- 시연용: 이송 중 환자 만들기
-// 환자 앱이 할 일(생성 → 문의 → 확정 → 출발)과 병원의 수용 응답을 API로 한 번에 처리
-async function createDemoTransport() {
-  const btn = $('demoTransportBtn');
-  btn.disabled = true;
-  try {
-    const caps = new Set(hospitalInfo?.capabilities || []);
-    const fit = DEMO_CASES.filter((c) => c.required_capabilities.every((x) => caps.has(x)));
-    const pool = fit.length ? fit : DEMO_CASES.slice(-1);
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    const pid = 'SIM-' + Date.now().toString(36).toUpperCase();
-    const lat = (hospitalInfo?.lat ?? 35.15) + 0.03, lon = (hospitalInfo?.lon ?? 126.85) + 0.02;   // 병원에서 조금 떨어진 출발 위치
-    await api('/api/patients', { method: 'POST', body: JSON.stringify({
-      id: pid, reporter_role: 'transporter', consent: true, contact: '010-0000-0000',
-      age: pick.age, symptoms: pick.symptoms, onset_at: Math.floor(Date.now() / 1000) - 1200,
-      required_capabilities: pick.required_capabilities, resource_demands: pick.resource_demands,
-      danger_signs: pick.danger_signs, priority: pick.priority, priority_source: 'expert', lat, lon,
-    }) });
-    const pv = await api(`/api/patients/${pid}/inquiries`, { method: 'POST', body: JSON.stringify({ hospital_ids: [hid] }) });
-    const q = pv.inquiries.find((x) => x.hospital_id === hid);
-    await api(`/api/inquiries/${q.id}/respond`, { method: 'POST', body: JSON.stringify({ action: 'accept', handled_by: '시연', expected_version: q.version }) });
-    await api(`/api/patients/${pid}/confirm`, { method: 'POST', body: JSON.stringify({ inquiry_id: q.id }) });
-    await api(`/api/patients/${pid}/depart`, { method: 'POST', body: JSON.stringify({ lat, lon }) });
-    notice(`이송 중 환자를 만들었습니다: ${pick.age}세 · ${pick.symptoms}`, false);
-    lastSig = '';
-    await poll();
-  } catch (e) {
-    notice('이송 중 환자를 만들지 못했습니다: ' + e.message, true);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
 // ---------------------------------------------------------------- 이벤트
-$('incomingList').addEventListener('click', (e) => {
-  const card = e.target.closest('[data-pid]');
-  if (!card) return;
-  view = 'patient'; selectedPid = card.dataset.pid; adjustReason = null; notice('', false); render();
-});
-$('externalBtn').addEventListener('click', () => { view = 'external'; notice('', false); render(); });
-$('resourceBar').addEventListener('click', (e) => {
-  if (e.target.closest('#restrBtn')) { view = 'restrict'; notice('', false); render(); return; }
-  const b = e.target.closest('[data-rtype]');
-  if (!b) return;
-  view = 'resource'; selectedRtype = b.dataset.rtype; draftOccupied = null; notice('', false);
-  resSig = ''; loadResources(); render();
-});
-$('demoTransportBtn').addEventListener('click', createDemoTransport);
-// 시연 메뉴: 버튼을 누르면 메뉴를 닫음
-for (const id of ['demoBtn', 'demoTransportBtn']) $(id).addEventListener('click', () => { document.querySelector('.demo-menu').open = false; });
+const PATIENT_STATES = {CONFIRMED:'목적지 확정',IN_TRANSIT:'이송 중',ARRIVED:'도착 확인',DISCHARGED:'퇴실',CANCELLED:'취소'};
+const REVIEW_STATES = {HOSPITAL_SESSION_ENDED:'이 병원 참여 종료',NOT_STARTED:'감시 미설정',MONITORING:'수용 조건 감시',RECHECK_REQUIRED:'병원 재확인 필요',SEARCHING:'대체병원 문의 중',AWAITING_CHANGE:'대체 수용 확보 · 이송자 판단 대기',EXHAUSTED:'자동 문의 한도 종료',PAUSED:'감시 일시정지',COMPLETED:'종료',ERROR:'확인 오류'};
+function issueText(issue) {
+  const resource = RESOURCE[issue.resource_type] || issue.resource_type || '';
+  if (issue.kind === 'resource_shortfall') return `${resource}: 총량 ${issue.capacity}, 실제 점유 ${issue.occupied}, 확정 이송 수요 ${issue.committed} · ${issue.shortfall} 부족 가능`;
+  if (issue.kind === 'resource_unknown') return `${resource}: 현재 상태 미확인`;
+  if (issue.kind === 'resource_stale') return `${resource}: 갱신 시각이 오래되어 재확인 필요`;
+  if (issue.kind === 'capability_missing') return `진료 역량 재확인: ${(issue.capabilities || []).join(', ')}`;
+  if (issue.kind === 'capability_unknown') return `진료 역량 미확인: ${(issue.capabilities || []).join(', ')}`;
+  if (issue.kind === 'requirements_changed') return '확정 이후 환자의 요구 조건이 변경됨';
+  if (String(issue.kind || '').startsWith('restriction')) return `수용 제한 재확인: ${issue.scope || ''} ${issue.reason || ''}`;
+  return '관련 수용 조건 재확인 필요';
+}
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  $('inquiryLists').hidden = tab !== 'inquiries'; $('detail').hidden = tab !== 'inquiries';
+  $('incomingLists').hidden = tab !== 'incoming'; $('incomingDetail').hidden = tab !== 'incoming';
+  $('resourceHelp').hidden = tab !== 'resources'; $('resourceDetail').hidden = tab !== 'resources';
+  $('restrictionHelp').hidden = tab !== 'restrictions'; $('restrictionDetail').hidden = tab !== 'restrictions';
+  $('hospitalChat').hidden = tab !== 'incoming' || !selectedPatientId;
+  if (tab === 'incoming') { renderIncoming(); if(selectedPatientId) pollChat(); }
+  if (tab === 'resources') renderResources();
+  if (tab === 'restrictions') renderRestrictions();
+}
+function renderIncoming() {
+  $('incomingCount').textContent = incomingData.incoming.length;
+  $('incomingList').innerHTML = incomingData.incoming.length ? incomingData.incoming.map(p => {
+    const review = p.transport_review || {}, risk = review.state === 'RECHECK_REQUIRED';
+    return `<button type="button" class="card ${p.id === selectedPatientId ? 'selected' : ''} ${risk ? 'overdue' : ''}" data-patient="${esc(p.id)}"><div class="top"><b>${esc(p.id)}</b><span class="tag ${risk ? 't-mid' : 't-blue'}">${esc(PATIENT_STATES[p.state] || p.state)}</span></div><div class="title">${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</div><div class="meta"><span data-eta="${esc(p.id)}">${esc(etaText(p))}</span><span>${esc(REVIEW_STATES[review.state] || '감시 미설정')}</span></div></button>`;
+  }).join('') : '<div class="empty">확정된 도착 예정 환자가 없습니다.</div>';
+  $('hospitalChat').hidden = activeTab !== 'incoming' || !selectedPatientId;
+  if (!selectedPatient) { $('incomingDetail').innerHTML = '<div class="empty">왼쪽에서 환자를 선택하세요.</div>'; return; }
+  const p = selectedPatient, review = p.transport_review || {}, active = ['CONFIRMED','IN_TRANSIT'].includes(p.state) && incomingData.incoming.some(x => x.id === p.id);
+  const issues = review.evidence?.issues || [];
+  const draft = reviewDrafts.get(p.id) || '';
+  const focus = document.activeElement?.id === 'reviewNote', start = $('reviewNote')?.selectionStart;
+  $('incomingDetail').innerHTML = `<div class="panel"><div class="panel-head"><div><div class="sub">환자 ${esc(p.id)}</div><h3>${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</h3></div><span class="tag t-blue">${esc(PATIENT_STATES[p.state] || p.state)}</span></div><div class="grid">${active ? `<div class="field wide"><div class="k">도착 예정 · 남은 시간</div><div class="v" data-eta="${esc(p.id)}">${esc(etaText(p))}</div></div>` : ''}<div class="field"><div class="k">필요 진료</div><div class="v">${esc((p.required_capabilities || []).join(', ') || '-')}</div></div><div class="field"><div class="k">필요 자원</div><div class="v">${esc(demands(p))}</div></div><div class="field wide"><div class="k">수용 조건 재확인</div><div class="v"><b id="hospitalReviewState" data-state="${esc(review.state || 'NOT_STARTED')}">${esc(REVIEW_STATES[review.state] || '감시 미설정')}</b></div><div class="note">${review.state === 'HOSPITAL_SESSION_ENDED' ? '이 병원 참여가 끝났으며 참여 구간의 환자 요약과 대화만 표시합니다.' : review.enabled ? '이송자가 감시를 켠 건입니다. 조정 판단 후 서버가 대체병원에 문의하며, 목적지는 이송자가 결정합니다.' : '이송자가 감시를 켜지 않은 건입니다. 수동 유지·조정 판단만 반영합니다.'}</div></div>${issues.length ? `<div class="qa"><b>이 환자와 관련된 확인 사유</b><ul class="review-issues">${issues.map(i => `<li>${esc(issueText(i))}</li>`).join('')}</ul></div>` : '<div class="qa">현재 등록된 조건 재확인 사유가 없습니다. 신규 여유가 0이어도 기존 이송의 수용 조건은 유지될 수 있습니다.</div>'}${p.adjustment_note ? `<div class="field wide"><div class="k">조정 메모</div><div class="v">${esc(p.adjustment_note)}</div></div>` : ''}</div><div class="actions">${active ? `<textarea id="reviewNote" rows="2" maxlength="1000" placeholder="현재 조건을 유지할 수 있는지 판단한 근거 / 조정 사유" aria-label="수용 조건 판단 메모">${esc(draft)}</textarea><div class="row"><button class="btn-small" type="button" data-patient-action="keep" ${busy ? 'disabled' : ''}>수용 유지</button><button class="btn-small" type="button" data-patient-action="adjust" ${busy ? 'disabled' : ''}>조정 필요</button><button class="btn-small" type="button" data-patient-action="arrive" ${busy ? 'disabled' : ''}>환자 도착 확인</button></div><div class="note">관련 자원 부족은 잠재적 영향입니다. 실제 수용 유지 여부는 병원이 판단합니다.</div>` : p.state === 'ARRIVED' && incomingData.incoming.some(x=>x.id===p.id) ? `<button class="btn-small" type="button" data-patient-action="discharge" ${busy ? 'disabled' : ''}>퇴실 확인 · 점유 해제</button>` : '<div class="note">현재 이 병원에서 처리할 수 있는 이송 건이 아닙니다. 본 병원 참여 구간의 대화는 아래에서 조회할 수 있습니다.</div>'}</div></div>`;
+  if(focus && $('reviewNote')) { $('reviewNote').focus(); if(start != null) $('reviewNote').setSelectionRange(start,start); }
+}
+function requireHandler() { const name=$('handler').value.trim(); if(!name){notice('담당자 이름을 먼저 입력하세요.',true);$('handler').focus();} return name; }
+function lockContext() { $('hospital').disabled = busy || chatSending; $('server').disabled = busy || chatSending; }
+async function hospitalAction(action) {
+  const p=selectedPatient, handler=requireHandler(); if(!p || !handler || busy) return;
+  const pid=p.id, note=$('reviewNote')?.value.trim() || ''; reviewDrafts.set(pid,note);
+  if(action==='adjust' && !note){notice('조정 판단의 사유를 입력하세요.',true);return;}
+  busy=true;lockContext();renderIncoming();
+  try {
+    const payload={handled_by:handler}; let suffix=action;
+    if(action==='keep'||action==='adjust') {
+      const fresh=await api(`/api/patients/${encodeURIComponent(pid)}/transport-review`);
+      const shown=p.transport_review || {};
+      if(fresh.review.enabled !== !!shown.enabled || (fresh.review.enabled && (fresh.review.version !== shown.version || fresh.review.risk_signature !== shown.risk_signature))) {
+        p.transport_review=fresh.review;renderIncoming();throw new Error('수용 조건이 바뀌었습니다. 갱신된 사유를 확인한 뒤 다시 판단하세요.');
+      }
+      suffix='decision';Object.assign(payload,{decision:action,note});
+      if(fresh.review.enabled) Object.assign(payload,{expected_review_version:fresh.review.version,expected_risk_signature:fresh.review.risk_signature});
+    }
+    const result=await api(`/api/hospitals/${encodeURIComponent(hid)}/patients/${encodeURIComponent(pid)}/${suffix}`,{method:'POST',body:JSON.stringify(payload)});
+    selectedPatient={...p,...result};
+    notice({keep:'현재 수용 조건을 유지한다고 확인했습니다.',adjust:'조정 판단을 반영했습니다. 목적지는 아직 유지됩니다.',arrive:'환자 도착을 확인했습니다. 이송 대화는 읽기 전용으로 전환됩니다.',discharge:'퇴실을 확인하고 자원 점유를 해제했습니다.'}[action],false);
+  } catch(e){notice(e.status===409 ? '다른 처리나 조건 변경이 먼저 반영됐습니다. 최신 상태를 확인한 뒤 다시 판단하세요. '+e.message : e.message,true);}
+  finally {busy=false;lockContext();incomingSig='';resourceSig='';await poll();renderIncoming();}
+}
+function renderRestrictions() {
+  if(!hospitalData) { $('restrictionDetail').innerHTML='<div class="empty">병원 수용 제한을 불러오는 중입니다.</div>';return; }
+  const activeId=document.activeElement?.id, cursor=document.activeElement?.selectionStart;
+  const rows=(hospitalData.restrictions || []).filter(row=>restrictionStatus(row)!=='cleared');
+  const scopes=[...new Set(['all',...(hospitalData.capabilities || []),...data.open.flatMap(item=>item.patient?.required_capabilities || []),...rows.map(row=>row.scope),restrictionDraft.scope])];
+  const disabled=busy ? 'disabled' : '';
+  const list=rows.length ? rows.map(restriction=> {
+    const status=restrictionStatus(restriction), label={active:'제한 중',recheck:'재확인 필요',scheduled:'시작 전'}[status] || status;
+    return `<div class="restriction-row"><div><b>${esc(scopeLabel(restriction.scope))}</b> · ${esc(restriction.reason)}<div class="note">${esc(kst(restriction.starts_at))} 시작 · ${restriction.ends_at == null ? '종료 예정 미정' : `${esc(kst(restriction.ends_at))} 종료 예정`}${status==='recheck' ? ' · 종료 예정 경과, 상태 재확인 필요' : ''}</div></div><div class="row"><span class="tag ${status==='active'?'t-high':status==='recheck'?'t-mid':'t-gray'}" data-restriction-state="${esc(status)}">${esc(label)}</span>${status==='recheck' ? `<button type="button" class="btn-small" data-restriction-extend="${restriction.id}" ${disabled}>1시간 연장</button>` : ''}<button type="button" class="btn-small" data-restriction-clear="${restriction.id}" ${disabled}>해제</button></div></div>`;
+  }).join('') : '<div class="note">등록된 수용 제한이 없습니다.</div>';
+  $('restrictionDetail').innerHTML=`<section class="resource-card"><h3>현재 수용 제한</h3>${list}<p class="note">종료 예정 경과는 자동 정상화가 아닙니다. 병원에서 확인한 후 해제하거나 연장하세요.</p></section><form id="restrictionForm" class="resource-card restriction-form"><h3>수용 제한 등록</h3><div class="row"><label for="restrictionScope">제한 범위<select id="restrictionScope" name="scope" ${disabled}>${scopes.map(scope=>`<option value="${esc(scope)}" ${scope===restrictionDraft.scope?'selected':''}>${esc(scopeLabel(scope))}</option>`).join('')}</select></label><label for="restrictionReason">사유<select id="restrictionReason" name="reason" required ${disabled}><option value="">사유 선택</option>${RESTRICT_REASONS.map(reason=>`<option value="${esc(reason)}" ${reason===restrictionDraft.reason?'selected':''}>${esc(reason)}</option>`).join('')}</select></label><label for="restrictionDuration">종료 예정<select id="restrictionDuration" name="duration" ${disabled}>${[['1800','30분 뒤'],['3600','1시간 뒤'],['7200','2시간 뒤'],['','미정']].map(([value,label])=>`<option value="${value}" ${value===restrictionDraft.duration?'selected':''}>${label}</option>`).join('')}</select></label></div><label for="restrictionNote">상세 메모 (선택)<textarea id="restrictionNote" name="note" maxlength="1000" rows="2" placeholder="예: 장비 점검으로 해당 진료를 제공하기 어려움" ${disabled}>${esc(restrictionDraft.note)}</textarea></label><div class="row" style="margin-top:12px"><button type="submit" class="btn-small" ${disabled}>제한 등록</button></div><p class="note">등록 즉시 시작합니다. 기관 전체 또는 환자의 필요 진료와 일치하는 활성 제한은 신규 수용 응답을 막습니다. 이미 확정된 이송은 별도로 조건을 재확인하며 목적지를 자동 변경하지 않습니다.</p></form>`;
+  if(activeId && $(activeId)) { $(activeId).focus(); if(cursor != null && $(activeId).setSelectionRange) $(activeId).setSelectionRange(cursor,cursor); }
+}
+function readRestrictionDraft(form) {
+  restrictionDraft={scope:form.elements.scope.value,reason:form.elements.reason.value,duration:form.elements.duration.value,note:form.elements.note.value};
+}
+async function changeRestriction(action,id=null) {
+  const handler=requireHandler();if(!handler || busy)return;
+  const hospitalId=hid, version=contextVersion;
+  const target=(hospitalData?.restrictions || []).find(row=>String(row.id)===String(id));
+  if(action!=='add' && !target) { notice('선택한 제한이 이미 변경되었습니다. 최신 목록을 확인하세요.',true);return; }
+  let payload=null;
+  if(action==='add') {
+    readRestrictionDraft($('restrictionForm'));
+    if(!restrictionDraft.scope || !RESTRICT_REASONS.includes(restrictionDraft.reason)) {notice('제한 범위와 사유를 선택하세요.',true);return;}
+    if(!['','1800','3600','7200'].includes(restrictionDraft.duration)) {notice('종료 예정 시간을 확인하세요.',true);return;}
+    const duration=restrictionDraft.duration ? Number(restrictionDraft.duration) : null;
+    payload={scope:restrictionDraft.scope,reason:restrictionDraft.reason+(restrictionDraft.note.trim() ? ' - '+restrictionDraft.note.trim() : ''),ends_at:duration==null ? null : Math.floor(Date.now()/1000)+duration,handled_by:handler};
+  } else if(action==='extend') payload={scope:target.scope,reason:target.reason,ends_at:Math.floor(Date.now()/1000)+3600,handled_by:handler};
+  busy=true;lockContext();renderRestrictions();
+  let replacementAdded=false;
+  try {
+    const path=`/api/hospitals/${encodeURIComponent(hospitalId)}/restrictions`;
+    if(payload) { await api(path,{method:'POST',body:JSON.stringify(payload)});replacementAdded=action==='extend'; }
+    // 연장은 새 제한을 먼저 생성한 뒤 이전 제한을 해제해 제한이 비는 구간을 만들지 않는다.
+    if(action==='clear' || action==='extend') await api(`${path}/${encodeURIComponent(id)}`,{method:'DELETE',body:JSON.stringify({handled_by:handler})});
+    if(version!==contextVersion)return;
+    if(action==='add') restrictionDraft={...restrictionDraft,reason:'',note:''};
+    notice(action==='add'?'수용 제한을 등록했습니다.':action==='extend'?'같은 범위의 수용 제한을 현재부터 1시간으로 연장했습니다.':'수용 제한을 해제했습니다.',false);
+  } catch(error) {
+    if(version===contextVersion)notice(replacementAdded?'새 1시간 제한은 등록됐지만 이전 제한 해제에 실패했습니다. 최신 목록에서 이전 제한을 확인하세요. '+error.message:error.message,true);
+  } finally {
+    busy=false;lockContext();resourceSig='';lastSig='';incomingSig='';await poll();renderRestrictions();
+  }
+}
+function renderResources() {
+  if(!hospitalData) { $('resourceDetail').innerHTML='<div class="empty">병원 자원을 불러오는 중입니다.</div>';return; }
+  const activeId=document.activeElement?.id, start=document.activeElement?.selectionStart;
+  const snapshots=(hospitalData.public_data || []).filter(s=>s.endpoint==='nmc_rltm_beds');
+  const publicCards=snapshots.map(s=>`<section class="resource-card"><h3>국립중앙의료원 공개 병상 관측</h3><p class="note">관측 ${s.source_observed_at ? kst(s.source_observed_at) : '시각 미확인'} · 수집 ${kst(s.fetched_at)}${s.stale ? ' · 오래된 관측' : ''}</p><table class="public-observations"><thead><tr><th>항목</th><th>공개 가용 수</th></tr></thead><tbody>${(s.data?.resources || []).map(r=>`<tr><td>${esc(RESOURCE[r.resource_type] || r.resource_type)}</td><td>${r.reported_available == null ? '미확인' : esc(r.reported_available)}</td></tr>`).join('')}</tbody></table><p class="note">공개 병상 정보와 운영 자원은 별도입니다. 위 값은 실제 점유·예약 총량 또는 이 환자의 수용 확답을 의미하지 않습니다.</p></section>`).join('');
+  const operatingNotice=!(hospitalData.resources || []).length ? '<div class="empty">이 병원에 확인된 운영 자원이 아직 등록되지 않았습니다. 공개 가용 수를 운영 총량·점유로 자동 변환하지 않습니다. 문의를 받은 병원 역할로 수용 가능 여부를 응답할 수 있습니다.</div>' : '';
+  $('resourceDetail').innerHTML=publicCards + operatingNotice + (hospitalData.resources || []).map(r=> {
+    const draft=resourceDrafts.get(r.resource_type), values=draft || r;
+    return `<form class="resource-card resource-form" data-resource="${esc(r.resource_type)}" data-version="${draft?.version ?? r.version}"><h3>${esc(RESOURCE[r.resource_type] || r.resource_type)}</h3><div class="row"><label>총량<input id="resource-${esc(r.resource_type)}-capacity" name="capacity" type="number" min="0" step="1" value="${values.capacity}" required></label><label>실제 점유<input id="resource-${esc(r.resource_type)}-occupied" name="occupied" type="number" min="0" step="1" value="${values.occupied}" required></label><label>정보 상태<select name="status" aria-label="${esc(RESOURCE[r.resource_type] || r.resource_type)} 정보 상태">${[['available','확인됨'],['limited','제한'],['unknown','미확인']].map(([v,label])=>`<option value="${v}" ${values.status===v?'selected':''}>${label}</option>`).join('')}</select></label><button type="submit" class="btn-small" ${busy?'disabled':''}>자원 저장</button></div><p class="note">확정 이송 수요 ${r.expected} · 신규 여유 ${r.free == null ? '미확인' : r.free} · 갱신 ${kst(r.updated_at)}${r.stale?' · 오래된 정보':''}${r.over_capacity?' · 실제 점유가 총량을 초과함':''}${draft && draft.version !== r.version?' · 편집 중 다른 갱신 발생, 저장 시 충돌 확인':''}</p></form>`;
+  }).join('') + `<form id="externalArrivalForm" class="resource-card"><h3>시연: 시스템 밖 환자 유입</h3><p class="note">가상 데이터 병원에서만 조작할 수 있습니다. 선택한 자원의 실제 점유가 증가하고 관련 이송 건의 조건을 다시 확인합니다.</p><div class="row"><label>사용 자원<select name="resource_type">${(hospitalData.resources || []).map(r=>`<option value="${esc(r.resource_type)}">${esc(RESOURCE[r.resource_type] || r.resource_type)}</option>`).join('')}</select></label><label>수량<input name="amount" type="number" min="1" step="1" value="1" required></label></div><textarea name="note" rows="2" maxlength="1000" placeholder="유입 메모 (예: 가상 중증환자 전문팀 사용)" aria-label="돌발 유입 메모" required></textarea><button type="submit" class="btn-small" ${busy || hospitalData.source !== 'synthetic' || !hospitalData.resources?.length ?'disabled':''}>가상 유입 등록</button></form>`;
+  const externalForm=$('externalArrivalForm');
+  if(externalDraft.resource_type && (hospitalData.resources || []).some(r=>r.resource_type===externalDraft.resource_type))externalForm.elements.resource_type.value=externalDraft.resource_type;
+  externalForm.elements.amount.value=externalDraft.amount;externalForm.elements.note.value=externalDraft.note;
+  if(activeId && $(activeId)){ $(activeId).focus();if(start != null && $(activeId).type !== 'number') $(activeId).setSelectionRange(start,start); }
+}
+async function saveResource(form) {
+  const handler=requireHandler();if(!handler||busy)return;
+  const rtype=form.dataset.resource, payload={capacity:Number(form.elements.capacity.value),occupied:Number(form.elements.occupied.value),status:form.elements.status.value,expected_version:Number(form.dataset.version),handled_by:handler};
+  busy=true;lockContext();
+  try {await api(`/api/hospitals/${encodeURIComponent(hid)}/resources/${encodeURIComponent(rtype)}`,{method:'PUT',body:JSON.stringify(payload)});resourceDrafts.delete(rtype);notice('병원 자원 정보를 저장했습니다.',false);}
+  catch(e){if(e.status===409)resourceDrafts.delete(rtype);notice(e.status===409?'다른 담당자가 먼저 갱신했습니다. 최신 값을 다시 불러왔으니 확인 후 재입력하세요.':e.message,true);}
+  finally{busy=false;lockContext();resourceSig='';incomingSig='';await poll();renderResources();}
+}
+async function registerExternal(form) {
+  const handler=requireHandler();if(!handler||busy||hospitalData?.source!=='synthetic')return;
+  const amount=Number(form.elements.amount.value), resource=form.elements.resource_type.value,note=form.elements.note.value.trim();
+  if(!Number.isInteger(amount)||amount<1||!note){notice('양의 정수 수량과 유입 메모를 입력하세요.',true);return;}
+  busy=true;lockContext();
+  try{await api(`/api/hospitals/${encodeURIComponent(hid)}/external-arrivals`,{method:'POST',body:JSON.stringify({resource_demands:{[resource]:amount},note,handled_by:handler})});externalDraft={resource_type:resource,amount:'1',note:''};notice('가상 유입을 등록했습니다. 도착 예정 탭에서 관련 환자의 재확인 사유를 확인하세요.',false);}
+  catch(e){notice(e.message,true);}
+  finally{busy=false;lockContext();resourceSig='';incomingSig='';await poll();}
+}
+function chatKey(){return `${contextVersion}:${hid}:${selectedPatientId}`;}
+function resetChat(){chat=null;chatPending=null;$('chatBody').value='';$('chatLog').innerHTML='';$('chatSend').disabled=true;$('chatStatus').textContent='대화 연결 확인 중…';}
+function mergeChat(items){for(const item of items||[])chat.items.set(item.id,item);}
+function renderChat(){
+  if(!chat)return;
+  const log=$('chatLog'),nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<70;
+  const items=[...chat.items.values()].sort((a,b)=>{for(let i=0;i<3;i++){const n=(a.order_key?.[i]||0)-(b.order_key?.[i]||0);if(n)return n;}return String(a.id).localeCompare(String(b.id));});
+  log.innerHTML=items.length?items.map(item=>`<div class="chat-item ${item.kind==='system'?'system':item.sender_role==='hospital'?'mine':''}" data-chat-id="${esc(item.id)}"><div class="sub">${esc(item.sender_name || (item.kind==='system'?'시스템':'이송자'))} · ${esc(kst(item.at))}</div><div class="body">${esc(item.text ?? item.body)}</div></div>`).join(''):'<div class="note">아직 표시할 대화가 없습니다.</div>';
+  if(nearBottom)log.scrollTop=log.scrollHeight;
+  $('chatStatus').textContent=chat.canSend?'현재 병원 참여 구간 · 이송자와 대화할 수 있습니다.':chat.state==='CLOSED'?'이송 종료 · 이전 대화만 조회합니다.':'이 병원 참여가 종료되어 이전 대화만 조회합니다.';
+  if(chatPending)$('chatStatus').textContent='전송 결과를 확인하지 못했습니다. 같은 내용으로 재시도할 수 있습니다.';
+  $('chatSend').textContent=chatPending?'같은 메시지 재시도':'메시지 보내기';
+  $('chatSend').disabled=chatSending||(!chat.canSend&&!chatPending);
+  $('chatBody').readOnly=chatSending||!!chatPending||!chat.canSend;
+}
+async function pollChat(){
+  if(!selectedPatientId||chatLoading)return;
+  const key=chatKey(),pid=selectedPatientId,hospitalId=hid;chatLoading=true;
+  if(!chat||chat.key!==key)chat={key,items:new Map(),eventCursor:0,messageCursor:0,canSend:false,session:null,state:null};
+  try{for(let page=0;page<20;page++){
+    const result=await api(`/api/hospitals/${encodeURIComponent(hospitalId)}/patients/${encodeURIComponent(pid)}/conversation?event_cursor=${chat.eventCursor}&message_cursor=${chat.messageCursor}&limit=100`);
+    if(key!==chatKey())return;
+    mergeChat(result.items);chat.eventCursor=result.cursors.event_id;chat.messageCursor=result.cursors.message_id;
+    chat.canSend=result.can_send;chat.session=result.active_hospital_session?.id ?? null;chat.state=result.conversation.state;
+    if(!incomingData.incoming.some(p=>p.id===pid) && result.patient) {selectedPatient={...result.patient,transport_review:{enabled:false,state:'HOSPITAL_SESSION_ENDED',evidence:{issues:[]}}};renderIncoming();}
+    renderChat();if(!result.has_more)break;
+  }}catch(e){if(key===chatKey()){$('chatStatus').textContent=e.status===403?'병원 참여 전에는 이송 대화를 조회할 수 없습니다.':e.message;$('chatSend').disabled=true;if(chat)chat.canSend=false;}}
+  finally{chatLoading=false;}
+}
+async function sendChat(event){
+  event.preventDefault();const handler=requireHandler();if(!handler||chatSending||!chat)return;
+  const key=chatKey(),beforeSession=chat.session,isRetry=!!chatPending;
+  if(!chatPending){const body=$('chatBody').value.trim();if(!body||!chat.canSend)return;chatPending={body,client_message_id:crypto.randomUUID ? crypto.randomUUID() : `hospital-${Date.now()}-${Math.random().toString(16).slice(2)}`,hospital_session_id:beforeSession,sender_name:handler};}
+  chatSending=true;lockContext();renderChat();
+  try{
+    await pollChat();if(key!==chatKey())return;
+    // Exact retries may succeed after closure; newly composed messages require the same active session.
+    if(!isRetry && (!chat.canSend || chat.session!==beforeSession)) {const error=new Error('메시지를 작성한 병원 참여가 종료되거나 변경됐습니다.');error.status=409;throw error;}
+    const result=await api(`/api/hospitals/${encodeURIComponent(hid)}/patients/${encodeURIComponent(selectedPatientId)}/messages`,{method:'POST',body:JSON.stringify(chatPending)});
+    if(key!==chatKey())return;mergeChat([result.message]);chatPending=null;$('chatBody').value='';notice(result.duplicate?'이미 저장된 메시지의 전송을 확인했습니다.':'메시지를 전송했습니다.',false);
+  }catch(e){if(key===chatKey()){if(e.status && e.status<500){chatPending=null;await pollChat();}notice(e.status===409?'대화 참여 상태가 바뀌었습니다. 최신 대화와 내용을 확인하세요. '+e.message:e.message,true);}}
+  finally{chatSending=false;lockContext();if(key===chatKey())renderChat();}
+}
+document.querySelector('.workspace-tabs').addEventListener('click',e=>{const tab=e.target.closest('[data-tab]');if(tab)setTab(tab.dataset.tab);});
+$('incomingList').addEventListener('click',e=>{const button=e.target.closest('[data-patient]');if(!button||chatSending||busy)return;selectedPatientId=button.dataset.patient;selectedPatient=incomingData.incoming.find(p=>p.id===selectedPatientId)||null;resetChat();renderHospitalContext();renderIncoming();pollChat();});
+$('incomingDetail').addEventListener('input',e=>{if(e.target.id==='reviewNote'&&selectedPatientId)reviewDrafts.set(selectedPatientId,e.target.value);});
+$('incomingDetail').addEventListener('click',e=>{const button=e.target.closest('[data-patient-action]');if(button)hospitalAction(button.dataset.patientAction);});
+$('resourceDetail').addEventListener('input',e=>{const form=e.target.closest('.resource-form');if(form)resourceDrafts.set(form.dataset.resource,{capacity:form.elements.capacity.value,occupied:form.elements.occupied.value,status:form.elements.status.value,version:Number(form.dataset.version)});const externalForm=e.target.closest('#externalArrivalForm');if(externalForm)externalDraft={resource_type:externalForm.elements.resource_type.value,amount:externalForm.elements.amount.value,note:externalForm.elements.note.value};});
+$('resourceDetail').addEventListener('submit',e=>{e.preventDefault();if(e.target.matches('.resource-form'))saveResource(e.target);else if(e.target.id==='externalArrivalForm')registerExternal(e.target);});
+$('restrictionDetail').addEventListener('input',e=>{const form=e.target.closest('#restrictionForm');if(form)readRestrictionDraft(form);});
+$('restrictionDetail').addEventListener('change',e=>{const form=e.target.closest('#restrictionForm');if(form)readRestrictionDraft(form);});
+$('restrictionDetail').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='restrictionForm')changeRestriction('add');});
+$('restrictionDetail').addEventListener('click',e=>{const clear=e.target.closest('[data-restriction-clear]'),extend=e.target.closest('[data-restriction-extend]');if(clear)changeRestriction('clear',clear.dataset.restrictionClear);else if(extend)changeRestriction('extend',extend.dataset.restrictionExtend);});
+$('chatForm').addEventListener('submit',sendChat);
 $('openList').addEventListener('click', (e) => {
   const card = e.target.closest('[data-id]');
   if (!card) return;
-  view = 'inquiry'; selectedId = Number(card.dataset.id); declineReason = null; notice('', false); render();
+  selectedId = Number(card.dataset.id); declineReason = null; notice('', false); render();
 });
 $('detail').addEventListener('click', (e) => {
-  // 도착 예정 환자 상세
-  const adj = e.target.closest('[data-adj]');
-  if (adj) { adjustReason = adj.dataset.adj; renderDetail(); return; }
-  const pact = e.target.closest('[data-pact]');
-  if (pact) { patientAction(pact.dataset.pact); return; }
-  // 문의 상세의 경고에서 바로 이동
-  const op = e.target.closest('[data-open]');
-  if (op) {
-    if (op.dataset.open === 'restrict') view = 'restrict';
-    else { const q = current(); view = 'resource'; selectedRtype = acceptBlock(q.patient)?.rtype || 'ed_bed'; draftOccupied = null; }
-    notice('', false); resSig = ''; loadResources(); render(); return;
-  }
-  // 수용 제한
-  const rsc = e.target.closest('[data-rscope]'); if (rsc) { rform.scope = rsc.dataset.rscope; renderDetail(); return; }
-  const rre = e.target.closest('[data-rreason]'); if (rre) { rform.reason = rre.dataset.rreason; renderDetail(); return; }
-  const rdu = e.target.closest('[data-rdur]'); if (rdu) { rform.dur = rdu.dataset.rdur ? Number(rdu.dataset.rdur) : null; renderDetail(); return; }
-  if (e.target.closest('#rSubmit')) { submitRestriction(); return; }
-  const rcl = e.target.closest('[data-rclear]'); if (rcl) { clearRestriction(rcl.dataset.rclear); return; }
-  const rex = e.target.closest('[data-rext]'); if (rex) { extendRestriction(rex.dataset.rext); return; }
-  // 자원 수정
-  const occ = e.target.closest('[data-occ]');
-  if (occ) { draftOccupied = Math.max(0, draftOccupied + Number(occ.dataset.occ)); renderDetail(); return; }
-  if (e.target.closest('#resSave')) { saveResource(); return; }
-  if (e.target.closest('#resReset')) { draftOccupied = null; renderDetail(); return; }
-  // 직접 내원 등록
-  const st = e.target.closest('[data-step]');
-  if (st) { const k = st.dataset.step; ext[k] = Math.max(0, Math.min(5, ext[k] + Number(st.dataset.d))); renderDetail(); return; }
-  if (e.target.closest('#extSubmit')) { submitExternal(); return; }
-  // 수용 문의 상세 (기존)
+  const tab=e.target.closest('[data-open-tab]');if(tab){setTab(tab.dataset.openTab);return;}
   const chip = e.target.closest('[data-reason]');
   if (chip) { declineReason = chip.dataset.reason; renderDetail(); return; }
   const btn = e.target.closest('[data-act]');
@@ -910,15 +704,22 @@ $('detail').addEventListener('click', (e) => {
 });
 $('hospital').addEventListener('change', () => {
   hid = $('hospital').value; store.set('hid', hid);
-  selectedId = null; selectedPid = null; view = 'inquiry'; resSig = '';
-  seen.clear(); newUntil.clear(); firstLoad = true; lastSig = ''; poll();
+  resetWorkspace(); poll();
 });
 $('handler').addEventListener('change', () => store.set('handler', $('handler').value.trim()));
-$('demoBtn').addEventListener('click', createDemoInquiry);
 $('server').addEventListener('change', () => {
   serverBase = $('server').value.trim().replace(/\/$/, ''); store.set('serverBase', serverBase);
+  resetWorkspace();
   loadHospitals().then(poll);
 });
+function resetWorkspace(){
+  contextVersion++;selectedId=null;selectedPatientId=null;selectedPatient=null;landingPatientId=null;
+  seen.clear();newUntil.clear();firstLoad=true;lastSig='';incomingSig='';resourceSig='';
+  data={open:[],recent:[]};incomingData={incoming:[],affected:[],planning:[]};hospitalData=null;
+  reviewDrafts.clear();resourceDrafts.clear();externalDraft={resource_type:null,amount:'1',note:''};restrictionDraft={scope:'all',reason:'',duration:'3600',note:''};resetChat();
+  render();renderIncoming();renderResources();renderRestrictions();notice('',false);
+  renderHospitalContext();
+}
 
 // 경과시간은 화면 전체를 다시 그리지 않고 글자만 1초마다 갱신 (클릭이 끊기지 않도록)
 setInterval(() => {
@@ -926,13 +727,19 @@ setInterval(() => {
     const q = data.open.find((x) => x.id === Number(el.dataset.elapsed)) || data.recent.find((x) => x.id === Number(el.dataset.elapsed));
     if (q) el.textContent = elapsed(q);
   }
-  for (const el of document.querySelectorAll('[data-eta]')) {
-    const p = incomingData.incoming.find((x) => x.id === el.dataset.eta);
-    if (p) el.textContent = etaText(p);
+  for(const el of document.querySelectorAll('[data-eta]')) {
+    const patient=incomingData.incoming.find(item=>item.id===el.dataset.eta) || (selectedPatient?.id===el.dataset.eta ? selectedPatient : null);
+    if(patient)el.textContent=etaText(patient);
+  }
+  // 종료 예정이 지나도 정상 표시로 바뀌지 않으며, 서버의 다음 조회와 함께 재확인 상태를 반영한다.
+  if((hospitalData?.restrictions || []).some(restriction=>restriction.status==='active' && restrictionStatus(restriction)==='recheck')) {
+    for(const restriction of hospitalData.restrictions)if(restrictionStatus(restriction)==='recheck')restriction.status='recheck';
+    renderRestrictions();renderDetail();
   }
   for (const [id, until] of newUntil) if (until <= Date.now()) { newUntil.delete(id); render(); }
 }, 1000);
 
+renderHospitalContext();
 loadHospitals().then(() => { poll(); setInterval(poll, POLL_MS); });
 </script>
 </body>

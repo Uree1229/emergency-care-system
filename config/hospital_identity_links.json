@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "purpose": "검토된 NMC-HIRA 기관 식별 연결. 진료 역량이나 현재 수용 가능 판정이 아님.",
+  "policy": "일반 자동매칭 기준은 유지한다. 명시된 기관쌍과 양쪽 원본 식별정보 해시가 일치할 때만 사용하며 대표전화 일치와 500m 상한도 검증한다.",
+  "links": [
+    {
+      "hospital_id": "NMC-A2100019",
+      "ykiho": "JDQ4MTYyMiM1MSMkMSMkMCMkODkkMzgxMzUxIzExIyQxIyQzIyQxMyQzNjEwMDIjNTEjJDEjJDYjJDgz",
+      "reviewed_on": "2026-10-11",
+      "reason": "공식 홈페이지의 법인명·병원명·도로명 주소·대표전화가 양 기관자료와 일치한다. NMC/HIRA 좌표 차이 약 361m는 원본을 보존하고 이 기관쌍에 한해 검토 연결한다.",
+      "source_urls": [
+        "https://www.davoshospital.co.kr/intro/page07-01.html"
+      ],
+      "nmc_identity_sha256": "4ae376048d94e3e8709e461bd93ab2c7db84110ab7db8418012e34b50bb26954",
+      "hira_identity_sha256": "4708a07fea125d97b4ff98dc1321c108fdcede5b7c7a6bae31bcc3b3554ec2e3"
+    },
+    {
+      "hospital_id": "NMC-A2400001",
+      "ykiho": "JDQ4MTYyMiM2MSMkMSMkMiMkODkkMzgxMzUxIzExIyQxIyQzIyQ5OSQ0NjEwMDIjNjEjJDEjJDgjJDgz",
+      "reviewed_on": "2026-10-11",
+      "reason": "공식 홈페이지의 병원명·도로명 주소·대표전화로 동일 기관을 확인했다. NMC 법인명 접두어와 HIRA 5동 표기 차이를 원본에 남기고 이 기관쌍만 연결한다.",
+      "source_urls": [
+        "https://www.schmc.ac.kr/cheonan/contents.do?key=888"
+      ],
+      "nmc_identity_sha256": "5224bb3126051d2a20bc9377ae2be1723503b62b75a8f6c7f2461779209f713e",
+      "hira_identity_sha256": "959cc70abe387cb3d218fa6ed3db8eebf8997920d8c6734229f1b79858c2cfc4"
+    },
+    {
+      "hospital_id": "NMC-A2400012",
+      "ykiho": "JDQ4MTYyMiM2MSMkMSMkMiMkODkkMzgxMzUxIzExIyQxIyQzIyQ5OSQzNjEwMDIjNTEjJDEjJDYjJDgz",
+      "reviewed_on": "2026-10-11",
+      "reason": "병원 공식 홈페이지와 심평원 기관정보의 법인명·도로명 주소·대표전화가 일치한다. NMC의 건물명 표기 차이를 보존하고 이 기관쌍만 연결한다.",
+      "source_urls": [
+        "https://cmhos.co.kr/cmhos/main.asp",
+        "https://www.hira.or.kr/ra/hosp/hospInfoAjax.do?ykiho=34100253"
+      ],
+      "nmc_identity_sha256": "ab3617142e9a6f8e241f47af7b38d2a68c42b5c5f4e032370f7c6c38a695acfc",
+      "hira_identity_sha256": "e905c86075c81796f5953d6e25c60623528dbb9e4266ab4b63285f5f74d13b77"
+    }
+  ]
+}

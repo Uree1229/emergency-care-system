@@ -1,0 +1,40 @@
+{
+  "id": "CAU-SEOUL-DEMO-001",
+  "name": "중앙대 가상 환자 001",
+  "age": 22,
+  "reporter_role": "transporter",
+  "consent": true,
+  "address": "서울특별시 동작구 흑석로 84, 중앙대학교 서울캠퍼스",
+  "contact": null,
+  "guardian": null,
+  "guardian_phone": null,
+  "symptoms": "[가상 시나리오] 교내에서 넘어져 오른쪽 손목 통증과 부종을 호소함. 의식이 있고 호흡은 정상으로 설정함. 진단은 미확인.",
+  "onset_at": null,
+  "consciousness": "alert",
+  "breathing": "normal",
+  "danger_signs": [],
+  "priority": null,
+  "priority_source": "unknown",
+  "required_capabilities": ["정형외과"],
+  "resource_demands": {
+    "ed_bed": 1
+  },
+  "lat": 37.5051,
+  "lon": 126.9573,
+  "auto_inquiry": false,
+  "inquiry_policy": "fixed_3",
+  "extra": {
+    "synthetic": true,
+    "scenario_id": "CAU_SEOUL_WRIST_INJURY_001",
+    "location_label": "중앙대학교 서울캠퍼스 내 가상 발생 지점",
+    "location_source": "simulation_preset",
+    "location_precision": "캠퍼스 인근 시연용 좌표이며 실제 GPS 관측값이 아님",
+    "address_source_url": "https://www.cau.ac.kr/cms/FR_CON/index.do?MENU_ID=290",
+    "clinical_data_source": "synthetic_scenario",
+    "treatment_requirement_source": "정형외과 요구는 이 가상 시나리오의 명시적 설정이며 증상 자동 판정 결과가 아님",
+    "severity_note": "중증도 미평가",
+    "demo_mode": "public_data_local_workflow",
+    "hospital_messages_delivered_externally": false,
+    "demo_note": "서울 공공 API 병원 정보와 가상 환자를 연결한 시연. 문의와 대화는 로컬 서버에 저장되며 실제 병원으로 전송되지 않음."
+  }
+}

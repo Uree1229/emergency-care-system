@@ -13,10 +13,14 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import db, service, synthetic, planning
+from . import db, service, synthetic, planning, conversations, inquiry_workflow, inquiry_policies, transport_review, transport_reassignment
 from .travel import TravelEstimator
 
 STATIC = Path(__file__).parent / 'static'
+UI_ROOTS = {
+    '/patient/': Path(__file__).resolve().parents[1] / 'patient-ui',
+    '/hospital/': Path(__file__).resolve().parents[1] / 'hospital-ui',
+}
 ROUTES = []
 
 
@@ -88,7 +92,8 @@ def _(ctx, hid):
 def _(ctx, hid, pid, act):
     b, actor = ctx.body, ctx.body.get('handled_by', 'hospital')
     if act == 'decision':
-        return service.hospital_decision(ctx.conn, ctx.now, pid, hid, b.get('decision'), b.get('note'), actor)
+        return service.hospital_decision(ctx.conn, ctx.now, pid, hid, b.get('decision'), b.get('note'), actor,
+                                        b.get('expected_review_version'), b.get('expected_risk_signature'))
     if act == 'arrive':
         return service.confirm_arrival(ctx.conn, ctx.now, pid, hid, actor)
     if act == 'no-show':
@@ -97,6 +102,29 @@ def _(ctx, hid, pid, act):
 
 
 # ---- 환자 웹
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/transport-review')
+def _(ctx, pid):
+    return dict(review=transport_review.view(ctx.conn, ctx.now, pid),
+                workflow=transport_reassignment.view(ctx.conn, ctx.now, pid))
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/transport-review')
+def _(ctx, pid):
+    service._require(type(ctx.body.get('enabled')) is bool, 'INVALID', 'enabled는 true 또는 false입니다')
+    return transport_review.enable(ctx.conn, ctx.now, pid, ctx.body['enabled'], ctx.body.get('policy_name'))
+
+
+@route('PATCH', r'/api/patients/(?P<pid>[\w-]+)/transport-position')
+def _(ctx, pid):
+    b = ctx.body
+    return service.update_transport_position(ctx.conn, ctx.now, pid, b.get('lat'), b.get('lon'), b.get('measured_at'))
+
+
+@route('GET', r'/api/inquiry-policies')
+def _(ctx):
+    return inquiry_policies.registry()
+
+
 @route('POST', r'/api/patients')
 def _(ctx):
     b = dict(ctx.body)
@@ -117,6 +145,27 @@ def _(ctx, pid):
 @route('GET', r'/api/patients/(?P<pid>[\w-]+)/candidates')
 def _(ctx, pid):
     return service.candidates(ctx.conn, ctx.now, pid, ctx.estimator)
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/inquiry-workflow')
+def _(ctx, pid):
+    return inquiry_workflow.view(ctx.conn, ctx.now, pid)
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/inquiry-workflow')
+def _(ctx, pid):
+    if 'policy_name' in ctx.body:
+        inquiry_workflow._spec(ctx.body['policy_name'])
+    return inquiry_workflow.start(ctx.conn, ctx.now, pid, enabled=ctx.body.get('enabled'),
+                                  policy_name=ctx.body.get('policy_name'))
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/inquiry-decisions')
+def _(ctx, pid):
+    raw = ctx.query.get('limit', '20')
+    service._require(isinstance(raw, str) and raw.isascii() and raw.isdecimal(),
+                     'INVALID', 'limit은 1~100 정수입니다')
+    return inquiry_workflow.decisions(ctx.conn, ctx.now, pid, limit=int(raw))
 
 
 @route('GET', r'/api/patients/(?P<pid>[\w-]+)/recommendation')
@@ -162,6 +211,34 @@ def _(ctx):
     return service.events_since(ctx.conn, int(q.get('since', 0)), q.get('patient_id'), q.get('hospital_id'))
 
 
+# ---- 이송 대화 (업무 사건 + 자유메시지)
+def _conversation(ctx, pid, hid=None):
+    q = ctx.query
+    return conversations.get_conversation(ctx.conn, ctx.now, pid, hospital_id=hid,
+                                          event_cursor=q.get('event_cursor', 0),
+                                          message_cursor=q.get('message_cursor', 0), limit=q.get('limit', 100))
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/conversation')
+def _(ctx, pid):
+    return _conversation(ctx, pid)
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/messages')
+def _(ctx, pid):
+    return conversations.send_message(ctx.conn, ctx.now, pid, ctx.body)
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/conversation')
+def _(ctx, hid, pid):
+    return _conversation(ctx, pid, hid)
+
+
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/messages')
+def _(ctx, hid, pid):
+    return conversations.send_message(ctx.conn, ctx.now, pid, ctx.body, hospital_id=hid)
+
+
 class Ctx:
     def __init__(self, conn, now, body, query, estimator):
         self.conn, self.now, self.body, self.query, self.estimator = conn, now, body, query, estimator
@@ -184,9 +261,23 @@ def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin
             self.wfile.write(data)
 
         def _static(self, path):
-            rel = path.lstrip('/') or 'index.html'
-            target = (STATIC / rel).resolve()
-            if STATIC.resolve() not in target.parents or not target.is_file():
+            from urllib.parse import unquote, urlsplit
+            path = unquote(path)
+            for prefix in UI_ROOTS:
+                if path == prefix.rstrip('/'):
+                    query = urlsplit(self.path).query
+                    self.send_response(301)
+                    self.send_header('Location', prefix + ('?' + query if query else ''))
+                    self.send_header('Content-Length', '0')
+                    self.end_headers()
+                    return
+            root, rel = STATIC, path.lstrip('/')
+            for prefix, ui_root in UI_ROOTS.items():
+                if path.startswith(prefix):
+                    root, rel = ui_root, path[len(prefix):]
+                    break
+            target = (root / (rel or 'index.html')).resolve()
+            if root.resolve() not in target.parents or not target.is_file():
                 return self._send(404, {'error': 'NOT_FOUND'})
             ctype = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
                      '.css': 'text/css; charset=utf-8'}.get(target.suffix, 'application/octet-stream')
@@ -263,6 +354,7 @@ def main():
                     help='--seed 후 시연 시나리오를 이 단계까지 만든다 (server/scenario.py)')
     ap.add_argument('--cors-origin', default='*', help="허용할 화면 Origin. 'none'이면 끔")
     ap.add_argument('--no-planner', action='store_true', help='배정 워커를 끈다 (UI 단독 개발용)')
+    ap.add_argument('--no-inquiry-worker', action='store_true', help='초기 자동 문의 워커를 끈다')
     ap.add_argument('--solver-seconds', type=float, default=3, help='솔버 프로세스 제한시간; 0은 순차 배정만')
     args = ap.parse_args()
     if not 0 <= args.solver_seconds <= 30:
@@ -285,9 +377,13 @@ def main():
     server = ThreadingHTTPServer((args.host, args.port), make_handler(
         args.db, estimator, cors_origin=None if args.cors_origin == 'none' else args.cors_origin))
     from .worker import Worker
+    from .inquiry_worker import InquiryWorker
     worker = None if args.no_planner else Worker(args.db, estimator, args.solver_seconds)
+    inquiry_worker = None if args.no_inquiry_worker else InquiryWorker(args.db, estimator)
     if worker:
         worker.start()
+    if inquiry_worker:
+        inquiry_worker.start()
     print(f'http://{args.host}:{args.port}  (DB: {args.db})')
     try:
         server.serve_forever()
@@ -296,6 +392,8 @@ def main():
     finally:
         if worker:
             worker.stop()
+        if inquiry_worker:
+            inquiry_worker.stop()
         server.server_close()
 
 
