@@ -39,6 +39,42 @@ class DatasetTests(unittest.TestCase):
         desc, cfg = profiles['unknown_priority']
         self.assertTrue(all(p['priority'] == 4 for p in make_case('unknown_priority', desc, cfg, 0)['observed']['patients']))
 
+    def test_locked_and_fixed_metadata_includes_confirmed_acceptance(self):
+        profiles = {p: (d, c) for p, d, c in ALLOCATION_PROFILES}
+        for profile in ('locked_destination', 'locked_overdue', 'locked_conflict', 'fixed_treatment'):
+            desc, cfg = profiles[profile]
+            for seed in (0, 8, 9):
+                with self.subTest(profile=profile, seed=seed):
+                    record = make_case(profile, desc, cfg, seed)
+                    validate_record(record)
+                    data = record['observed']
+                    metadata = {m['id']: m for m in record['patient_metadata']}
+                    confirmed = dict(data['destination_locks'])
+                    confirmed.update({pid: a['h'] for pid, a in data['fixed'].items()})
+                    for pid, hospital in confirmed.items():
+                        self.assertIn(hospital, metadata[pid]['accepted_hospitals'])
+
+    def test_inconsistent_acceptance_metadata_is_rejected(self):
+        original = make_case('baseline', '기본', {}, 0)
+        patient = next(p for p in original['observed']['patients'] if p['eligible'])
+        record = copy.deepcopy(original)
+        row = next(m for m in record['patient_metadata'] if m['id'] == patient['id'])
+        row['accepted_hospitals'] = []
+        with self.assertRaisesRegex(ValueError, 'current acceptances mismatch'):
+            validate_record(record)
+        record = copy.deepcopy(original)
+        record['patient_metadata'].pop()
+        with self.assertRaisesRegex(ValueError, 'metadata patients mismatch'):
+            validate_record(record)
+
+    def test_episode_request_event_time_must_match_patient(self):
+        record = make_episode('normal', '기본', {}, 0)
+        event = next(e for e in record['events'] if e['type'] == 'patient_request')
+        event['at'] += 1
+        record['events'].sort(key=lambda e: e['at'])
+        with self.assertRaisesRegex(ValueError, 'request event time'):
+            validate_record(record)
+
     def test_all_golden_labels_are_proven_on_small_instances(self):
         for record in golden_cases():
             validate_record(record)

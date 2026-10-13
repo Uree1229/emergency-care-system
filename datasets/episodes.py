@@ -39,7 +39,7 @@ def make_episode(profile, description, changes, seed):
                 patients=[patient_dict(p) for p in ps], events=sorted(events, key=lambda e: (e['at'], e['type'], e.get('patient_id', ''))),
                 latent_response_oracle=responses, latent_travel_oracle=travel,
                 oracle_rule='simulation.sim.rng_for(seed, key); attempts>2 and redirected legs generated on demand',
-                visibility='미래 사건·숨겨진 응답·실제 이동시간은 정책 입력 금지. 발생·응답 시점에 공개',
+                visibility='미래 사건·숨겨진 응답은 발생·응답 시점에 공개. 기존 B0/B1은 후보 정렬과 실제 이동에 같은 이동시간 함수를 사용하므로 실제 이동시간을 숨긴 실험은 아님',
                 evaluation=dict(oracle_label=None, available_comparisons=['B0', 'B1'],
                                 note='B2의 전체 시스템 평가 연결은 별도 과제'))
 

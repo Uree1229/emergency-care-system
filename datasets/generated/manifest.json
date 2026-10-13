@@ -108,16 +108,16 @@
   },
   "files": [
     {
-      "bytes": 10473342,
+      "bytes": 10472157,
       "path": "allocation.jsonl.gz",
       "records": 6000,
-      "sha256": "4c4c39f2f80b1c6c5ded1f98e6d45db16ddb98b554400ac51ca36405a6f8c468"
+      "sha256": "b99a16a2bdec35689eeff73a20c38c863d8c5e361f0249edc91744d833d6b134"
     },
     {
-      "bytes": 3301360,
+      "bytes": 3342194,
       "path": "episodes.jsonl.gz",
       "records": 600,
-      "sha256": "70addeac4539d18407f8ade1bf1c2e33c5a2da18f17e3b61f3188de86b9f98fc"
+      "sha256": "f27032d0d4ac610fe5aeee1931ae520d637e7100ebde43512b6ee63502a34cbd"
     },
     {
       "bytes": 6405,
@@ -133,7 +133,7 @@
     }
   ],
   "generator": "python -m datasets.generate",
-  "generator_sha256": "8e99fca519787f18b247978191289541d693c15b4e56221c6a0b4e31c9e80776",
+  "generator_sha256": "aa88907275a5dbcc375aa09180e5bfbc8a41dca0f467e803bd9bb06af53c9e58",
   "limitations": [
     "분포·비율·치료시간·최대 대기는 실험 설정이며 실제 통계나 임상 기준이 아님",
     "allocation의 actual과 episode의 미래 사건은 사후 검증 전용",
