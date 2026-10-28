@@ -1,0 +1,52 @@
+{
+ "schema_version": 1,
+ "experiment": "inquiry_lab_ack_20261021",
+ "selection": {
+  "arm": null,
+  "policy": null,
+  "adopted_for_validation": false,
+  "feasible": []
+ },
+ "source_sha256": {
+  "inquiry_lab/__init__.py": "4940232e21a312d8bb9e1c4ca9844ce83eee8bf28fa8cae9e13298780460e42b",
+  "inquiry_lab/eat_policy.py": "fc6a7e72dfaf8b632af0ab436baf30adeb0e6ec800262e29a69dd3064e8474ca",
+  "inquiry_lab/scenarios.py": "89ae0976af90599a8a40420dc46a08a20a5752b60f50a0ab743ec055e659548f",
+  "inquiry_lab/harness.py": "fde3b891c0011fba3ee5b92836fc82adecec3918aefef69eccf8b29585b6d32b",
+  "inquiry_lab/experiment.py": "fc951eb237725e07a1460fdb165ee2a9a122ac8b47dde8d20a9e2061f9c4f99b",
+  "server/inquiry_experiment.py": "14c2b7ca9d321b87169c39957b40f7420050bbea97b1d3e1efe95a2fc73e4e6a",
+  "server/inquiry_experiment_scenarios.py": "6ad4dc6d33a82ff9c47fa10c8b582a31d213ce3f480e810599d632d5ff26a606",
+  "server/inquiry_policies.py": "9150695c4bb251b0761b8fed848ddd13e49428eceafcd349f30d5b6088fcd36a",
+  "server/inquiry_v3.py": "25123a29fe0db39b3ccd122fe23844b3652295e324d8a89064346b4311f783d1",
+  "server/inquiry_v4.py": "23b6b223180922e4c50f3f80bcb5fe7615eba67adf2a9f7a3f6684ec8ae39765",
+  "server/inquiry_workflow.py": "952607d515d90d683b09e8c602720b7b2a15084bdbcce698c781f5bee1eb0fd0",
+  "server/inquiry_observations.py": "b931848eafa877be74b59f586af5dcc0b1524c0fbf9f138c8f29794ce7b6cec6",
+  "server/service.py": "d451a0dc2f3a8fd18f2ec5993ce7cf6c237b3bd75e90708cd4d460de3f82fd76",
+  "server/db.py": "d2807adcfe0cacbd40bcc8ac410c323ac93af05962d89ad7b36b1a1d184be69b",
+  "simulation/observed_inquiry.py": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+  "config/inquiry_v3_selected.json": "32f95b42baa9ea89cc78474b78a35742fa9534ba956ada5641d0b746a370082b",
+  "inquiry_lab/public_signal.py": "894cfa7df285e708db10450920bbe1dc65ae07fc69c3fc3c81a5bbd8db83dce2",
+  "inquiry_lab/eat_public_policy.py": "5806045c7f774724b82dc865b65908fb0ea53da0d48899acc120d41d9c5d258a",
+  "inquiry_lab/eat_oracle_policy.py": "d5eb2f1233df8b9127018fe8b94a5b9391406ee402b59f4cc2c681f494b32b93",
+  "inquiry_lab/ack_environment.py": "285de4575d6c0560046a2680a5ee3c2cae9d00d36a2afe00c3d1b5a9704abeb9",
+  "inquiry_lab/eat_ack_policy.py": "6274b5cb8fbf72417edcbb35c9dd16868924c6c8bd3267a73e5d90163ddbee22",
+  "inquiry_lab/experiment_ack.py": "7a98546ffcd9a0a61ac1f8c23328894b9083c00641f7fe7f5207bdabe1f630c2"
+ },
+ "development_report": "simulation_results/inquiry_lab_ack_development_20261021.json",
+ "development_report_sha256": "162f26cbfdf1e467e65fc84a5be783b0beabd4d0385235538c88ce3be176f4df",
+ "validation_seeds": {
+  "mix": [
+   970001,
+   970400
+  ],
+  "families": [
+   980001,
+   980002,
+   980003,
+   980004,
+   980005,
+   980006
+  ]
+ },
+ "selection_rule": "혼합 개발에서 EAT-C|on 중 J가 버튼 없는 EAT|off보다 낮고 실패가 EAT|off 이하이며 환자당 문의·검토 업무가 fixed_3|on 이하인 후보의 J 최소(동률이면 작은 κ). 없으면 검증 없이 미채택.",
+ "success_rule": "검증 혼합에서 ΔJ(EAT-C|on − EAT|off)의 시나리오 단위 부트스트랩 95% 구간 상한 < 0."
+}

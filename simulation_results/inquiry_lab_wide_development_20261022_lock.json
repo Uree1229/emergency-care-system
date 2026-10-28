@@ -1,0 +1,66 @@
+{
+ "schema_version": 1,
+ "experiment": "inquiry_lab_wide_20261022",
+ "selection": {
+  "policy": "eatw_k10_m4",
+  "proceed": true,
+  "feasible": [
+   "eatw_k8_m4",
+   "eatw_k10_m4",
+   "eatw_k10_m6"
+  ],
+  "mass_delta_J": -22.917894736842104,
+  "mix_delta_J": 1.4116985376827897
+ },
+ "source_sha256": {
+  "inquiry_lab/__init__.py": "4940232e21a312d8bb9e1c4ca9844ce83eee8bf28fa8cae9e13298780460e42b",
+  "inquiry_lab/eat_policy.py": "fc6a7e72dfaf8b632af0ab436baf30adeb0e6ec800262e29a69dd3064e8474ca",
+  "inquiry_lab/scenarios.py": "89ae0976af90599a8a40420dc46a08a20a5752b60f50a0ab743ec055e659548f",
+  "inquiry_lab/harness.py": "fde3b891c0011fba3ee5b92836fc82adecec3918aefef69eccf8b29585b6d32b",
+  "inquiry_lab/experiment.py": "fc951eb237725e07a1460fdb165ee2a9a122ac8b47dde8d20a9e2061f9c4f99b",
+  "server/inquiry_experiment.py": "14c2b7ca9d321b87169c39957b40f7420050bbea97b1d3e1efe95a2fc73e4e6a",
+  "server/inquiry_experiment_scenarios.py": "6ad4dc6d33a82ff9c47fa10c8b582a31d213ce3f480e810599d632d5ff26a606",
+  "server/inquiry_policies.py": "9150695c4bb251b0761b8fed848ddd13e49428eceafcd349f30d5b6088fcd36a",
+  "server/inquiry_v3.py": "25123a29fe0db39b3ccd122fe23844b3652295e324d8a89064346b4311f783d1",
+  "server/inquiry_v4.py": "23b6b223180922e4c50f3f80bcb5fe7615eba67adf2a9f7a3f6684ec8ae39765",
+  "server/inquiry_workflow.py": "952607d515d90d683b09e8c602720b7b2a15084bdbcce698c781f5bee1eb0fd0",
+  "server/inquiry_observations.py": "b931848eafa877be74b59f586af5dcc0b1524c0fbf9f138c8f29794ce7b6cec6",
+  "server/service.py": "d451a0dc2f3a8fd18f2ec5993ce7cf6c237b3bd75e90708cd4d460de3f82fd76",
+  "server/db.py": "d2807adcfe0cacbd40bcc8ac410c323ac93af05962d89ad7b36b1a1d184be69b",
+  "simulation/observed_inquiry.py": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+  "config/inquiry_v3_selected.json": "32f95b42baa9ea89cc78474b78a35742fa9534ba956ada5641d0b746a370082b",
+  "inquiry_lab/capacity_runner.py": "ddeb03e5e2f681447b0f4e7432368a52ec5ccd813e6754f2b721bbfcfc655abc",
+  "inquiry_lab/experiment_capacity.py": "971212835488f57cfc9cdc26e78de708a625ceea8ae05219f9255aa6107219a8",
+  "inquiry_lab/interrupt_runner.py": "5f2e534206ec7ead94e61143bbfd39ddd3cb93e549d6b0f844d70647fed66e3a",
+  "inquiry_lab/experiment_interrupt.py": "136c3a79e41f057397a22b5a2b8e9dd82915556cbe1c9b890bd996a59f0d58da",
+  "inquiry_lab/order_runner.py": "494173fe4f54e8949326ac838a84e9ca14c2cea864020843a31e964ce79fb2a5",
+  "inquiry_lab/experiment_order.py": "70756573779a1fcd8f5bc1e0b9bf0af19e377ec91d71636951c4104a73bdc36e",
+  "inquiry_lab/order2_runner.py": "cebd1e975a3176c0b29de931ed88902738c610a9317d8bf6a5cb21f7b45f4fb9",
+  "inquiry_lab/experiment_order2.py": "5405006c8174ece987770fcf64d1de668131479797c23749b9471465e1b3a20d",
+  "inquiry_lab/eat_wide_policy.py": "a15c73051a1e77a5ac3a47066f6e7d535852f5ba742b6168ddf5de996ac43ad8",
+  "inquiry_lab/mass_scenarios.py": "72304c1b38997a3318a80a8e8420351b3b8b7362ac767f9bb5cd74c406924307",
+  "inquiry_lab/experiment_wide.py": "3d6015f019c2314e3a2fa2533d37e9ac320596f166a7facb9748f7ef93eb8812"
+ },
+ "development_report": "simulation_results/inquiry_lab_wide_development_20261022.json",
+ "development_report_sha256": "b5426b0a831ba9e380be7469c0cc8751610cdf3556780b9f114a8597c0aea5bc",
+ "validation_seeds": {
+  "mix": [
+   1290001,
+   1290400
+  ],
+  "mass": [
+   1310001,
+   1310200
+  ],
+  "families": [
+   1330001,
+   1330002,
+   1330003,
+   1330004,
+   1330005,
+   1330006
+  ]
+ },
+ "selection_rule": "개발 base 환경: 혼합 ΔJ(후보 − EAT λ15) ≤ +2초인 EAT-W 중 다수 사상자 J 최소. 없으면 검증하지 않는다.",
+ "success_rule": "검증 base 환경: 다수 사상자 ΔJ(선택 − EAT λ15) 95% 구간 상한 < 0 이고 혼합 ΔJ 95% 구간 상한 < +5초이면 채택 후보."
+}

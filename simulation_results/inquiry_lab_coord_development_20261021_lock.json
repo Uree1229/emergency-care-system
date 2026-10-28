@@ -1,0 +1,47 @@
+{
+ "schema_version": 1,
+ "experiment": "inquiry_lab_coord_20261021",
+ "selection": {
+  "policy": null,
+  "adopted_for_validation": false,
+  "feasible": []
+ },
+ "source_sha256": {
+  "inquiry_lab/__init__.py": "4940232e21a312d8bb9e1c4ca9844ce83eee8bf28fa8cae9e13298780460e42b",
+  "inquiry_lab/eat_policy.py": "fc6a7e72dfaf8b632af0ab436baf30adeb0e6ec800262e29a69dd3064e8474ca",
+  "inquiry_lab/scenarios.py": "89ae0976af90599a8a40420dc46a08a20a5752b60f50a0ab743ec055e659548f",
+  "inquiry_lab/harness.py": "fde3b891c0011fba3ee5b92836fc82adecec3918aefef69eccf8b29585b6d32b",
+  "inquiry_lab/experiment.py": "fc951eb237725e07a1460fdb165ee2a9a122ac8b47dde8d20a9e2061f9c4f99b",
+  "server/inquiry_experiment.py": "14c2b7ca9d321b87169c39957b40f7420050bbea97b1d3e1efe95a2fc73e4e6a",
+  "server/inquiry_experiment_scenarios.py": "6ad4dc6d33a82ff9c47fa10c8b582a31d213ce3f480e810599d632d5ff26a606",
+  "server/inquiry_policies.py": "9150695c4bb251b0761b8fed848ddd13e49428eceafcd349f30d5b6088fcd36a",
+  "server/inquiry_v3.py": "25123a29fe0db39b3ccd122fe23844b3652295e324d8a89064346b4311f783d1",
+  "server/inquiry_v4.py": "23b6b223180922e4c50f3f80bcb5fe7615eba67adf2a9f7a3f6684ec8ae39765",
+  "server/inquiry_workflow.py": "952607d515d90d683b09e8c602720b7b2a15084bdbcce698c781f5bee1eb0fd0",
+  "server/inquiry_observations.py": "b931848eafa877be74b59f586af5dcc0b1524c0fbf9f138c8f29794ce7b6cec6",
+  "server/service.py": "d451a0dc2f3a8fd18f2ec5993ce7cf6c237b3bd75e90708cd4d460de3f82fd76",
+  "server/db.py": "d2807adcfe0cacbd40bcc8ac410c323ac93af05962d89ad7b36b1a1d184be69b",
+  "simulation/observed_inquiry.py": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+  "config/inquiry_v3_selected.json": "32f95b42baa9ea89cc78474b78a35742fa9534ba956ada5641d0b746a370082b",
+  "inquiry_lab/eat_coord_policy.py": "bf347798478487844c6cb0209b74aee645d0f27ad963a724b74ff8a17444f8fd",
+  "inquiry_lab/experiment_coord.py": "181647fe07d3f1be7128a93da50305544df70c8b2a1f9d38cc4a3704718ca9d0"
+ },
+ "development_report": "simulation_results/inquiry_lab_coord_development_20261021.json",
+ "development_report_sha256": "56cd62be2c5890436f6ab344bbbaface0f23b97399849a10870054feffcec862",
+ "validation_seeds": {
+  "mix": [
+   1090001,
+   1090400
+  ],
+  "families": [
+   1110001,
+   1110002,
+   1110003,
+   1110004,
+   1110005,
+   1110006
+  ]
+ },
+ "selection_rule": "혼합 개발에서 J가 EAT λ15보다 낮고 실패가 EAT λ15 이하이며 환자당 문의·검토 업무가 fixed_3 이하인 EAT-J의 J 최소(동률이면 큰 상한). 없으면 검증 없이 미채택.",
+ "success_rule": "검증 혼합에서 ΔJ(EAT-J − EAT λ15)의 시나리오 단위 부트스트랩 95% 구간 상한 < 0."
+}
