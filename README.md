@@ -2,21 +2,31 @@
 
 캡스톤 디자인 시연 프로젝트입니다. 환자·이송자가 필요한 진료 조건을 입력하면 후보 병원을 찾고, 병원에 환자별 수용 여부를 문의한 뒤 목적지 확정을 돕습니다. 이동 중 병원에 다른 환자가 유입되면 영향을 받는 예정 환자를 표시하고 병원 판단을 받아 조정할 수 있습니다.
 
-현재 데이터와 시나리오는 가상입니다. 실제 병원·119 시스템과 연결된 서비스가 아니며, 의료적 진단이나 이송 지시를 제공하지 않습니다.
+병원 기본·등록 정보와 공개 가용 관측은 공공 API에서 수집하고 있습니다. 환자·병원 운영 자원·응답·이송 시나리오는 가상이며, 실제 병원·119 운영 시스템과 연결된 서비스가 아닙니다. 의료적 진단이나 이송 지시를 제공하지 않습니다.
 
 ## 현재 구현
 
 | 구성 | 상태 | 위치 |
 |---|---|---|
 | 공통 JSON API와 SQLite 서버 | 문의·응답·이송, 백그라운드 배정, 결과 조회, 돌발 유입 재평가 | [`server/`](server/README.md), [`docs/API.md`](docs/API.md) |
+| 모바일·병원 연결 화면 | 공통 저장·문의·질문·수용·사람 확정·대화·조건 재확인·대체 목적지 변경·도착/퇴실 | [`통합 실행과 검증`](docs/UI_INTEGRATION.md), [`patient-ui/`](patient-ui/README.md), [`hospital-ui/`](hospital-ui/README.md) |
+| 팀원 원본 환자 앱 연결 | 등록·상태·초기 GPS·동의 전송 후 공통 이송 화면으로 연결 | [`945c413 연결과 검증`](docs/TEAM_PATIENT_CONNECTION_20261013.md), [`emergency-app/`](emergency-app/README.md) |
 | 배정 솔버 실험 | 환자 우선순위, 이동시간, 진료 자리·전문팀 용량, 계산시간 제한과 대체안 | [`solver_improved.py`](solver_improved.py) |
 | B0/B1 가상 비교 | 순차 문의와 병렬 문의·변경 알림 비교, 30개 seed와 민감도 분석 | [`simulation/`](simulation/run.py), [`simulation_results/summary.md`](simulation_results/summary.md) |
+| 지도 기반 이송 재생 | 실제 도로·119 출동·이송·전원, 총 21사례·82분기(도로 10개+합성 문의 실험 11개), 현재 상태·군별 대기 표시 | [`simulation/README.md`](simulation/README.md), [`RUN_MAP_SIMULATION.cmd`](RUN_MAP_SIMULATION.cmd) |
+| 실제 도로 입력 반복 비교 | 개발 seed 20개·4가지 다수 환자 조건·800개 정책 분기, 문의/선정/도착/미배정 비교 | [`실험 보고서`](simulation_results/map_comparison.md), [`실험 실행기`](simulation/replay_experiment.py) |
+| 문의 부하·조건 변경 검증 | FIFO 검토 대기열, 개발/검증 분리, 문의 규모·변경 알림·대기열 효과 672개 분기 비교 | [`검증 결과`](simulation_results/workload_validation.md), [`핸드오프`](docs/HANDOFF_20261011.md) |
+| 관측 응답 기반 문의 규모 | 고정 1/3/5곳·관측형 4후보, 신규 seed·8조건·1,312분기 검증, 현재 효과 미미 | [`관측형 검증`](simulation_results/adaptive_inquiry.md), [`실행기`](simulation/adaptive_experiment.py) |
+| 병원별 관측 문의 V2 | 새 16조건·2,624분기 비교, 고정1곳 대비 가상 치료 시작17.27→14.84분·문의량 유사, 높은 우선순위 미시작1명 증가 | [`병원별 관측 검증`](simulation_results/observed_inquiry.md), [`실행기`](simulation/observed_experiment.py) |
+| 우선순위 보호 정책 | 새 16조건·2,624분기 비교, V2 대비 높은 군 미시작 346→223명, 중간·낮은 군 합계 122명 증가. 전체 842→841명·문의 감소 없음 | [`검증 결과`](simulation_results/priority_protection_corrected.md), [`독립 감사`](simulation_results/priority_protection_corrected_audit.json) |
 | 단독 화면 프로토타입 | 문의·응답 흐름을 보여주는 정적 시연 | [`prototype/index.html`](prototype/index.html) |
 | 다양한 가상 데이터셋 | 배정 6,000건·이벤트 600건·서버 200건·경계조건 15건 | [`datasets/`](datasets/README.md) |
 
-병원 웹은 공통 서버에 연결되어 있습니다. 환자 웹의 독립 DB를 공통 API로 전환하는 작업은 남아 있습니다. 후보 목록은 문의할 병원을 찾는 규칙 기반 목록이고, 수용 응답 이후 배정안은 별도의 추천 API로 제공합니다. 실제 공공 API 응답 검증·연결, 실제 점유 종료시각 연계, B2 비교는 진행 과제입니다. 자세한 내용은 [현재 상태와 다음 작업](docs/PROJECT_STATUS.md)에 기록했습니다.
+모바일·병원 연결본은 같은 공통 서버와 DB를 사용합니다. `patient-ui/`에는 별도 환자 DB가 없습니다. 후보 목록은 문의할 병원을 찾는 규칙 기반 목록이고, 수용 응답 이후 배정안은 별도의 추천 API로 제공합니다. 공공 API의 실제 수집·치료조건 평가 연결은 완료한 범위가 있으며, 실제 점유 종료시각 연계와 B2 비교는 진행 과제입니다. 자세한 내용은 [현재 상태와 다음 작업](docs/PROJECT_STATUS.md)에 기록했습니다.
 
 ## 빠른 실행
+
+연결된 두 화면을 가상 데이터로 바로 실행하려면 `python -m server.chat_demo --db data/ui-integration-demo.db --port 18020`을 사용합니다. 같은 서버의 `/patient/`, `/hospital/?hid=H04`를 엽니다. 기존 DB를 초기화하지 않으며 [화면 역할과 실행](docs/UI_INTEGRATION.md)에 전체 흐름을 정리했습니다.
 
 Python 3.12 이상을 권장합니다. 저장소 루트에서 실행합니다. `--seed`는 기존 `data/demo.db`를 지우고 가상 데이터를 다시 생성하므로 시연용 DB에만 사용하세요.
 
@@ -56,6 +66,6 @@ py -3 -m venv .venv
 
 ## 데이터와 보안
 
-기본 병원·환자 정보는 모두 가상입니다. 공공 의료 API의 필드명과 실제 응답은 인증키로 아직 검증하지 않았습니다. API 키는 `.env`나 사용자 환경변수에만 보관하고 저장소에 올리지 않습니다. 로그인·병원별 접근 통제가 없는 상태이므로 실제 환자 정보를 입력하거나 인터넷에 공개 배포하지 않습니다.
+시연용 DB와 실제 공공 자료 DB를 구분합니다. 2026-10-11 기준 병원 34곳에 NMC·심평원 자료를 연결했으며, 상세한 제공·누락 범위는 [수집 결과](docs/research/API추가수집_치료조건판정연결_20261011.md)에 기록했습니다. 등록 시설·인력 수는 현재 환자의 수용 확답이 아닙니다. API 키는 `.env`나 사용자 환경변수에만 보관하고 저장소에 올리지 않습니다. 로그인·병원별 접근 통제가 없는 상태이므로 실제 환자 정보를 입력하거나 인터넷에 공개 배포하지 않습니다.
 
 문의에 대한 `ACCEPTED`는 환자별 수용 응답이고, 자원 점유는 목적지를 확정한 한 곳에만 반영됩니다. 신규 환자가 유입되어도 이동 중 환자의 목적지는 자동으로 바뀌지 않습니다. [API 명세](docs/API.md)에 상태와 예외 조건이 있습니다.
