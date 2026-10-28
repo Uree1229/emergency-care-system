@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "gyeonggi_south_chungnam",
+  "label": "경기 남부·충남 북부 실험 권역",
+  "origin_districts": [
+    {"region": "경기도", "district": "안성시"},
+    {"region": "경기도", "district": "평택시"}
+  ],
+  "candidate_districts": [
+    {"region": "경기도", "district": "안성시"},
+    {"region": "경기도", "district": "평택시"},
+    {"region": "경기도", "district": "오산시"},
+    {"region": "경기도", "district": "화성시"},
+    {"region": "경기도", "district": "용인시"},
+    {"region": "경기도", "district": "수원시"},
+    {"region": "충청남도", "district": "천안시"},
+    {"region": "충청남도", "district": "아산시"}
+  ],
+  "notes": [
+    "환자 발생 지역과 병원 후보 수집 범위는 서로 다르다.",
+    "이 권역은 실험 설정이며 실제 119의 관할·이송지침을 재현하지 않는다.",
+    "행정 경계를 넘어 조건에 맞는 후보를 탐색하는 비교를 위한 수집 범위다.",
+    "현재 공통 서버 솔버는 병원 32곳 제한이 있다. 전체 수집 DB를 바로 솔버에 입력하지 않는다.",
+    "등록 진료과·시설 및 공개 가용수는 환자별 수용 응답을 대신하지 않는다."
+  ]
+}

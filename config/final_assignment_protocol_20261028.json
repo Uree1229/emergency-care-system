@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "experiment_id": "final_assignment_20261028",
+  "question": "Under the same inquiry and exogenous environment, how do received-reply-order R0, shortest-travel R1, and current-offer joint H1 differ?",
+  "policies": [
+    {
+      "id": "R0",
+      "label": "회신순 · 현재 유효 수용 응답",
+      "rule": "R0",
+      "k": 3,
+      "wait": 2,
+      "notify": true
+    },
+    {
+      "id": "R1",
+      "label": "거리순 · 현재 유효 수용 응답",
+      "rule": "R1",
+      "k": 3,
+      "wait": 2,
+      "notify": true
+    },
+    {
+      "id": "H1",
+      "label": "H1 공동 배정 · 고정 2048회 탐색",
+      "rule": "H1",
+      "k": 3,
+      "wait": 2,
+      "notify": true,
+      "time_limit_seconds": 10.0,
+      "max_moves": 2048
+    }
+  ],
+  "primary_H1_budget": {
+    "max_moves": 2048,
+    "safety_seconds": 10,
+    "hardware_limit_hit_invalidates_case": true,
+    "previous_selected_50ms_version_reused_exactly": false
+  },
+  "inquiry": {
+    "k": 3,
+    "first_acceptance_extra_wait_minutes": 2,
+    "notify": true,
+    "nearest_candidate_ranking_and_retry_logic": "existing frozen replay engine shared across arms"
+  },
+  "simulation": {
+    "time_unit": "integer minute",
+    "current_resource_observation": "complete",
+    "future_information_to_assignment_rule": false,
+    "acceptance": "capabilities_and_current_resources",
+    "independent_Bernoulli_acceptance_override": false,
+    "queue_enabled_in_main": false,
+    "routing": "synthetic provider-free per-arm isolated copies",
+    "wall_time_added_to_simulated_arrival": false
+  },
+  "distribution": {
+    "version": "final_assignment_scenarios_20261028_v1",
+    "track": "main",
+    "strata": {
+      "routine_single": {
+        "patient_count": [
+          1,
+          1
+        ],
+        "arrival": "one occurrence"
+      },
+      "routine_stream": {
+        "patient_count": [
+          3,
+          8
+        ],
+        "arrival": "sequential independent gaps 2..8 minutes"
+      },
+      "surge": {
+        "patient_count": [
+          12,
+          20
+        ],
+        "arrival": "equal mixture of simultaneous or 2..4 waves with gaps 1..4 minutes"
+      }
+    },
+    "hospital_count_uniform_inclusive": [
+      5,
+      10
+    ],
+    "hospital_radial_offset_degrees_uniform": [
+      0.015,
+      0.11
+    ],
+    "hospital_angle_uniform_radians": [
+      -3.141592653589793,
+      3.141592653589793
+    ],
+    "hospital_ed_bed_uniform_inclusive": [
+      1,
+      6
+    ],
+    "hospital_special_team_uniform_inclusive": [
+      0,
+      3
+    ],
+    "hospital_specialty_independent_probability": 0.6,
+    "patient_specialty_required_probability": 0.6,
+    "patient_special_team_required_probability": 0.3,
+    "patient_priority_values": [
+      4,
+      2,
+      1
+    ],
+    "patient_priority_probabilities": [
+      0.25,
+      0.45,
+      0.3
+    ],
+    "patient_location_offset_degrees_uniform": [
+      -0.012,
+      0.012
+    ],
+    "scenario_initial_resource_occupancy_probability_uniform": [
+      0.2,
+      0.7
+    ],
+    "initial_occupancy_release_minutes_uniform_inclusive": [
+      5,
+      90
+    ],
+    "patient_resource_holding_minutes_uniform_inclusive": [
+      15,
+      60
+    ],
+    "response_silence_probability": 0.2,
+    "response_delay_minutes_uniform_inclusive": [
+      1,
+      5
+    ],
+    "precomputed_attempts_per_pair": 64,
+    "response_attempts_after_last": "repeat last precomputed attempt, as in existing replay contract",
+    "acceptance_rule": "existing Hospital.can_accept(capabilities,current free resources); no probabilistic accept override",
+    "inquiry_queue_enabled": false,
+    "main_capacity_outages_or_external_arrivals": false,
+    "observation_minutes": 180,
+    "simulation_time_resolution": "integer minute",
+    "common_inquiry_settings": {
+      "k": 3,
+      "wait": 2,
+      "notify": true
+    },
+    "clinical_and_region_representativeness_claimed": false
+  },
+  "strata": [
+    "routine_single",
+    "routine_stream",
+    "surge"
+  ],
+  "seed_namespaces": {
+    "development": "final_assignment_20261028_dev",
+    "validation": "final_assignment_20261028_validation",
+    "unit": "final_assignment_20261028_unit"
+  },
+  "development": {
+    "main_seeds_per_stratum": 30,
+    "stress_seeds": 2,
+    "main_cases": 90,
+    "stress_cases": 18
+  },
+  "validation": {
+    "main_seeds_per_stratum": 100,
+    "stress_seeds": 5,
+    "main_cases": 300,
+    "stress_cases": 45
+  },
+  "primary_metric": "equal_scenario_mean_unassigned_priority_fraction_within_each_main_stratum",
+  "priority_weights": [
+    4,
+    2,
+    1
+  ],
+  "priority_weights_are_clinical_standards": false,
+  "secondary_metrics": [
+    "unassigned_count",
+    "not_arrived_count",
+    "arrival_capped_mean_minutes",
+    "arrival_capped_p95_minutes",
+    "conditional_arrival_mean_and_p95_with_denominator",
+    "shared_patient_arrival_difference_mean_p95_maximum",
+    "lost_and_gained_selected_and_arrived_identifiers",
+    "inquiries_and_inquiries_per_patient",
+    "allocation_wall_p95_and_maximum_ms"
+  ],
+  "failure_handling": "Missing endpoint is censored at scenario observation end minus that patient origin; never dropped from capped means.",
+  "inference": {
+    "unit": "paired whole scenario, preserving patient clustering",
+    "bootstrap_samples": 5000,
+    "resampling": "with replacement, deterministic stratum and baseline keyed seed",
+    "descriptive_confidence": 0.95,
+    "primary_comparisons": 6,
+    "primary_familywise_adjustment": "Bonferroni6: two-sided confidence 1-0.05/6",
+    "primary_benefit": "adjusted upper bound of H1 minus baseline unassigned-priority fraction below zero",
+    "response_to_arrival_tradeoff": "report explicitly; do not claim every patient improves",
+    "stress_confidence_intervals": false,
+    "main_strata_pooled_as_realworld_population": false,
+    "validation_results_may_change_parameters": false,
+    "technical_pass_independent_of_efficacy": true
+  },
+  "development_purpose": "Check execution/audit/data contracts only; no tuning of H1, scenarios or efficacy thresholds from observed outcomes.",
+  "validation_unlock": "Same frozen sources/protocol/runtime, complete development with zero technical audit failures; development efficacy is not an unlock condition.",
+  "protected_scope": {
+    "existing_sources_and_results_immutable": true,
+    "operational_default": "fixed_3",
+    "live_server_or_team_UI_changed": false,
+    "real_hospital_or_clinical_effect_claimed": false,
+    "whole_episode_optimality_claimed": false
+  },
+  "raw_recording": "Each complete three-arm replay stored exclusively as canonical JSON gzip before independent audit; failed raws retained; no selective retries or dropped outcomes."
+}

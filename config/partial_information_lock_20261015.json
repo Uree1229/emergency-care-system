@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "kind": "partial_information_lock",
+  "experiment_id": "partial_information_20261015",
+  "families": [
+    "fresh_control",
+    "missing_recheck",
+    "missing_unresolved",
+    "stale_shortage_recovery",
+    "delayed_optimistic_change",
+    "delayed_pessimistic_recovery",
+    "partial_team_missing",
+    "out_of_order"
+  ],
+  "settings": {
+    "policies": [
+      {
+        "id": "perfect_R1",
+        "label": "perfect · 이동시간 우선 · 순차",
+        "rule": "R1",
+        "k": 3,
+        "wait": 2,
+        "notify": true,
+        "mode": "perfect"
+      },
+      {
+        "id": "perfect_H1",
+        "label": "perfect · 공동 배정 · H1 휴리스틱",
+        "rule": "H1",
+        "k": 3,
+        "wait": 2,
+        "notify": true,
+        "time_limit_seconds": 0.05,
+        "max_moves": 2048,
+        "mode": "perfect"
+      },
+      {
+        "id": "perfect_C1",
+        "label": "perfect · 공동 배정 · CP-SAT",
+        "rule": "C1",
+        "k": 3,
+        "wait": 2,
+        "notify": true,
+        "time_limit_seconds": 0.05,
+        "seed": 0,
+        "require_backend": true,
+        "mode": "perfect"
+      },
+      {
+        "id": "observed_R1",
+        "label": "observed · 이동시간 우선 · 순차",
+        "rule": "R1",
+        "k": 3,
+        "wait": 2,
+        "notify": true,
+        "mode": "observed"
+      },
+      {
+        "id": "observed_H1",
+        "label": "observed · 공동 배정 · H1 휴리스틱",
+        "rule": "H1",
+        "k": 3,
+        "wait": 2,
+        "notify": true,
+        "time_limit_seconds": 0.05,
+        "max_moves": 2048,
+        "mode": "observed"
+      },
+      {
+        "id": "observed_C1",
+        "label": "observed · 공동 배정 · CP-SAT",
+        "rule": "C1",
+        "k": 3,
+        "wait": 2,
+        "notify": true,
+        "time_limit_seconds": 0.05,
+        "seed": 0,
+        "require_backend": true,
+        "mode": "observed"
+      }
+    ],
+    "stale_after_minutes": 10,
+    "inquiry_policy": "fixed_3_first_acceptance_extra_wait_2_minutes",
+    "observation_scope": "hospital capacity/used reports; current server commitments and queues remain known",
+    "freshness_clock": "time since source observation, not since network receipt",
+    "confirmation_contract": "explicit synthetic resource response; patient acceptance does not update quantities",
+    "transient_shortage_retry_minutes": 1,
+    "execution_order": "rotate six branches by seed index plus family index; canonical output order",
+    "routing": "synthetic coordinates/travel; no API",
+    "simulation_unit": "integer minute",
+    "compute_time": "measured separately, not added to simulation clock",
+    "tuning": "none"
+  },
+  "development_seeds": [
+    17101,
+    17102,
+    17103
+  ],
+  "validation_seeds": [
+    18101,
+    18102,
+    18103,
+    18104,
+    18105,
+    18106
+  ],
+  "runtime_versions": {
+    "python": "3.12.14",
+    "ortools": "9.15.6755"
+  },
+  "source_sha256": {
+    "config/heuristic_assignment_selected_20261014.json": "310d7c36de6689f9a253f7d1be2e653c254c7d85b8df1112a602404850f2ce3c",
+    "server/synthetic.py": "0462f0b34a4b8b63da4c0352c1b45bed901711e0aa5a1d930fb7231ffd15d495",
+    "server/travel.py": "275131418aa6e17dbd797d609731cf0d6eff235d7fd160c0046f135082d5b136",
+    "simulation/adaptive_inquiry.py": "081a76896f605bf14c156ebd54497955cb8a4eba2995105ef96b963122014b53",
+    "simulation/cp_sat_assignment.py": "27766df93991862727a1726ff8a29d41d1aabd3fb30b7dc06015b675c9a1c443",
+    "simulation/h1_online_audit.py": "dbfc20a4fa853a057326ce7c55b5ecc8641cbc8aff710356566064a55b917450",
+    "simulation/h1_online_engine.py": "30a4f59402b394a0cf5338d47e5a4b8436b77dbe957b4c2a5d8b1ec6e04eac8b",
+    "simulation/h1_online_experiment.py": "a3739aa0459c714c925a34cbfab70bc9890183fe0c710342fbf734dd1f95cb80",
+    "simulation/heuristic_assignment.py": "17ace2f204915695d13a7f69a2dca61236f0c25e80c79030ac294e261c1dcfcb",
+    "simulation/information_observations.py": "a93a6bd0d77b9658fb7fc525da0c4bc5aa5098575f34cdf207f76402601d272f",
+    "simulation/inquiry_queue.py": "ad7d5724ca99333ad5256161c947269a54c0af28dd9391b8dd15001a869c5946",
+    "simulation/map_replay.py": "007b6b062497f379b60f3a2566c19afa4146533db952497da4d005a717c4f040",
+    "simulation/observed_inquiry.py": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+    "simulation/online_allocation_audit.py": "120fac98382e8cd68f011e168ad0fd5ead0c03b8ce8f5abcaea2b1b909bad17d",
+    "simulation/online_allocation_engine.py": "2c5c55a3fcd20222ba8fba7e3868dbd9a7cbd0f24800afd52d54d5efd1abb8bf",
+    "simulation/online_allocation_experiment.py": "075364344a2a966411e48dd14384bcf704ac670449196d5386c8c59056c18c8a",
+    "simulation/online_allocation_scenarios.py": "904f7ce986fe8ad9255da34e764bd3c2a594329377a481141bc0d23eba80d7ef",
+    "simulation/partial_information_audit.py": "17a1ef917baf99bf3334b509ddea3e6d4bbf1130b1dfa3056987e8c8d8f23105",
+    "simulation/partial_information_engine.py": "43cd88cc0118b23a452060d0d723f48b667ba02c098774f1b8caf8bdf5cc8c2a",
+    "simulation/partial_information_experiment.py": "ad70a97b8dcb750a86cf473401d188d1e78c434c98009cab7216acbae59c0dec",
+    "simulation/partial_information_scenarios.py": "a4e0606abd767018c9871a87fed3e830b7862568a5c28fe449f4b009628c9735",
+    "simulation/priority_assignment.py": "2316e74bf3c3be307e66f9616493e9ded1979600aece3656895a3dab73bb1b60",
+    "simulation/road_routes.py": "9d6bfcc335d04f0d359f46dbd8496b607fe5921527624cbc655313835b5013f3",
+    "simulation/sim.py": "313c8d415c6df492a5a9c6edbc3013cc9d3030901a5dbf0a8bb5d9959ee31078"
+  }
+}

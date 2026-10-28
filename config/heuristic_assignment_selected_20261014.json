@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "heuristic_assignment_development_selection",
+  "algorithm": "H1",
+  "class": "simulation.heuristic_assignment.HeuristicAssignmentRule",
+  "parameters": {"time_limit_seconds": 0.05, "max_moves": 2048},
+  "selection_scope": "development_only_before_validation",
+  "development_seeds": [12101, 12102],
+  "selection_rule": "At 0.05 seconds, minimize total unassigned priority weight, then total priority weighted travel; prefer 256 moves if both tie.",
+  "selection_record": "simulation_results/allocation_stress_moves_comparison_20261014.json",
+  "objective": ["unassigned_priority_weight", "priority_weighted_travel_minutes"],
+  "budget_scope": "Cooperative optional search after current snapshot and safe greedy baseline; observable total wall time is reported separately.",
+  "deployment": "experimental_batch_rule_only_not_enabled_in_operational_server_or_map_viewer",
+  "notes": [
+    "Pass the parameters explicitly; the class retains its conservative 256-move constructor default.",
+    "The result is a feasible heuristic and does not prove optimality.",
+    "Any later algorithm tuning requires new development and unused validation seeds."
+  ]
+}

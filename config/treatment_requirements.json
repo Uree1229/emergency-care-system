@@ -1,0 +1,671 @@
+{
+  "schema_version": 1,
+  "catalog_date": "2026-10-11",
+  "catalog_status": "experimental_not_clinically_validated",
+  "purpose": "환자별 병원 탐색과 배정 알고리즘을 비교하기 위한 치료조건 묶음",
+  "scope": {
+    "patient_origin_cities": [
+      "안성시",
+      "평택시"
+    ],
+    "hospital_candidate_cities": [
+      "안성시",
+      "평택시",
+      "오산시",
+      "화성시",
+      "용인시",
+      "수원시",
+      "천안시",
+      "아산시"
+    ],
+    "clinical_diagnosis": false,
+    "automatic_symptom_to_profile_matching": false,
+    "profile_assignment": "실험 시나리오 작성자 또는 환자를 평가한 의료진이 조건을 지정",
+    "clinical_priority_or_deadline_defaults": false
+  },
+  "matching_policy": {
+    "evidence_states": [
+      "supported",
+      "confirmed_unmet",
+      "verification_required"
+    ],
+    "public_data_can_confirm_patient_acceptance": false,
+    "department_registration_implies_current_staff": false,
+    "facility_count_implies_available_capacity": false,
+    "missing_field_implies_unavailable": false,
+    "stale_observation_implies_unavailable": false,
+    "public_zero_implies_permanent_exclusion": false,
+    "exclude_when": "해당 환자에게 필요한 조건이 충족되지 않는다고 병원이 현재 확인한 경우 또는 실험 시나리오의 명시적 불가 상태",
+    "unknown_action": "후보를 유지하되 확인 필요 항목과 출처 시각을 표시",
+    "commit_requires": [
+      "현재 환자 정보에 대응하는 병원의 유효한 수용 응답",
+      "담당 의료진과 이송자의 판단"
+    ],
+    "operational_resource_projection": "공공 관측값을 capacity/occupied 또는 환자별 예약 자원으로 자동 변환하지 않음",
+    "evidence_field_ids_semantics": "참고 가능한 공개 필드의 목록이다. 필드 ID를 열거했다고 그 필드가 모두 필수조건이 되는 것은 아니다.",
+    "equipment_semantics": "profiles[].equipment만 기본 프로필의 필수 장비 관측 비교 대상이며 optional_equipment는 필요가 명시된 환자에 한해 추가한다.",
+    "evaluator_statuses": [
+      "MATCH",
+      "EXCLUDED",
+      "NEEDS_CONFIRMATION"
+    ],
+    "evaluator_match_means": "요청한 공개 근거 항목의 일치이며 환자별 수용 확정이 아니다."
+  },
+  "capability_dictionary": [
+    {
+      "id": "응급의학",
+      "registered_department_names": [
+        "응급의학과"
+      ],
+      "evidence_only": true
+    },
+    {
+      "id": "정형외과",
+      "registered_department_names": [
+        "정형외과"
+      ],
+      "evidence_only": true
+    },
+    {
+      "id": "심장내과",
+      "registered_department_names": [
+        "심장내과",
+        "순환기내과"
+      ],
+      "evidence_only": true,
+      "non_equivalent_department_names": [
+        "내과"
+      ]
+    },
+    {
+      "id": "신경외과",
+      "registered_department_names": [
+        "신경외과"
+      ],
+      "evidence_only": true,
+      "non_equivalent_department_names": [
+        "신경과"
+      ]
+    },
+    {
+      "id": "소아청소년과",
+      "registered_department_names": [
+        "소아청소년과"
+      ],
+      "evidence_only": true,
+      "does_not_imply": [
+        "신생아 집중치료",
+        "모든 연령·체중 수용"
+      ]
+    },
+    {
+      "id": "산부인과",
+      "registered_department_names": [
+        "산부인과"
+      ],
+      "evidence_only": true,
+      "does_not_imply": [
+        "고위험 분만",
+        "응급 제왕절개",
+        "신생아 집중치료"
+      ]
+    }
+  ],
+  "resource_dictionary": [
+    {
+      "id": "ed_bed",
+      "label": "응급실 진료 자리",
+      "current_solver_supported": true,
+      "quantity_semantics": "실험용 동시 처리 단위",
+      "public_count_field": "hvec"
+    },
+    {
+      "id": "special_team",
+      "label": "전문팀 집계 단위",
+      "current_solver_supported": true,
+      "quantity_semantics": "가상 실험용 집계값이며 진료과별 실제 전문의·마취과·간호인력을 대신하지 않음",
+      "public_count_field": null
+    },
+    {
+      "id": "operating_room",
+      "label": "수술실",
+      "current_solver_supported": false,
+      "public_count_field": "hvoc",
+      "facility_field": "hpopyn"
+    },
+    {
+      "id": "icu_bed",
+      "label": "일반 중환자실 자리",
+      "current_solver_supported": false,
+      "public_count_field": "hvicc",
+      "facility_field": "hpicuyn"
+    },
+    {
+      "id": "nicu_bed",
+      "label": "신생아 중환자실 자리",
+      "current_solver_supported": false,
+      "public_count_field": "hvncc",
+      "facility_field": "hpnicuyn"
+    },
+    {
+      "id": "delivery_room",
+      "label": "분만실",
+      "current_solver_supported": false,
+      "public_count_field": "hv42",
+      "value_caution": "최신 가이드 표는 수량이나 예제에는 Y가 있음. 비수치 값은 원문과 미확인 상태로 보존"
+    }
+  ],
+  "evidence_fields": [
+    {
+      "id": "departments",
+      "operation": "getEgytBassInfoInqire",
+      "field": "dgidIdName",
+      "meaning": "등록 진료과목 이름",
+      "evidence_kind": "registered_department",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "emergency_operation",
+      "operation": "getEgytBassInfoInqire",
+      "field": "dutyEryn",
+      "meaning": "응급실 운영 여부(가이드 표기 1/2)",
+      "evidence_kind": "registered_operation",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "ed_facility",
+      "operation": "getEgytBassInfoInqire",
+      "field": "hperyn",
+      "meaning": "응급실 시설 수",
+      "evidence_kind": "facility_count",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "or_facility",
+      "operation": "getEgytBassInfoInqire",
+      "field": "hpopyn",
+      "meaning": "수술실 시설 수",
+      "evidence_kind": "facility_count",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "icu_facility",
+      "operation": "getEgytBassInfoInqire",
+      "field": "hpicuyn",
+      "meaning": "일반중환자실 시설 수",
+      "evidence_kind": "facility_count",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "nicu_facility",
+      "operation": "getEgytBassInfoInqire",
+      "field": "hpnicuyn",
+      "meaning": "신생아중환자실 시설 수",
+      "evidence_kind": "facility_count",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "ed_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvec",
+      "meaning": "일반 응급실 공개 가용수",
+      "evidence_kind": "public_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false
+    },
+    {
+      "id": "or_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvoc",
+      "meaning": "수술실 공개 가용수",
+      "evidence_kind": "public_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false
+    },
+    {
+      "id": "icu_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvicc",
+      "meaning": "일반 중환자실 공개 가용수",
+      "evidence_kind": "public_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false
+    },
+    {
+      "id": "nicu_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvncc",
+      "meaning": "신생아 중환자실 공개 가용수",
+      "evidence_kind": "public_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false
+    },
+    {
+      "id": "delivery_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hv42",
+      "meaning": "분만실 공개 관측",
+      "evidence_kind": "public_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false
+    },
+    {
+      "id": "ct_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvctayn",
+      "meaning": "CT 가용 표시",
+      "evidence_kind": "public_equipment_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false,
+      "normalized_equipment_key": "ct"
+    },
+    {
+      "id": "mri_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvmriayn",
+      "meaning": "MRI 가용 표시",
+      "evidence_kind": "public_equipment_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false,
+      "normalized_equipment_key": "mri"
+    },
+    {
+      "id": "angiography_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvangioayn",
+      "meaning": "혈관촬영기 가용 표시",
+      "evidence_kind": "public_equipment_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false,
+      "normalized_equipment_key": "angiography"
+    },
+    {
+      "id": "premature_ventilator_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvventisoayn",
+      "meaning": "조산아 인공호흡기 가용 표시",
+      "evidence_kind": "public_equipment_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false,
+      "normalized_equipment_key": "neonatal_ventilator"
+    },
+    {
+      "id": "incubator_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvincuayn",
+      "meaning": "인큐베이터 가용 표시",
+      "evidence_kind": "public_equipment_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false,
+      "normalized_equipment_key": "incubator"
+    },
+    {
+      "id": "ventilator_available",
+      "operation": "getEmrrmRltmUsefulSckbdInfoInqire",
+      "field": "hvventiayn",
+      "meaning": "인공호흡기 가용 표시",
+      "evidence_kind": "public_equipment_observation",
+      "observation_time_field": "hvidate",
+      "can_confirm_patient_acceptance": false,
+      "normalized_equipment_key": "ventilator"
+    },
+    {
+      "id": "neuro_icu_facility",
+      "operation": "getEgytBassInfoInqire",
+      "field": "hpcuyn",
+      "meaning": "신경중환자실 시설 수",
+      "evidence_kind": "facility_count",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "thoracic_icu_facility",
+      "operation": "getEgytBassInfoInqire",
+      "field": "hpccuyn",
+      "meaning": "흉부중환자실 시설 수",
+      "evidence_kind": "facility_count",
+      "can_confirm_current_availability": false
+    },
+    {
+      "id": "inpatient_facility",
+      "operation": "getEgytBassInfoInqire",
+      "field": "hpgryn",
+      "meaning": "입원실 시설 수",
+      "evidence_kind": "facility_count",
+      "can_confirm_current_availability": false
+    }
+  ],
+  "profiles": [
+    {
+      "id": "TR_GENERAL_ED",
+      "label": "일반 응급 평가 시나리오",
+      "requirement_source": "synthetic_scenario",
+      "required_capabilities": [
+        "응급의학"
+      ],
+      "resource_demands": {
+        "ed_bed": 1
+      },
+      "extended_resource_demands": {},
+      "required_services": [],
+      "evidence_field_ids": [
+        "departments",
+        "emergency_operation",
+        "ed_facility",
+        "ed_available"
+      ],
+      "human_confirmation": [
+        "현재 환자의 증상·활력징후·필요 처치에 대한 수용 가능 여부"
+      ],
+      "current_solver_scope": "basic_resource_model",
+      "notes": [
+        "중증도가 낮다는 뜻이 아니며 증상만으로 이 프로필을 자동 선택하지 않음",
+        "1자리는 실험 수요 단위"
+      ],
+      "department_evidence": {
+        "match_mode": "all_capabilities_exact_name",
+        "source_field": "dgidIdName",
+        "groups": [
+          {
+            "capability": "응급의학",
+            "any_of_exact_names": [
+              "응급의학과"
+            ]
+          }
+        ],
+        "match_confirms": "registered_department_only",
+        "no_match_action": "verification_required"
+      },
+      "required_services_confirmation": "not_applicable",
+      "equipment": [],
+      "equipment_requirement_source": "none_in_baseline_profile"
+    },
+    {
+      "id": "TR_ORTHOPEDIC",
+      "label": "정형외과 평가 시나리오",
+      "requirement_source": "synthetic_scenario",
+      "required_capabilities": [
+        "정형외과"
+      ],
+      "resource_demands": {
+        "ed_bed": 1,
+        "special_team": 1
+      },
+      "extended_resource_demands": {},
+      "required_services": [],
+      "evidence_field_ids": [
+        "departments",
+        "ed_available"
+      ],
+      "human_confirmation": [
+        "환자 손상 형태에 필요한 정형외과 담당자·검사·처치 가능 여부",
+        "수술이 필요하면 수술팀·마취·수술실 조건을 별도 추가"
+      ],
+      "current_solver_scope": "basic_resource_model",
+      "notes": [
+        "모든 골절 환자가 전문팀 1단위를 필요로 한다는 임상 주장이 아님",
+        "단순 정형외과 등록으로 사지접합 수술 가능성을 추론하지 않음"
+      ],
+      "department_evidence": {
+        "match_mode": "all_capabilities_exact_name",
+        "source_field": "dgidIdName",
+        "groups": [
+          {
+            "capability": "정형외과",
+            "any_of_exact_names": [
+              "정형외과"
+            ]
+          }
+        ],
+        "match_confirms": "registered_department_only",
+        "no_match_action": "verification_required"
+      },
+      "required_services_confirmation": "not_applicable",
+      "equipment": [],
+      "equipment_requirement_source": "none_in_baseline_profile"
+    },
+    {
+      "id": "TR_CARDIAC_INTERVENTION",
+      "label": "심장 중재시술 필요 시나리오",
+      "requirement_source": "synthetic_scenario",
+      "required_capabilities": [
+        "심장내과"
+      ],
+      "resource_demands": {
+        "ed_bed": 1,
+        "special_team": 1
+      },
+      "extended_resource_demands": {},
+      "required_services": [
+        "coronary_reperfusion_intervention"
+      ],
+      "evidence_field_ids": [
+        "departments",
+        "ed_available",
+        "angiography_available"
+      ],
+      "human_confirmation": [
+        "해당 환자에게 필요한 중재시술을 수행할 전문팀과 시설의 현재 가용성",
+        "시술 후 치료 장소와 추가 자원"
+      ],
+      "current_solver_scope": "procedure_condition_extension_required",
+      "notes": [
+        "흉통만으로 중재시술 필요를 판단하지 않음",
+        "dgidIdName의 내과 등록은 심장내과·중재시술 역량을 증명하지 않음",
+        "혈관촬영기 가용 표시만으로 시술팀 가용성을 확인할 수 없음",
+        "equipment 목록은 이 가상 시나리오에 명시적으로 부여한 필수 장비 관측 조건이며, 모든 유사 질환 환자의 표준 치료조건이 아님"
+      ],
+      "department_evidence": {
+        "match_mode": "all_capabilities_exact_name",
+        "source_field": "dgidIdName",
+        "groups": [
+          {
+            "capability": "심장내과",
+            "any_of_exact_names": [
+              "심장내과",
+              "순환기내과"
+            ]
+          }
+        ],
+        "match_confirms": "registered_department_only",
+        "no_match_action": "verification_required"
+      },
+      "required_services_confirmation": "human_confirmation_required",
+      "equipment": [
+        "angiography"
+      ],
+      "equipment_requirement_source": "synthetic_scenario"
+    },
+    {
+      "id": "TR_NEUROSURGICAL",
+      "label": "뇌신경 응급수술·중환자 치료 시나리오",
+      "requirement_source": "synthetic_scenario",
+      "required_capabilities": [
+        "신경외과"
+      ],
+      "resource_demands": {
+        "ed_bed": 1,
+        "special_team": 1
+      },
+      "extended_resource_demands": {
+        "operating_room": 1,
+        "icu_bed": 1
+      },
+      "required_services": [
+        "neurosurgical_emergency_operation",
+        "ct_imaging"
+      ],
+      "evidence_field_ids": [
+        "departments",
+        "ed_available",
+        "or_facility",
+        "or_available",
+        "icu_facility",
+        "icu_available",
+        "ct_available"
+      ],
+      "human_confirmation": [
+        "환자에게 필요한 수술·영상검사·마취·중환자 치료의 현재 가능 여부",
+        "일반 중환자실로 충분한지 또는 다른 전문 중환자 자원이 필요한지"
+      ],
+      "current_solver_scope": "extended_resource_and_procedure_model_required",
+      "notes": [
+        "모든 두통·뇌졸중 환자의 필수조건을 정의하는 것이 아님",
+        "수술·ICU 수요는 이 가상 시나리오에 명시적으로 부여한 조건",
+        "신경과와 신경외과를 같은 역량으로 취급하지 않음",
+        "equipment 목록은 이 가상 시나리오에 명시적으로 부여한 필수 장비 관측 조건이며, 모든 유사 질환 환자의 표준 치료조건이 아님"
+      ],
+      "department_evidence": {
+        "match_mode": "all_capabilities_exact_name",
+        "source_field": "dgidIdName",
+        "groups": [
+          {
+            "capability": "신경외과",
+            "any_of_exact_names": [
+              "신경외과"
+            ]
+          }
+        ],
+        "match_confirms": "registered_department_only",
+        "no_match_action": "verification_required"
+      },
+      "required_services_confirmation": "human_confirmation_required",
+      "equipment": [
+        "ct"
+      ],
+      "equipment_requirement_source": "synthetic_scenario"
+    },
+    {
+      "id": "TR_PEDIATRIC",
+      "label": "소아 응급 평가 시나리오",
+      "requirement_source": "synthetic_scenario",
+      "required_capabilities": [
+        "소아청소년과"
+      ],
+      "resource_demands": {
+        "ed_bed": 1,
+        "special_team": 1
+      },
+      "extended_resource_demands": {},
+      "required_services": [],
+      "evidence_field_ids": [
+        "departments",
+        "ed_available"
+      ],
+      "human_confirmation": [
+        "환자의 연령·체중·상태에 대응할 소아 진료 담당자와 처치 가능 여부",
+        "필요 시 소아 중환자실·호흡 지원 등 추가 조건"
+      ],
+      "current_solver_scope": "basic_resource_model",
+      "notes": [
+        "소아청소년과 등록은 신생아·소아 중환자 치료 수용 확답이 아님",
+        "프로필에 포함되지 않은 연령 제한과 자원은 환자별 조건으로 추가"
+      ],
+      "department_evidence": {
+        "match_mode": "all_capabilities_exact_name",
+        "source_field": "dgidIdName",
+        "groups": [
+          {
+            "capability": "소아청소년과",
+            "any_of_exact_names": [
+              "소아청소년과"
+            ]
+          }
+        ],
+        "match_confirms": "registered_department_only",
+        "no_match_action": "verification_required"
+      },
+      "required_services_confirmation": "not_applicable",
+      "equipment": [],
+      "equipment_requirement_source": "none_in_baseline_profile"
+    },
+    {
+      "id": "TR_HIGH_RISK_BIRTH_NEONATAL",
+      "label": "고위험 분만과 신생아 집중치료 동시 필요 시나리오",
+      "requirement_source": "synthetic_scenario",
+      "required_capabilities": [
+        "산부인과",
+        "소아청소년과"
+      ],
+      "resource_demands": {
+        "ed_bed": 1,
+        "special_team": 1
+      },
+      "extended_resource_demands": {
+        "delivery_room": 1,
+        "nicu_bed": 1
+      },
+      "required_services": [
+        "high_risk_delivery",
+        "neonatal_intensive_care"
+      ],
+      "evidence_field_ids": [
+        "departments",
+        "ed_available",
+        "nicu_facility",
+        "nicu_available",
+        "delivery_available",
+        "incubator_available",
+        "premature_ventilator_available"
+      ],
+      "human_confirmation": [
+        "재태주수·태아 수·산모 상태에 맞는 분만 수용 가능 여부",
+        "신생아의 예상 상태에 맞는 집중치료팀·병상·장비 가용성",
+        "수술이 필요하면 산과 수술·마취팀·수술실 가용성",
+        "산모와 신생아 조건을 같은 병원에서 동시에 충족하는지"
+      ],
+      "current_solver_scope": "extended_resource_and_procedure_model_required",
+      "notes": [
+        "기사 사례를 재현하거나 결과를 예측하는 임상 모델이 아님",
+        "NICU 1자리는 단태아를 가정한 실험 수요이며 다태아 등은 별도 설정",
+        "산부인과+소아청소년과 등록만으로 고위험 분만·NICU 운영을 확인할 수 없음",
+        "공개 필드 결측을 이유로 적합 후보를 단정적으로 배제하지 않음",
+        "incubator와 neonatal_ventilator는 참고·선택 조건이다. 기본 프로필에서는 자동 필수 장비로 검사하지 않음"
+      ],
+      "department_evidence": {
+        "match_mode": "all_capabilities_exact_name",
+        "source_field": "dgidIdName",
+        "groups": [
+          {
+            "capability": "산부인과",
+            "any_of_exact_names": [
+              "산부인과"
+            ]
+          },
+          {
+            "capability": "소아청소년과",
+            "any_of_exact_names": [
+              "소아청소년과"
+            ]
+          }
+        ],
+        "match_confirms": "registered_department_only",
+        "no_match_action": "verification_required"
+      },
+      "required_services_confirmation": "human_confirmation_required",
+      "equipment": [],
+      "equipment_requirement_source": "none_in_baseline_profile",
+      "optional_equipment": [
+        "incubator",
+        "neonatal_ventilator"
+      ],
+      "optional_equipment_policy": "기본 프로필의 일괄 필수조건이 아니다. 가상 환자 시나리오나 의료진 확인으로 필요가 지정된 장비만 equipment에 명시적으로 추가한다."
+    }
+  ],
+  "source_documents": [
+    {
+      "title": "국립중앙의료원 전국 응급의료기관 정보 조회 서비스",
+      "url": "https://www.data.go.kr/data/15000563/openapi.do",
+      "checked_on": "2026-10-11"
+    },
+    {
+      "title": "NIA-IFT-OpenAPI활용가이드-01.국립중앙의료원-응급의료정보조회서비스_V13.hwp",
+      "revision_date": "2026-08-27",
+      "location": "공공데이터포털 15000563 참고문서",
+      "checked_on": "2026-10-11",
+      "relevant_operations": [
+        "getEgytBassInfoInqire",
+        "getEmrrmRltmUsefulSckbdInfoInqire"
+      ]
+    }
+  ]
+}

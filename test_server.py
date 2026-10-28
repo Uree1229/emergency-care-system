@@ -6,6 +6,7 @@ import json
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
@@ -336,6 +337,38 @@ class Scenario(unittest.TestCase):
 
 
 class Http(Base):
+    def test_team_ui_roots_keep_assets_and_block_directory_escape(self):
+        from server import app
+        root = Path(self.path).parent / 'ui-fixture'
+        patient, hospital = root / 'patient', root / 'hospital'
+        patient.mkdir(parents=True)
+        hospital.mkdir()
+        (patient / 'index.html').write_text('patient home', encoding='utf-8')
+        (patient / 'client.js').write_text('const marker = "patient";', encoding='utf-8')
+        (hospital / 'index.html').write_text('hospital home', encoding='utf-8')
+        (root / 'outside.txt').write_text('outside', encoding='utf-8')
+        with patch.dict(app.UI_ROOTS, {'/patient/': patient, '/hospital/': hospital}, clear=True):
+            server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(self.path, EST))
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            base = f'http://127.0.0.1:{server.server_port}'
+            try:
+                for suffix, text in (('/patient/', 'patient home'), ('/hospital/', 'hospital home')):
+                    with urllib.request.urlopen(base + suffix) as response:
+                        self.assertEqual(response.read().decode(), text)
+                        self.assertIn('text/html', response.headers['Content-Type'])
+                with urllib.request.urlopen(base + '/patient/client.js') as response:
+                    self.assertIn('text/javascript', response.headers['Content-Type'])
+                with urllib.request.urlopen(base + '/patient?server=local') as response:
+                    self.assertEqual(response.url, base + '/patient/?server=local')
+                for suffix in ('/patient/../outside.txt', '/patient/%2e%2e/outside.txt',
+                               '/hospital/../patient/client.js', '/patient/missing.js'):
+                    with self.assertRaises(urllib.error.HTTPError) as error:
+                        urllib.request.urlopen(base + suffix)
+                    self.assertEqual(error.exception.code, 404)
+            finally:
+                server.shutdown()
+                server.server_close()
+
     def test_http_roundtrip(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(self.path, EST, clock=lambda: T0))
         threading.Thread(target=server.serve_forever, daemon=True).start()
