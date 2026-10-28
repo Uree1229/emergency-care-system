@@ -1,0 +1,263 @@
+import json
+from copy import deepcopy
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+from inquiry_lab import joint_budget_experiment as e
+
+
+def metrics():
+    return {name:dict(failed=4,J=800,inquiries_per_patient=4,review_work_seconds_per_patient=300)
+        for name in (e.PRIMARY,e.RESIDUAL,e.HORIZON,e.JOINT,e.TAIL,e.EAT,e.FIXED)}
+
+
+def pairs():
+    return {name:dict(wait_sum_delta_seconds=-20,lost_selections=0,ci95_wait=[-4,-1])
+        for name in (e.RESIDUAL,e.HORIZON,e.JOINT,e.TAIL,e.EAT)}
+
+
+def judge(*args,**kwargs):
+    kwargs.setdefault('all_case_preservation',dict(lost_selections=0))
+    kwargs.setdefault('all_horizon_preservation',dict(lost_selections=0))
+    kwargs.setdefault('all_joint_preservation',dict(lost_selections=0))
+    kwargs.setdefault('all_tail_preservation',dict(lost_selections=0))
+    kwargs.setdefault('new_loss_check',dict(seed=275623723515674800776867121243373893786,patient='P06',preserved=True))
+    kwargs.setdefault('whole_pairs',{n:dict(wait_sum_delta_seconds=-20,ci95_wait=[-4,-1]) for n in (e.JOINT,e.TAIL)})
+    kwargs.setdefault('stress_pairs',{n:dict(wait_sum_delta_seconds=0) for n in (e.JOINT,e.TAIL)})
+    kwargs.setdefault('former_loss_check',dict(seed=235769399510989085999300528562655985418,patient='P05',preserved=True))
+    return e.assess(*args,**kwargs)
+
+
+class JointBudgetExperimentTests(unittest.TestCase):
+    def test_freeze_refuses_missing_new_core_checks_before_any_input_generation(self):
+        report=dict(passed=True,source_sha256_before={'a':'b'},source_sha256_after={'a':'b'},
+            module_counts={'test_inquiry_lab':19},errors=0,failures=0,skipped=0)
+        with patch.object(e,'protocol',return_value={'source_sha256':{'a':'b'}}),\
+                patch.object(e,'read',return_value=report),patch.object(e,'write_new') as writes,\
+                patch.object(e.harness,'build') as scenes:
+            with self.assertRaises(AssertionError):e.freeze()
+            writes.assert_not_called();scenes.assert_not_called()
+
+    def test_working_explanation_exclusion_is_exact_and_does_not_relax_sources_or_other_refs(self):
+        with patch.object(e,'REFERENCE_EXCLUSION_SHA','0'*64):
+            with self.assertRaises(AssertionError):e.verify_old()
+        with patch.object(e,'WORKING_REFERENCE','inquiry_lab/residual_policy.py'):
+            with self.assertRaises(AssertionError):e.verify_old()
+        original_read=e.read
+        current=original_read(e.BUILD/'preservation/before.json')
+        for group in ('old_source_sha256','reference_files_sha256'):
+            bad=deepcopy(current)
+            name=next(n for n in bad[group] if n!=e.WORKING_REFERENCE)
+            bad[group][name]='0'*64
+            def altered(path):
+                return bad if Path(path).name=='before.json' else original_read(path)
+            with patch.object(e,'read',side_effect=altered):
+                with self.assertRaises(AssertionError):e.verify_old()
+
+    def test_json_protocol_and_preserved_parent(self):
+        self.assertEqual(e.protocol(),json.loads(e.raw(e.protocol())))
+        self.assertEqual(len(e.verify_old()),64)
+
+    def test_known_repair_and_fresh_roles_are_separate(self):
+        role=[*e.seeds('development-mix',96),*e.seeds('validation-mix',320),
+            *e.seeds('development-stress',3),*e.seeds('validation-stress',6)]
+        self.assertEqual(len(set(role)),425);self.assertGreaterEqual(min(role),1<<127)
+        self.assertFalse(set(role)&{s for _,s,_ in e.tasks('repair')})
+        self.assertEqual([len(e.tasks(s)) for s in ('repair','development','validation')],[120,120,368])
+        self.assertTrue(all(len(a)==1 for _,_,a in e.tasks('repair')))
+        self.assertTrue(all(len(a)==10 for _,_,a in e.tasks('development')))
+        with self.assertRaises(ValueError):e.tasks('unknown')
+
+    def test_exact_four_regression_identifiers(self):
+        actual={(x['seed'],x['patient']) for x in e.recoveries()}
+        self.assertEqual(actual,{(228101498504225084293068059876723338508,'P06'),
+            (182333718807841691121563430520403801660,'P08'),
+            (303280438093041801274650730462668685752,'P03'),
+            (265361016079724772267459973626161360039,'P06')})
+
+    def test_no_net_failure_substitution_for_one_lost_recovery(self):
+        m=metrics();p=pairs();recovered=[dict(preserved=True) for _ in range(4)]
+        self.assertTrue(judge(m,p,'repair',recovered)['passed'])
+        m[e.PRIMARY]['failed']=0;recovered[2]['preserved']=False
+        self.assertFalse(judge(m,p,'repair',recovered)['passed'])
+        recovered[2]['preserved']=True;p[e.RESIDUAL]['lost_selections']=1
+        self.assertFalse(judge(m,p,'repair',recovered)['passed'])
+
+    def test_wait_must_drop_against_both_baselines(self):
+        m=metrics();p=pairs();self.assertTrue(judge(m,p,'development')['passed'])
+        p[e.EAT]['wait_sum_delta_seconds']=1
+        self.assertFalse(judge(m,p,'development')['passed'])
+        p[e.EAT]['wait_sum_delta_seconds']=-1;p[e.RESIDUAL]['wait_sum_delta_seconds']=0
+        self.assertFalse(judge(m,p,'development')['passed'])
+
+    def test_J_failure_work_and_both_validation_CIs_guard(self):
+        m=metrics();p=pairs();self.assertTrue(judge(m,p,'validation')['passed'])
+        p[e.EAT]['ci95_wait']=[-4,1];self.assertFalse(judge(m,p,'validation')['passed'])
+        p[e.EAT]['ci95_wait']=[-4,-1]
+        p[e.HORIZON]['ci95_wait']=[-4,0];self.assertFalse(judge(m,p,'validation')['passed'])
+        p[e.HORIZON]['ci95_wait']=[-4,-1]
+        for field,bad in [('J',801),('failed',5),('review_work_seconds_per_patient',301),('inquiries_per_patient',5)]:
+            with self.subTest(field=field):
+                changed=metrics();changed[e.PRIMARY][field]=bad
+                self.assertFalse(judge(changed,p,'development')['passed'])
+        p[e.JOINT]['ci95_wait']=[-4,0];self.assertTrue(judge(metrics(),p,'validation')['passed'])
+        p[e.JOINT]['ci95_wait']=[-4,0.1];self.assertFalse(judge(metrics(),p,'validation')['passed'])
+        with self.assertRaises(ValueError):judge(m,p,'unknown')
+
+    def test_stress_success_loss_and_missing_whole_case_guard_are_rejected(self):
+        self.assertFalse(e.assess(metrics(),pairs(),'development')['passed'])
+        self.assertFalse(judge(metrics(),pairs(),'development',all_case_preservation={'lost_selections':1})['passed'])
+        self.assertFalse(judge(metrics(),pairs(),'development',all_horizon_preservation={'lost_selections':1})['passed'])
+        self.assertFalse(judge(metrics(),pairs(),'development',all_joint_preservation={'lost_selections':1})['passed'])
+        self.assertFalse(judge(metrics(),pairs(),'development',all_tail_preservation={'lost_selections':1})['passed'])
+        changed=metrics();changed[e.HORIZON]['J']=799
+        self.assertFalse(judge(changed,pairs(),'development')['passed'])
+        changes=pairs();changes[e.HORIZON]['wait_sum_delta_seconds']=0
+        self.assertFalse(judge(metrics(),changes,'development')['passed'])
+
+    def test_former_loss_cannot_be_exchanged_for_fewer_total_failures(self):
+        m=metrics();m[e.PRIMARY]['failed']=0
+        recovered=[dict(preserved=True) for _ in range(4)]
+        self.assertTrue(judge(m,pairs(),'repair',recovered)['passed'])
+        self.assertFalse(judge(m,pairs(),'repair',recovered,former_loss_check=dict(preserved=False))['passed'])
+
+    def test_joint_wait_may_tie_but_cannot_give_back_any_known_gain(self):
+        p=pairs();p[e.JOINT]['wait_sum_delta_seconds']=0
+        self.assertTrue(judge(metrics(),p,'development')['passed'])
+        p[e.JOINT]['wait_sum_delta_seconds']=1
+        self.assertFalse(judge(metrics(),p,'development')['passed'])
+        p[e.JOINT]['wait_sum_delta_seconds']=-1;p[e.JOINT]['lost_selections']=1
+        self.assertFalse(judge(metrics(),p,'development')['passed'])
+
+    def test_stress_harm_cannot_be_paid_by_mixed_improvements(self):
+        p=pairs();p[e.EAT]['wait_sum_delta_seconds']=-10000
+        for baseline in (e.JOINT,e.TAIL):
+            scoped={n:dict(wait_sum_delta_seconds=0) for n in (e.JOINT,e.TAIL)}
+            scoped[baseline]['wait_sum_delta_seconds']=1
+            self.assertFalse(judge(metrics(),p,'development',stress_pairs=scoped)['passed'])
+        self.assertFalse(judge(metrics(),p,'development',stress_pairs=None)['passed'])
+
+    def test_whole_improvement_is_separate_and_strict(self):
+        for baseline in (e.JOINT,e.TAIL):
+            scoped={n:dict(wait_sum_delta_seconds=-10,ci95_wait=[-4,-1]) for n in (e.JOINT,e.TAIL)}
+            scoped[baseline]['wait_sum_delta_seconds']=0
+            self.assertFalse(judge(metrics(),pairs(),'development',whole_pairs=scoped)['passed'])
+        self.assertFalse(judge(metrics(),pairs(),'development',whole_pairs=None)['passed'])
+        scoped={n:dict(wait_sum_delta_seconds=-10,ci95_wait=[-4,-1]) for n in (e.JOINT,e.TAIL)}
+        scoped[e.JOINT]['ci95_wait']=[-2,0]
+        self.assertFalse(judge(metrics(),pairs(),'validation',whole_pairs=scoped)['passed'])
+
+    def test_new_loss_and_prior_tail_success_are_required_individually(self):
+        recovered=[dict(preserved=True) for _ in range(4)]
+        self.assertFalse(judge(metrics(),pairs(),'repair',recovered,new_loss_check=dict(preserved=False))['passed'])
+        self.assertFalse(judge(metrics(),pairs(),'repair',recovered,new_loss_check=None)['passed'])
+        m=metrics();m[e.TAIL]['J']=799
+        self.assertFalse(judge(m,pairs(),'development')['passed'])
+        p=pairs();p[e.TAIL]['wait_sum_delta_seconds']=1
+        self.assertFalse(judge(metrics(),p,'development')['passed'])
+        p[e.TAIL]['wait_sum_delta_seconds']=-1;p[e.TAIL]['ci95_wait']=[-4,.1]
+        self.assertFalse(judge(metrics(),p,'validation')['passed'])
+
+    def test_failures_still_count_as_300_wait(self):
+        self.assertEqual(e.wait(dict(failed=True)),300)
+        self.assertEqual(e.wait(dict(failed=False,selection_seconds=70)),70)
+
+    def _prior(self,mutation=None,stage='development'):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(e,'BUILD',Path(tmp)),\
+                patch.object(e,'protocol',return_value={'source':'locked'}),\
+                patch.object(e,'source_hashes',return_value={'a':'digest'}),\
+                patch.object(e,'stage_cases',return_value=[]) as cases,\
+                patch.object(e,'ProcessPoolExecutor') as pool:
+            assessment={'passed':mutation!='failed'}
+            r=dict(assessment=assessment,protocol={'source':'locked'},cases=[],prior_stage_evidence_sha256={})
+            previous='repair' if stage=='development' else 'development'
+            e.write_new(e.BUILD/(previous+'.json'),e.raw(r));digest=e.sha(e.raw(r))
+            a=dict(passed=True,report_sha256=digest,source_sha256={'a':'digest'})
+            lock=dict(candidate=e.PRIMARY,assessment=assessment,protocol={'source':'locked'},
+                next_stage_allowed=assessment['passed'],report_sha256=digest)
+            if mutation=='hash':lock['report_sha256']='changed'
+            if mutation=='candidate':lock['candidate']='other'
+            if mutation=='source':a['source_sha256']={'changed':'value'}
+            e.write_new(e.BUILD/(previous+'-audit.json'),e.raw(a));e.write_new(e.BUILD/(previous+'-lock.json'),e.raw(lock))
+            if mutation:
+                with patch.object(e,'verify_freeze',return_value={'protocol':{'source':'locked'}}):
+                    with self.assertRaises(AssertionError):e.execute(stage)
+                cases.assert_not_called()
+                self.assertFalse((e.BUILD/(stage+'-cases')).exists())
+            else:
+                evidence=e.verify_prior(stage);self.assertEqual(len(evidence),3)
+                cases.assert_called_once_with(previous)
+            pool.assert_not_called()
+
+    def test_prior_stage_rejects_failed_or_changed_lock_without_performance(self):
+        for stage in ('development','validation'):
+            for mutation in ('failed','hash','candidate','source'):
+                with self.subTest(stage=stage,mutation=mutation):self._prior(mutation,stage)
+
+    def test_valid_locked_repair_reads_only_saved_cases(self):self._prior()
+
+    def test_valid_prior_reaches_execution_boundary_without_running_a_case(self):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(e,'BUILD',Path(tmp)),\
+                patch.object(e,'verify_freeze',return_value={'protocol':{'locked':True}}),\
+                patch.object(e,'verify_prior',return_value={}) as prior,\
+                patch.object(e,'tasks',return_value=[]),\
+                patch.object(e,'ProcessPoolExecutor',side_effect=RuntimeError('execution boundary')) as pool:
+            e.write_new(e.BUILD/'input-manifest.json',e.raw(dict(entries=[])))
+            with self.assertRaisesRegex(RuntimeError,'execution boundary'):e.execute('development')
+            prior.assert_called_once_with('development');pool.assert_called_once()
+
+
+
+class SavedCollectorRegressionTests(unittest.TestCase):
+    def test_multiple_new_records_keep_own_directory_after_all_five_cache_reads(self):
+        # Two differently hashed new records expose the former inner-folder
+        # shadowing failure. No scenario/policy/clock is executed.
+        import gzip
+        from inquiry_lab import joint_budget_audit
+        with tempfile.TemporaryDirectory() as tmp:
+            base=Path(tmp); build=base/'new'; build.mkdir()
+            parents={label:base/label for label in ('reselect','tail','joint','horizon','residual')}
+            for path in parents.values():path.mkdir()
+            todo=[]; manifest=[]; indexed=[]; references=[]
+            names={'reselect':{e.RESELECT},'tail':{e.TAIL},'joint':{e.JOINT},'horizon':{e.HORIZON},
+                'residual':{e.arm(*a) for a in e.ARMS if e.arm(*a) not in (e.PRIMARY,e.RESELECT,e.TAIL,e.JOINT,e.HORIZON)}}
+            def saved(folder,name,replay):
+                folder.mkdir(exist_ok=True); body=e.raw(replay); packed=gzip.compress(body,mtime=0)
+                e.write_new(folder/name,packed)
+                return dict(file=name,raw_sha256=e.sha(body),compressed_sha256=e.sha(packed))
+            for i,seed in enumerate((101,202)):
+                scenario=dict(seed=seed,synthetic_collector_only=True)
+                name=f'{i:03d}_{seed}.json.gz'
+                shared=dict(scenario=scenario,initial_snapshot_sha256='snapshot'+str(seed))
+                new_compact=dict(kind='mix',seed=seed,branches={e.PRIMARY:dict(marker='new'+str(seed))})
+                new=dict(**shared,arms=[list(a) for a in e.REPAIR_ARMS],compact=new_compact)
+                indexed.append(saved(build/'repair-cases',name,new))
+                metadata={}; all_branches={}
+                for label,path in parents.items():
+                    branches={n:dict(marker=label+str(seed)) for n in sorted(names[label])}
+                    compact=dict(kind='mix',seed=seed,branches=branches);all_branches.update(branches)
+                    replay=dict(**shared,arms=[n.split('|') for n in sorted(branches)],compact=compact)
+                    folder=path/('development-cases' if label=='residual' else 'repair-cases')
+                    metadata[label]=saved(folder,name,replay)
+                references.append(dict(**metadata['reselect'],compact=dict(kind='mix',seed=seed,branches=all_branches),
+                    cached_parent_reference={k:v for k,v in metadata.items() if k!='reselect'}))
+                todo.append(('mix',seed,e.REPAIR_ARMS))
+                manifest.append(dict(stage='repair',kind='mix',seed=seed,sha256=e.sha(e.raw(scenario))))
+            e.write_new(parents['reselect']/'repair.json',e.raw(dict(cases=references)))
+            e.write_new(build/'input-manifest.json',e.raw(dict(entries=manifest)))
+            e.write_new(build/'repair-raw-index.json',e.raw(dict(cases=indexed,all_outcomes_saved=True)))
+            with patch.object(e,'BUILD',build),patch.object(e,'PARENT',parents['reselect']),\
+                    patch.object(e,'TAIL_PARENT',parents['tail']),patch.object(e,'JOINT_PARENT',parents['joint']),\
+                    patch.object(e,'HORIZON_PARENT',parents['horizon']),patch.object(e,'RESIDUAL_PARENT',parents['residual']),\
+                    patch.object(e,'tasks',return_value=todo),patch.object(e.parent,'compact',side_effect=lambda replay:deepcopy(replay['compact'])),\
+                    patch.object(joint_budget_audit,'audit_replay',return_value=dict(passed=True)) as audit,\
+                    patch.object(e.joint_budget_runner,'run_task',side_effect=AssertionError('no execution')) as execute:
+                actual=e.stage_cases('repair')
+                self.assertEqual(len(actual),2)
+                self.assertEqual(audit.call_count,12)
+                self.assertEqual(actual[1]['compact']['branches'][e.PRIMARY]['marker'],'new202')
+                self.assertEqual(set(actual[0]['cached_parent_reference']),set(parents))
+                execute.assert_not_called()
+
+if __name__=='__main__':unittest.main()
