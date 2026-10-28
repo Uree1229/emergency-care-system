@@ -63,6 +63,7 @@ class DatasetTests(unittest.TestCase):
         for policy in (SequentialPolicy(), ParallelGreedyPolicy()):
             native = Simulation(0, policy, cfg).run()
             restored = Simulation(0, policy, cfg, world=world_from_episode(record)).run()
+            native.pop('decision_ms_mean'), restored.pop('decision_ms_mean')   # 벽시계 계산시간만 실행마다 다르다
             self.assertEqual(native, restored)
 
     def test_episode_world_has_no_shared_mutable_state(self):
