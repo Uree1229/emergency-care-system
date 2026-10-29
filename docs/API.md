@@ -1,7 +1,11 @@
 # 공통 서버 API 명세 (병원 웹 · 환자 웹용)
 
 이 문서는 병원 웹과 환자 모바일 웹을 만드는 팀원을 위한 명세입니다. 서버 코드는 `server/`에 있고, 업무 규칙의 원본은 `server/service.py`입니다.
+이번 피어리뷰를 반영한 담당자별 화면 작업·연결 순서·완료 기준은 [팀원 API 연결 전달 문서](TEAM_FEEDBACK_API_HANDOFF_20261029.md)를 참고하세요.
 이송 건별 시스템 알림과 자유대화 API는 [대화 API 명세](CHAT_API.md)에 정리했습니다. 이송자·병원 화면과 연결됐으며, 각자 PC에서 실행하는 방법은 [팀원 테스트 가이드](TEAM_TEST_GUIDE.md)를 따릅니다.
+업무 시작·종료 계측과 중요 사건 수신·담당자 확인 API는 [업무 계측과 중요 사건 명세](BACKEND_MEASUREMENT_API.md)에 정리했습니다. 신규 API의 화면 연결은 각 담당자의 후속 작업입니다.
+통화 전달 내용·상대 기관측 확인·정정 이력은 [통화 결과 기록 API](CALL_RECORD_API.md)를 사용합니다. 기록의 내용 확인과 의료적 수용 확정을 구분합니다.
+문의 이후 환자정보 보완은 [버전 기반 수정 API](PATIENT_AMENDMENTS_API.md), 이송 ID를 모르는 새 통화 발견은 [병원 전체 통화함](CALL_RECORD_API.md#8-병원-전체-통화함)을 사용합니다.
 초기 자동 문의는 환자 생성 시 `auto_inquiry: true`로 켭니다. `inquiry_policy`로 `fixed_1`, `fixed_3`(기본), `fixed_5`, `observed_v2`, `observed_v3`를 선택할 수 있습니다. 상태 조회·중지·재개와 규칙은 [자동 문의 명세](INQUIRY_WORKFLOW.md)를 따릅니다. 자동 활성화를 생략하면 기존 수동 문의를 유지합니다.
 `--seed` 시연 데이터는 가상입니다. `data/public.db`에는 실제 공공 API 조회 자료를 저장하며, 병원의 내부 시스템이나 실제 환자 수용 업무와 연결된 서비스는 아닙니다.
 
@@ -73,6 +77,8 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 | 환자 정보 입력 | `POST /api/patients` | 아래 참고 | P02~P10 |
 | 상세·상태 조회(폴링) | `GET /api/patients/{pid}` | | P22, P37 |
 | 전송 전 수정 | `PATCH /api/patients/{pid}` | 바꿀 필드만 | P13 |
+| 문의 후 정보 수정·기존 응답 종료 | `POST /api/patients/{pid}/amendments` | `actor_id`, `client_request_id`, `expected_patient_version`, `reason`, `changes` | 목적지 확정 전 WAITING 전용 |
+| 수정 감사 이력 | `GET /api/patients/{pid}/amendments?limit=50` | | 최신순, before_id 페이지 |
 | 후보 병원 | `GET /api/patients/{pid}/candidates` | | P17~P20 |
 | 문의 정책 목록 | `GET /api/inquiry-policies` | | 공개 5개 정책의 이름·버전·설정 |
 | 자동 문의 상태 | `GET /api/patients/{pid}/inquiry-workflow` | | 초기 WAITING 전용 |

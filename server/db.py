@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS inquiries (
     patient_version INTEGER NOT NULL,
     handled_by TEXT,
     version INTEGER NOT NULL DEFAULT 1,
+    requires_review_version INTEGER NOT NULL DEFAULT 0 CHECK(requires_review_version IN (0,1)),
+    review_response_fingerprint TEXT,
     UNIQUE (patient_id, hospital_id)
 );
 CREATE TABLE IF NOT EXISTS inquiry_workflows (
@@ -216,6 +218,17 @@ def connect(path):
 
 def init(conn):
     conn.executescript(SCHEMA)
+    inquiry_columns = {r['name'] for r in conn.execute('PRAGMA table_info(inquiries)')}
+    if 'requires_review_version' not in inquiry_columns:
+        conn.execute('ALTER TABLE inquiries ADD COLUMN requires_review_version '
+                     'INTEGER NOT NULL DEFAULT 0 CHECK(requires_review_version IN (0,1))')
+    if 'review_response_fingerprint' not in inquiry_columns:
+        conn.execute('ALTER TABLE inquiries ADD COLUMN review_response_fingerprint TEXT')
+    # 계측·전달 확인은 업무 입력이 아니다. 기존 DB를 삭제하지 않고 확장하며
+    # 아래 planning 입력 트리거에도 포함하지 않는다.
+    from . import work_activity, important_events, call_records, patient_amendments
+    conn.executescript(work_activity.SCHEMA + important_events.SCHEMA + call_records.SCHEMA
+                       + patient_amendments.SCHEMA)
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS accounting_reconciliations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

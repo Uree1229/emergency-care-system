@@ -348,7 +348,7 @@ class PolicyObservations(PolicyBase):
         from server.inquiry_observations import capture
         return capture(self.conn, now, 'A')
 
-    def test_first_checking_reply_remains_single_observation_after_question_and_accept(self):
+    def test_final_decision_is_single_observation_after_checking_and_question(self):
         self.patient('old', now=T0 - 300)
         service.send_inquiries(self.conn, T0 - 290, 'old', ['H1'])
         iid = self.inquiry_id('old', 'H1')
@@ -363,7 +363,7 @@ class PolicyObservations(PolicyBase):
         observations = [o for o in captured['observations'] if o['patient'] == 'old']
         self.assertEqual(len(observations), 1)
         self.assertEqual((observations[0]['outcome'], observations[0]['submitted_at'], observations[0]['observed_at']),
-                         ('reply', T0 - 290, T0 - 280))
+                         ('accept', T0 - 290, T0 - 260))
         self.assertNotIn('old', {p['patient'] for p in captured['pending']})
         self.assertNotIn('명료', json.dumps(captured, ensure_ascii=False))
         self.assertNotIn('의식 상태', json.dumps(captured, ensure_ascii=False))

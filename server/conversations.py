@@ -64,6 +64,7 @@ def _event_item(event, hospital_name):
     messages = {
         'patient_created': '환자정보가 등록됐습니다.',
         'patient_updated': '환자정보가 수정됐습니다.',
+        'patient_information_amended': '환자정보가 수정되어 이전 문의를 종료했습니다. 새 정보로 병원 확인이 필요합니다.',
         'inquiry_sent': f'{name}에 수용 문의를 등록했습니다.',
         'inquiry_retried': f'{name}에 다시 문의했습니다.',
         'inquiry_cancelled': f'{name} 문의가 취소됐습니다.',

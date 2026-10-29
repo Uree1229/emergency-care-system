@@ -9,6 +9,7 @@
 모든 쓰기는 BEGIN IMMEDIATE 트랜잭션 안에서 검사와 반영을 함께 한다.
 """
 import math
+import hashlib
 from datetime import date
 
 from .db import dumps, row, rows, transaction
@@ -375,14 +376,15 @@ def create_patient(conn, now, pid, payload, actor='patient_web'):
 
 
 def update_patient(conn, now, pid, payload, actor='patient_web'):
-    """병원 전송 전 요약·수정 (P13). 문의를 보낸 뒤에는 바꾸지 않는다."""
+    """병원 전송 전 수정. 문의 후 수정은 별도 patient_amendments 계약을 사용한다."""
     fields = _clean_patient(payload, partial=True)
     _require(fields, 'INVALID', '바꿀 항목이 없습니다')
     with transaction(conn):
         p = _patient(conn, pid)
         _require(p['state'] == 'WAITING', 'INVALID_STATE', '대기 상태에서만 수정할 수 있습니다', 409)
         sent = conn.execute('SELECT COUNT(*) FROM inquiries WHERE patient_id=?', (pid,)).fetchone()[0]
-        _require(sent == 0, 'ALREADY_SENT', '병원에 보낸 뒤에는 수정하지 않습니다. 필요하면 문의를 취소하세요.', 409)
+        _require(sent == 0, 'ALREADY_SENT', '문의 이후에는 버전 확인이 있는 환자정보 수정 API를 사용하세요.', 409,
+                 amendment_endpoint=f'/api/patients/{pid}/amendments')
         if set(fields) & {'extra','required_capabilities','resource_demands'}:
             _bind_treatment_fields(fields, p)
         sets = ', '.join(f'{k}=?' for k in fields)
@@ -391,7 +393,7 @@ def update_patient(conn, now, pid, payload, actor='patient_web'):
     return patient_view(conn, pid, now)
 
 
-NOTIFY_TYPES = ('inquiry_responded', 'inquiry_expired', 'hospital_keeps', 'adjustment_needed', 'arrival_confirmed',
+NOTIFY_TYPES = ('patient_information_amended', 'inquiry_responded', 'inquiry_expired', 'hospital_keeps', 'adjustment_needed', 'arrival_confirmed',
                 'destination_changed', 'inquiry_question', 'patient_cancelled', 'no_show',
                 'transport_recheck_required', 'transport_conditions_restored',
                 'transport_inquiry_ready', 'transport_inquiry_exhausted')
@@ -525,7 +527,7 @@ def _send_inquiries(conn, now, pid, hospital_ids, actor='patient_web'):
         if cur:
             conn.execute("UPDATE inquiries SET state='PENDING', reason=NULL, question=NULL, answer=NULL, "
                          "last_sent_at=?, attempts=attempts+1, responded_at=NULL, expires_at=NULL, "
-                         "patient_version=?, handled_by=NULL, version=version+1 WHERE id=?",
+                         "patient_version=?, handled_by=NULL, review_response_fingerprint=NULL, version=version+1 WHERE id=?",
                          (now, p['version'], cur['id']))
             iid = cur['id']
         else:
@@ -592,12 +594,37 @@ def respond(conn, now, iid, action, handled_by, reason=None, question=None, expe
     with transaction(conn):
         expire_acceptances(conn, now)
         q = _inquiry(conn, iid)
+        review_fingerprint = None
+        # 정보 수정 뒤 같은 문의 ID가 재사용돼도 예전 화면의 응답을 받지 않는다.
+        # 해당 문의는 중복 결과 판정보다 먼저 현재 검토 버전을 확인한다.
+        if q.get('requires_review_version'):
+            _require(type(expected_version) is int and expected_version > 0,
+                     'REVIEW_VERSION_REQUIRED', '환자정보가 수정된 문의입니다. 최신 문의 버전을 확인하세요.', 409)
+            review_fingerprint = hashlib.sha256(dumps(dict(action=action, handled_by=handled_by,
+                reason=reason, question=question, expected_version=expected_version)).encode('utf-8')).hexdigest()
+            if q['version'] != expected_version:
+                # 바로 직전 동일 결정의 응답 유실 재시도만 허용한다.
+                # 새 환자 버전·다른 요청·재문의 회차의 오래된 응답은 허용하지 않는다.
+                current_patient = _patient(conn, q['patient_id'])
+                duplicate = (target is not None and q['state'] == target and
+                             q['version'] == expected_version + 1 and
+                             q['patient_version'] == current_patient['version'] and
+                             q.get('review_response_fingerprint') == review_fingerprint)
+                if duplicate:
+                    return dict(inquiry=q, duplicate=True)
+            _require(q['version'] == expected_version, 'CONFLICT',
+                     '검토 중 환자정보나 문의 상태가 바뀌었습니다. 최신 내용을 확인하세요.', 409, current=q)
         if target and q['state'] == target:
+            _require(not q.get('requires_review_version'), 'CONFLICT',
+                     '이미 응답한 수정 문의입니다. 원래 요청의 정확한 재시도만 허용합니다.', 409, current=q)
             return dict(inquiry=q, duplicate=True)
         if expected_version is not None and q['version'] != expected_version:
             raise ServiceError('CONFLICT', '다른 담당자가 먼저 처리했습니다', 409, current=q)
         _require(q['state'] in OPEN_INQUIRY, 'INVALID_STATE', '이미 끝난 문의입니다', 409, current=q)
         p = _patient(conn, q['patient_id'])
+        if q.get('requires_review_version'):
+            _require(q['patient_version'] == p['version'], 'STALE_PATIENT_INFORMATION',
+                     '이전 환자정보로 보낸 문의입니다. 최신 정보로 다시 문의하세요.', 409)
         _require(p['state'] not in ('CANCELLED', 'COMPLETED'), 'INVALID_STATE', '환자 측에서 종료된 문의입니다', 409)
         warning = None
         if action == 'accept':
@@ -608,12 +635,13 @@ def respond(conn, now, iid, action, handled_by, reason=None, question=None, expe
                      409, shortfalls=short)
             warning = f"자원 상태 미확인: {', '.join(unknown)}" if unknown else None
             conn.execute("UPDATE inquiries SET state='ACCEPTED', responded_at=?, expires_at=?, handled_by=?, "
-                         "patient_version=?, version=version+1 WHERE id=?",
-                         (now, now + ACCEPT_TTL, handled_by, p['version'], iid))
+                         "patient_version=?, review_response_fingerprint=?, version=version+1 WHERE id=?",
+                         (now, now + ACCEPT_TTL, handled_by, p['version'], review_fingerprint, iid))
         elif action == 'decline':
             _require(reason in DECLINE_REASONS, 'INVALID', f'불가 사유를 고르세요: {sorted(DECLINE_REASONS)}')
             conn.execute("UPDATE inquiries SET state='DECLINED', reason=?, responded_at=?, handled_by=?, "
-                         "version=version+1 WHERE id=?", (reason, now, handled_by, iid))
+                         "review_response_fingerprint=?, version=version+1 WHERE id=?",
+                         (reason, now, handled_by, review_fingerprint, iid))
         elif action == 'checking':
             conn.execute("UPDATE inquiries SET state='CHECKING', handled_by=?, version=version+1 WHERE id=?",
                          (handled_by, iid))

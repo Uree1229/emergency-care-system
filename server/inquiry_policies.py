@@ -39,6 +39,10 @@ _POLICIES = {
                         config=_OBSERVED_CONFIG),
 }
 _POLICIES.update(inquiry_v3.policy_specs(_OBSERVED_CONFIG))
+# 관측형 정책 v2는 첫 확인이 아닌 최종 결정 시각을 사용한다. 고정 정책은 그대로다.
+for _policy in _POLICIES.values():
+    if 'prior_reply_seconds' in _policy['config']:
+        _policy['version'] = '2'
 
 
 def spec(name):
@@ -97,7 +101,8 @@ def _observations(rows, now, window):
                 observed < submitted or not now - window < observed <= now):
             continue
         hospital, outcome = row.get('hospital'), row.get('outcome')
-        if not isinstance(hospital, str) or not hospital or outcome not in ('reply', 'accept', 'decline', 'timeout'):
+        # legacy reply는 확인 중/질문일 수 있으므로 결정시간 표본에 섞지 않는다.
+        if not isinstance(hospital, str) or not hospital or outcome not in ('accept', 'decline', 'timeout'):
             continue
         result.append(dict(hospital=hospital, submitted_at=submitted, observed_at=observed,
                            outcome=outcome))
@@ -155,7 +160,8 @@ def decide(name, *, now, candidates, observations=(), pending=(), patient_pendin
     """입력을 변경하지 않고 문의 후보와 근거를 반환한다.
 
     candidates는 치료 조건과 미문의 여부를 확인한 정렬 목록이다.
-    observations: hospital/submitted_at/observed_at/outcome.
+    observations: hospital/submitted_at/observed_at/outcome. outcome은 최종
+    accept/decline 또는 결정 대기 timeout이며 legacy reply는 사용하지 않는다.
     pending: hospital/patient/submitted_at. patient_pending은 그 부분집합에
     travel_seconds를 추가한다. 시각·이동시간은 초다. 고정 정책의 60초 대기와
     환자·병원 상태 재검사는 호출자가 담당한다.
