@@ -47,3 +47,9 @@ simulation_results/**/*.json.gz
 simulation/viewer/map_replay_data.json
 # 발표 파일·DB 덤프·행정 문서 등 개인 작업 산출물
 outputs/
+
+# 팀원 앱 실행 DB와 로컬 미리보기
+/emergency-app/*.db
+/emergency-app/*.db-*
+/emergency-app/*.sqlite*
+.local-preview/
