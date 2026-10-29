@@ -1,0 +1,155 @@
+"""Connect the teammate intake app to common-server transport episodes.
+
+Saved local profiles and active transport episodes are different objects. This
+module sends a profile snapshot only after consent; it never calls medical APIs.
+"""
+from datetime import date, datetime, timedelta, timezone
+import hashlib
+import json
+import math
+import os
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlsplit
+from urllib.request import Request, urlopen
+import uuid
+
+SOURCE = 'emergency-app@945c413'
+TIMEOUT_SECONDS = 5
+
+
+class CommonServerError(Exception):
+    def __init__(self, message, status=400, code='INVALID'):
+        super().__init__(message)
+        self.message, self.status, self.code = message, status, code
+
+
+def common_server_base():
+    value = os.environ.get('COMMON_API_URL', 'http://127.0.0.1:18020').strip()
+    try:
+        parsed = urlsplit(value)
+        if (parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.netloc.endswith(':')
+                or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ('', '/')):
+            raise ValueError()
+        # Accessing the property validates malformed/out-of-range ports too.
+        parsed.port
+    except ValueError:
+        raise CommonServerError('COMMON_API_URL에는 http/https 서버 기본 주소를 지정하세요.', 503, 'CONFIG') from None
+    return value.rstrip('/')
+
+
+def _request(path, body=None):
+    encoded = None if body is None else json.dumps(body, ensure_ascii=False).encode('utf-8')
+    request = Request(common_server_base() + path, data=encoded,
+                      headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+    try:
+        with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+            raw = response.read()
+    except HTTPError as error:
+        try:
+            payload = json.loads(error.read())
+        except (ValueError, UnicodeError):
+            payload = {}
+        finally:
+            error.close()
+        if not isinstance(payload, dict):
+            payload = {}
+        raise CommonServerError(payload.get('message') or '공통 서버가 요청을 처리하지 못했습니다.',
+                                error.code, payload.get('error', 'UPSTREAM_ERROR')) from None
+    except (URLError, TimeoutError, OSError):
+        raise CommonServerError('공통 서버에 연결하지 못했습니다. 서버 실행을 확인한 뒤 같은 요청으로 다시 시도하세요.',
+                                503, 'CONNECTION_FAILED') from None
+    try:
+        return json.loads(raw)
+    except (ValueError, UnicodeError):
+        raise CommonServerError('공통 서버의 응답 형식을 확인할 수 없습니다.', 502, 'INVALID_RESPONSE') from None
+
+
+def hospital_catalog():
+    hospitals = _request('/api/hospitals')
+    if not isinstance(hospitals, list):
+        raise CommonServerError('공통 서버의 병원 목록 형식을 확인할 수 없습니다.', 502, 'INVALID_RESPONSE')
+    return hospitals
+
+
+def new_submission_id():
+    return str(uuid.uuid4())
+
+
+def _optional_text(value):
+    return (str(value).strip() or None) if value is not None else None
+
+
+def build_episode_payload(profile, reporter_role, consciousness, breathing, symptoms,
+                          required_capabilities, special_team, lat, lon, consent,
+                          inquiry_policy='fixed_3'):
+    if consent is not True:
+        raise CommonServerError('환자 정보 저장과 병원 전달에 동의해야 문의를 시작할 수 있습니다.', 400, 'CONSENT_REQUIRED')
+    if reporter_role not in ('self', 'guardian', 'transporter'):
+        raise CommonServerError('입력자 구분을 선택하세요.')
+    for value, limit in ((lat, 90), (lon, 180)):
+        if type(value) not in (int, float) or not math.isfinite(value) or not -limit <= value <= limit:
+            raise CommonServerError('관측한 위도와 경도를 올바르게 입력하세요.', 400, 'LOCATION_REQUIRED')
+    if (not isinstance(required_capabilities, list)
+            or not all(isinstance(c, str) and c.strip() for c in required_capabilities)):
+        raise CommonServerError('필요 진료 분야는 확인한 항목을 선택하세요.')
+    if type(special_team) is not bool:
+        raise CommonServerError('전문팀 요구 여부를 확인하세요.')
+    if not isinstance(inquiry_policy, str) or not inquiry_policy.strip():
+        raise CommonServerError('문의 정책을 확인하세요.')
+    if not isinstance(symptoms, str) or len(symptoms) > 2000:
+        raise CommonServerError('증상은 2,000자 이내로 입력하세요.')
+    personal = dict(name=None, birth=None, contact=None, address=None, guardian=None, guardian_phone=None, age=None)
+    profile_id = None
+    if profile is not None:
+        if len(profile) != 7:
+            raise CommonServerError('등록 환자 정보 형식을 확인하세요.')
+        profile_id, name, birth, phone, address, guardian, guardian_phone = profile
+        personal.update(name=_optional_text(name), contact=_optional_text(phone), address=_optional_text(address),
+                        guardian=_optional_text(guardian), guardian_phone=_optional_text(guardian_phone))
+        try:
+            born = date.fromisoformat(birth)
+            today = datetime.now(timezone(timedelta(hours=9))).date()
+            if born.isoformat() == birth and born <= today:
+                personal['birth'] = birth
+                personal['age'] = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+        except (ValueError, TypeError):
+            pass  # Invalid legacy profile birthdays remain unknown rather than guessed.
+    return dict(**personal, reporter_role=reporter_role, consent=True,
+                consciousness={'yes': 'alert', 'no': 'unresponsive'}.get(consciousness, 'unknown'),
+                breathing={'yes': 'normal', 'no': 'abnormal'}.get(breathing, 'unknown'),
+                symptoms=symptoms.strip() or '확인되지 않음',
+                priority=None, priority_source='unknown', required_capabilities=sorted(set(required_capabilities)),
+                resource_demands={'ed_bed': 1, **({'special_team': 1} if special_team else {})},
+                lat=lat, lon=lon, auto_inquiry=True, inquiry_policy=inquiry_policy,
+                extra={'source_app': SOURCE, 'source_profile_id': profile_id})
+
+
+def create_episode(payload, submission_id):
+    try:
+        token = uuid.UUID(submission_id)
+    except (ValueError, TypeError, AttributeError):
+        raise CommonServerError('전송 요청 식별자가 올바르지 않습니다. 입력 화면을 다시 열어주세요.') from None
+    if not isinstance(payload, dict) or payload.get('consent') is not True:
+        raise CommonServerError('환자 정보 저장과 병원 전달에 동의해야 문의를 시작할 수 있습니다.', 400, 'CONSENT_REQUIRED')
+    fingerprint = hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                                          separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+    pid = 'MOBILE-' + token.hex
+    outgoing = dict(payload, id=pid, extra={**payload.get('extra', {}), 'submission_fingerprint': fingerprint})
+    try:
+        return _request('/api/patients', outgoing)
+    except CommonServerError as failure:
+        if failure.code not in ('DUPLICATE', 'CONNECTION_FAILED', 'INVALID_RESPONSE', 'SERVER_ERROR'):
+            raise
+        try:
+            existing = _request('/api/patients/' + pid)
+        except CommonServerError:
+            raise failure from None
+        if (existing.get('extra', {}).get('source_app') == SOURCE
+                and existing.get('extra', {}).get('submission_fingerprint') == fingerprint):
+            return existing
+        raise CommonServerError('같은 전송 식별자로 다른 환자 정보를 보낼 수 없습니다. 기존 전송을 확인하세요.',
+                                409, 'SUBMISSION_CONFLICT') from None
+
+
+def transport_url(pid):
+    return common_server_base() + '/patient/?' + urlencode({'pid': pid})

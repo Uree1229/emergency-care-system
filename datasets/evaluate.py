@@ -62,7 +62,8 @@ def evaluate_episodes(path, limit=20, split=None):
             result[name] = Simulation(record['seed'], policy, cfg, world=world_from_episode(record)).run()
         runs.append(result)
     return dict(kind='episode_replay', runs=runs, comparisons=['B0', 'B1'],
-                note='같은 사건을 두 정책에 제공. B2는 아직 시뮬레이터에 연결되지 않음')
+                note='같은 사건을 두 정책에 제공. B2는 아직 시뮬레이터에 연결되지 않음',
+                limitations=['기존 B0/B1은 후보 정렬과 실제 이동에 같은 이동시간 함수를 사용하므로 이동시간 추정 오차를 숨긴 정책 비교가 아님'])
 
 
 def main():

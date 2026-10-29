@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer"><title>응급환자 지원 · 이송자</title>
+  <link rel="stylesheet" href="./styles.css"><script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar"><a href="./" id="home-link">🚑 응급환자 지원</a><span class="badge">이송자 화면</span></header>
+  <main>
+    <section id="home-screen" class="card landing">
+      <div class="icon">🚑</div><h1>응급환자 지원</h1>
+      <p>환자의 상태를 간단하게 확인하고<br>응급상황에 필요한 정보를 준비합니다.</p>
+      <button id="start-intake" class="emergency-button">🚨 환자 정보 입력</button>
+      <p class="small">가상 자료를 사용하는 개발 시연입니다. 위급한 상황에서는 병원 회신을 기다리지 말고 <a href="tel:119">119</a>에 연락하세요.</p>
+      <form id="resume-form" class="resume"><label for="resume-pid">기존 이송 건 불러오기</label><div class="row"><input id="resume-pid" placeholder="서버의 환자 ID" pattern="[\w-]+" required><button class="secondary" type="submit">불러오기</button></div></form>
+    </section>
+    <section id="intake-screen" class="card narrow" hidden>
+      <h1>환자 정보 입력</h1><p class="muted">확인하지 못한 항목은 미확인으로 남겨주세요. 이 화면은 진단이나 중증도를 자동 판단하지 않습니다.</p>
+      <form id="intake-form" autocomplete="off">
+        <label for="reporter-role">입력자</label><select id="reporter-role"><option value="transporter">구급대·이송자</option><option value="guardian">보호자</option><option value="self">본인</option></select>
+        <div class="two-col"><div><label for="patient-name">환자 이름 (선택)</label><input id="patient-name" maxlength="80"></div><div><label for="age">나이 (미확인이면 비움)</label><input id="age" type="number" min="0" max="130"></div></div>
+        <label for="contact">연락처 (선택)</label><input id="contact" type="tel" maxlength="80">
+        <label for="symptoms">증상·현재 상태</label><textarea id="symptoms" rows="3" maxlength="2000" required placeholder="확인된 사실을 입력하세요"></textarea>
+        <div class="two-col"><div><label for="consciousness">의식</label><select id="consciousness"><option value="unknown">미확인</option><option value="alert">의식 명료</option><option value="impaired">의식 저하</option><option value="unresponsive">반응 없음</option></select></div><div><label for="breathing">호흡</label><select id="breathing"><option value="unknown">미확인</option><option value="normal">정상으로 확인</option><option value="abnormal">비정상</option><option value="absent">호흡 없음</option></select></div></div>
+        <label for="danger-signs">추가 위험 신호 (선택, 쉼표로 구분)</label><input id="danger-signs" placeholder="확인된 위험 신호만 입력">
+        <div class="two-col"><div><label for="priority-source">중증도 평가 출처</label><select id="priority-source"><option value="unknown">미확인</option><option value="expert">전문가 평가</option><option value="self">자기신고</option></select></div><div><label for="priority">확인된 우선순위</label><select id="priority" disabled><option value="">미확인</option><option value="4">높음 (4)</option><option value="2">중간 (2)</option><option value="1">낮음 (1)</option></select></div></div>
+        <fieldset><legend>치료에 필요한 조건</legend><p class="small">증상으로 자동 추론하지 않습니다. 확인한 필요 진료 분야를 선택하세요. 미선택은 미확인입니다.</p><div id="capabilities" class="checks">서버의 등록 진료 분야를 확인하는 중입니다.</div><label class="check"><input id="special-team" type="checkbox"> 전문팀 1단위 필요 (가상 자원 실험용)</label><p class="small">기본 진료 자리(ed_bed) 1단위를 요청합니다. 실제 치료 적합성은 병원이 확인합니다.</p></fieldset>
+        <fieldset><legend>환자 위치 · 직접 입력</legend><p class="small">관측한 좌표를 입력합니다. GPS 자동 수집은 하지 않습니다.</p><div class="two-col"><div><label for="intake-lat">위도</label><input id="intake-lat" type="number" step="any" min="-90" max="90" required placeholder="35.145"></div><div><label for="intake-lon">경도</label><input id="intake-lon" type="number" step="any" min="-180" max="180" required placeholder="126.86"></div></div></fieldset>
+        <label class="check"><input id="consent" type="checkbox" required> 입력한 환자 정보를 서버에 저장하고 수용 확인을 위해 병원에 전달하는 데 동의합니다.</label>
+        <button id="submit-intake" type="submit">서버에 저장하고 병원 찾기</button><button id="intake-back" type="button" class="secondary">처음으로</button>
+      </form>
+    </section>
+    <section id="transport-screen" hidden>
+      <div class="workspace-heading"><div><h1>병원 탐색 및 이송</h1><p id="patient-id" class="small"></p></div><button id="refresh-all" class="secondary">새로고침</button></div>
+      <div id="emergency-warning" class="warning" hidden>위험 신호가 있습니다. 병원 회신을 기다리지 말고 <a href="tel:119">119에 연락하세요.</a></div>
+      <div id="patient-summary" class="card"></div>
+      <div class="workspace-grid">
+        <div class="work-column">
+          <section id="workflow-card" class="card"><h2>병원 문의</h2><p class="small">병원의 수용 응답은 후보입니다. 목적지는 사람이 확정합니다.</p><div class="row"><label for="inquiry-policy">자동 문의 정책</label><select id="inquiry-policy"></select></div><div class="row buttons"><button id="auto-start">자동 문의 시작·재개</button><button id="auto-pause" class="secondary">일시정지</button></div><p id="workflow-state" class="status-line" data-state=""></p><p id="workflow-detail" class="small"></p></section>
+          <section class="card"><div class="section-heading"><h2>후보 병원</h2><button id="refresh-candidates" class="secondary">다시 조회</button></div><p class="small">조건과 이동시간을 비교한 목록이며 수용을 보장하지 않습니다.</p><div id="candidates"></div><div id="excluded-candidates" class="small"></div></section>
+          <section class="card"><h2>문의 진행 상황</h2><div id="inquiries"></div></section>
+          <section id="transport-controls" class="card" hidden><h2>출발 · 조건 재확인</h2><p id="destination-summary"></p><button id="depart-button">현재 위치에서 출발 확정</button><div class="row buttons"><button id="monitor-enable">조건 감시 켜기</button><button id="monitor-pause" class="secondary">조건 감시 일시정지</button></div><p id="transport-review-state" class="status-line" data-state=""></p><div id="transport-review-evidence" class="small"></div><p id="alternative-workflow" class="small"></p><p class="small">조건 변화는 현재 병원이 재확인합니다. 대체병원 문의는 병원의 조정 판단 후 시작하며 목적지는 자동 변경되지 않습니다.</p>
+            <form id="position-form"><fieldset><legend>현재 위치 관측 · 직접 입력</legend><p class="small">지금 관측한 좌표를 직접 전송합니다. GPS나 자동 추적이 아닙니다.</p><div class="two-col"><div><label for="position-lat">위도</label><input id="position-lat" type="number" step="any" min="-90" max="90" required></div><div><label for="position-lon">경도</label><input id="position-lon" type="number" step="any" min="-180" max="180" required></div></div><button id="position-submit" type="submit" class="secondary">직접 관측 위치 갱신</button><p id="position-status" class="small"></p></fieldset></form>
+          </section>
+          <section id="cancel-controls" class="card"><h2>이송 종료</h2><p class="small">도착 확인은 병원 화면에서 진행합니다.</p><form id="cancel-form"><label for="cancel-reason">취소 사유</label><input id="cancel-reason" required maxlength="200" placeholder="119 이송 인계 등"><button id="cancel-button" type="submit" class="danger">이송 취소</button></form><p id="closed-state" class="small" hidden></p></section>
+        </div>
+        <section class="card conversation"><div class="section-heading"><h2>이송 대화방</h2><span id="chat-participant" class="badge">시스템 · 이송자</span></div><p class="small">병원은 목적지 확정 후 참여합니다. 채팅으로 수용·목적지 변경이 처리되지는 않습니다.</p><div id="chat-items" class="chat-items" aria-live="polite"></div><p id="chat-status" class="small"></p><form id="message-form"><label for="message-body">메시지</label><textarea id="message-body" rows="3" maxlength="2000" placeholder="현재 환자 상태나 도착 준비 정보를 전달하세요" required></textarea><div class="row buttons"><button id="send-message" type="submit">메시지 보내기</button><button id="discard-message" type="button" class="secondary" hidden>실패 요청 취소 · 새 대상 확인</button></div></form></section>
+      </div>
+    </section>
+    <div id="notice" class="notice" role="status" hidden></div><div id="error" class="error" role="alert" hidden></div>
+    <details class="server-settings"><summary>서버 연결 설정</summary><form id="server-form"><label for="server-base">공통 API 서버 주소</label><div class="row"><input id="server-base" type="url" required><button class="secondary" type="submit">연결</button></div><p id="connection-status" class="small"></p></form></details>
+  </main>
+  <footer>계정 없이 사용하는 캡스톤 시연 화면 · 실제 의료기관 신원 인증은 제공하지 않습니다.</footer>
+</body>
+</html>

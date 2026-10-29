@@ -1,19 +1,4 @@
 {
-  "base": "http://127.0.0.1:18027",
-  "intake_url": "http://127.0.0.1:18028/",
-  "intake_home_url": "http://127.0.0.1:18028/",
-  "primary_hospital": "중앙대학교병원",
-  "source_note": "실제 공공 API 병원 정보 + 가상 환자·가상 병원 응답. 문의·채팅·알림은 로컬 서버에만 저장됩니다.",
-  "dataset_path": "datasets/examples/cau_public_flow_cases.json",
-  "cases": [
-    {
-      "id": "CAU-E2E-001",
-      "label": "기본 이송 전체 흐름",
-      "description": "중앙대 교내 낙상 → 중앙대학교병원 문의 대기. 병원 질문·수용 응답부터 시작합니다.",
-      "patient_url": "http://127.0.0.1:18027/patient/?pid=CAU-E2E-001",
-      "hospital_url": "http://127.0.0.1:18027/hospital/?hid=NMC-A1100003&pid=CAU-E2E-001",
-      "initial_state": "WAITING"
-    }
-  ],
-  "reset_at_kst": "2026-10-13T19:59:34.858793+09:00"
+  "source_note": "실제 병원 저장본과 가상 환자를 준비하려면 python -m server.team_demo를 실행하세요. 실제 병원에는 전송하지 않습니다.",
+  "cases": []
 }
