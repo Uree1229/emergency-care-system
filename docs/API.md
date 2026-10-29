@@ -1,7 +1,11 @@
 # 공통 서버 API 명세 (병원 웹 · 환자 웹용)
 
 이 문서는 병원 웹과 환자 모바일 웹을 만드는 팀원을 위한 명세입니다. 서버 코드는 `server/`에 있고, 업무 규칙의 원본은 `server/service.py`입니다.
+이번 피어리뷰를 반영한 담당자별 화면 작업·연결 순서·완료 기준은 [팀원 API 연결 전달 문서](TEAM_FEEDBACK_API_HANDOFF_20261029.md)를 참고하세요.
 이송 건별 시스템 알림과 자유대화 API는 [대화 API 명세](CHAT_API.md)에 정리했습니다. 이송자·병원 화면과 연결됐으며, 각자 PC에서 실행하는 방법은 [팀원 테스트 가이드](TEAM_TEST_GUIDE.md)를 따릅니다.
+업무 시작·종료 계측과 중요 사건 수신·담당자 확인 API는 [업무 계측과 중요 사건 명세](BACKEND_MEASUREMENT_API.md)에 정리했습니다. 신규 API의 화면 연결은 각 담당자의 후속 작업입니다.
+통화 전달 내용·상대 기관측 확인·정정 이력은 [통화 결과 기록 API](CALL_RECORD_API.md)를 사용합니다. 기록의 내용 확인과 의료적 수용 확정을 구분합니다.
+문의 이후 환자정보 보완은 [버전 기반 수정 API](PATIENT_AMENDMENTS_API.md), 이송 ID를 모르는 새 통화 발견은 [병원 전체 통화함](CALL_RECORD_API.md#8-병원-전체-통화함)을 사용합니다.
 초기 자동 문의는 환자 생성 시 `auto_inquiry: true`로 켭니다. `inquiry_policy`로 `fixed_1`, `fixed_3`(기본), `fixed_5`, `observed_v2`, `observed_v3`를 선택할 수 있습니다. 상태 조회·중지·재개와 규칙은 [자동 문의 명세](INQUIRY_WORKFLOW.md)를 따릅니다. 자동 활성화를 생략하면 기존 수동 문의를 유지합니다.
 `--seed` 시연 데이터는 가상입니다. `data/public.db`에는 실제 공공 API 조회 자료를 저장하며, 병원의 내부 시스템이나 실제 환자 수용 업무와 연결된 서비스는 아닙니다.
 
@@ -28,6 +32,8 @@ python -m server.app --seed --scenario sudden --port 8000
 | DEMO-E | 낙상 | H01로 이동 중. 영향 없음 |
 
 ## 2. 공통 규칙
+
+서버와 자동 작업의 상태는 `GET /api/system/status`로 확인한다. DB 읽기 가능 여부, 현재 프로세스 워커, 대기·오류 건수, 추천과 데이터 갱신 시각을 반환하며 조회만으로 업무 상태를 바꾸지 않는다. HTTP 200이라도 본문의 `DEGRADED`/`UNKNOWN`을 확인하고, DB 조회 실패는 503으로 처리한다. [필드·상태·실행 구성](SYSTEM_STATUS.md).
 
 - **주소:** `http://서버:8000/api/...`. 요청과 응답 본문은 UTF-8 JSON입니다.
 - **시각:** 모두 **UTC epoch 초(정수)**입니다. 화면에서 한국시간으로 바꿔 표시하세요.
@@ -71,6 +77,8 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 | 환자 정보 입력 | `POST /api/patients` | 아래 참고 | P02~P10 |
 | 상세·상태 조회(폴링) | `GET /api/patients/{pid}` | | P22, P37 |
 | 전송 전 수정 | `PATCH /api/patients/{pid}` | 바꿀 필드만 | P13 |
+| 문의 후 정보 수정·기존 응답 종료 | `POST /api/patients/{pid}/amendments` | `actor_id`, `client_request_id`, `expected_patient_version`, `reason`, `changes` | 목적지 확정 전 WAITING 전용 |
+| 수정 감사 이력 | `GET /api/patients/{pid}/amendments?limit=50` | | 최신순, before_id 페이지 |
 | 후보 병원 | `GET /api/patients/{pid}/candidates` | | P17~P20 |
 | 문의 정책 목록 | `GET /api/inquiry-policies` | | 공개 5개 정책의 이름·버전·설정 |
 | 자동 문의 상태 | `GET /api/patients/{pid}/inquiry-workflow` | | 초기 WAITING 전용 |
@@ -185,11 +193,22 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 | 문의 목록(폴링) | `GET /api/hospitals/{hid}/inquiries` | | H15, H16, H26 |
 | 응답 | `POST /api/inquiries/{iid}/respond` | 아래 참고 | H19~H25 |
 | 도착 예정 + 영향 환자(폴링) | `GET /api/hospitals/{hid}/incoming` | | H29~H31, H34 |
-| 돌발 유입 등록 | `POST /api/hospitals/{hid}/external-arrivals` | `{"resource_demands":{"ed_bed":1},"note":"..","handled_by":".."}` | H33 |
+| 돌발 유입 등록 | `POST /api/hospitals/{hid}/external-arrivals` | `{"request_id":"클라이언트 UUID","resource_demands":{"ed_bed":1},"note":"..","handled_by":".."}` | H33 |
+| 외부 유입 목록 | `GET /api/hospitals/{hid}/external-arrivals?state=ACTIVE&limit=100` | 다음 페이지는 `before_id` 사용 | H33 |
+| 외부 유입 상세 | `GET /api/hospitals/{hid}/external-arrivals/{id}` | | H33 |
+| 외부 유입 퇴실 | `POST /api/hospitals/{hid}/external-arrivals/{id}/discharge` | `{"expected_version":1,"handled_by":".."}` | H39 |
 | 유지/조정 판단 | `POST /api/hospitals/{hid}/patients/{pid}/decision` | `{"decision":"keep"\|"adjust","note":"..","handled_by":".."}` | H35, H36 |
 | 도착 확인 | `POST /api/hospitals/{hid}/patients/{pid}/arrive` | | H37, H38 |
 | 미도착 | `POST /api/hospitals/{hid}/patients/{pid}/no-show` | `{"reason":"미도착"}` | H39 |
 | 퇴실 | `POST /api/hospitals/{hid}/patients/{pid}/discharge` | | H39 |
+
+2026-10-14 보강: 일반 도착도 실제 반영한 자원 수량과 집계 기준을 저장하고 퇴실 시 그 수량만 해제합니다. 도착 후 새로 등록된 자원·수동 정산·다른 환자의 점유를 임의로 차감하지 않습니다. 집계 충돌은 `409 RESOURCE_CONFLICT`, 원장이 없는 과거 도착 기록은 `409 INVALID_STATE`이며 자동 차감하지 않습니다. [정산 기준과 과거 기록의 제한](RESOURCE_ACCOUNTING.md).
+
+담당자가 이미 정산한 기록은 `POST /api/hospitals/{hid}/patients/{pid}/reconcile-accounting` 또는 `POST /api/hospitals/{hid}/external-arrivals/{id}/reconcile-accounting`으로 **추가 차감 없이** 종결합니다. 요청 ID·사유·담당자·대상 버전·전체 운영 자원 버전·명시적 확인이 필수이며, 조회는 `GET /api/hospitals/{hid}/accounting-reconciliations`와 `/{id}`를 사용합니다. 일반 환자는 `COMPLETED`, 외부 유입은 `RECONCILED`가 됩니다. 자동 퇴실 실패를 자동 우회하는 API가 아닙니다. 성공 응답은 대상 요약과 감사 결과이므로 전체 화면 데이터로 교체하지 않고 다시 조회합니다. [요청·재시도·감사·오류 계약](ACCOUNTING_RECONCILIATION.md).
+
+수용 제한 등록은 `scope` 1~100자, `reason` 1~2,000자, `handled_by` 1~80자 문자열을 검증합니다. 선택적 `starts_at`은 생략/null이면 현재 시각, `ends_at`은 null 또는 시작보다 큰 epoch 초 정수입니다. 잘못된 타입·범위·시간 순서는 저장 전에 `400 INVALID`로 거절합니다. 과거 잘못된 시각은 원본 보존 후 `recheck`, `validation_error=INVALID_RESTRICTION_DATA`로 조회합니다.
+
+외부 유입은 이송 건 `patients`와 별개의 자원 사용 기록입니다. 등록·퇴실 재전송, 실제 반영 수량, 과거 기록과 수동 점유 보정의 처리 계약은 [외부 유입 API와 연결 기준](EXTERNAL_ARRIVALS.md)을 따릅니다. 서버 API는 구현됐으며 병원 웹의 목록·개별 퇴실 화면은 후속 연결 대상입니다.
 
 ### 응답 본문
 ```json
@@ -310,7 +329,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 | 수동 재계산 요청 | `POST /api/patients/{pid}/replan` | `{}`; 폴링마다 호출하지 않음 |
 | 병원별 예정 환자 재평가 | 기존 `GET /api/hospitals/{hid}/incoming` | 추가된 `planning` 배열 사용 |
 
-모두 HTTP 200 JSON입니다. 작업 대기·만료는 HTTP 오류가 아니라 본문의 `status`로 구분합니다.
+조회는 HTTP 200 JSON이며 작업 대기·만료는 본문의 `status`로 구분합니다. 현재 프로세스의 배정 워커가 명시적으로 비활성·중단·종료 중이면 재계산 POST는 `409 PLANNER_DISABLED / PLANNER_STOPPED / PLANNER_STOPPING`을 반환하고 입력 버전을 변경하지 않습니다.
 
 ```json
 {
@@ -318,6 +337,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
   "revision": 42,
   "created_at": 1790000020,
   "expires_at": 1790000050,
+  "availability": {"worker_state":"RUNNING","accepting_requests":true,"reason_code":null},
   "result": {
     "status": "RECOMMENDED",
     "hospital_id": "H02",
@@ -328,6 +348,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
     "wait_seconds": 160,
     "confirmable_now": true,
     "accepted_alternatives": [],
+    "eligibility_reasons": [{"hospital_id":"H02","inquiry_id":5,"codes":[]}],
     "warnings": ["PRIORITY_UNVERIFIED"],
     "travel": {"duration_seconds": 120, "provider": "synthetic"},
     "assumptions": {
@@ -352,7 +373,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 | `result.status` | 의미 |
 |---|---|
 | `RECOMMENDED` | 유효한 수용 응답을 받은 병원 중 가상 시간 제약을 만족하는 배정안 |
-| `UNASSIGNED` | 유효한 수용 병원이 없거나 대기·자원 제약으로 미배정 |
+| `UNASSIGNED` | 유효한 수용 응답 없음, 운영 자원 정보 부족 또는 대기·자원 제약으로 모델에서 미배정 |
 | `DESTINATION_HELD` | 기존 목적지를 유지하면서 예상 치료 시작시각 재평가 |
 | `NEEDS_REVIEW` | 기존 자원 충돌·기한 초과·병원 조정 요청·지원하지 않는 자원 등 재확인 필요 |
 
@@ -361,6 +382,18 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 이동 중 환자는 목적지를 자동 변경하거나 미배정으로 처리하지 않습니다. 병원이 조정 요청을 한 경우 `accepted_alternatives`에 새 수용 응답이 있는 대체 병원을 제공합니다. 대체 병원 목록은 최적 순위·예약이 아니며, 이동 중에는 현재 위치를 받아 기존 `POST .../change-destination`에 전달하세요. 서버가 확정 직전에 다시 검사합니다.
 
 병원 `incoming.planning`의 각 항목은 `{patient_id, status, revision, result, ...}` 형태입니다. 기존 `affected`의 수량 기준 판정과 함께 재평가 상태를 보여 주세요. 대표 경고는 `PRIORITY_UNVERIFIED`, `WAIT_LIMIT_EXCEEDED`, `HOSPITAL_REQUESTED_ADJUSTMENT`, `DESTINATION_RESTRICTED`, `UNSUPPORTED_RESOURCE`, `NO_VALID_ACCEPTED_HOSPITAL`입니다.
+
+### 화면 연결 보강 (2026-10-14)
+
+`availability`는 결과 신선도와 별개의 **현재 서버 프로세스 배정 워커 상태**입니다. `RUNNING`/`STARTING`은 요청 가능, `ERROR`/`STALLED`는 오류·지연 안내와 함께 재계산 요청 가능, `DISABLED`/`STOPPED`/`STOPPING`은 요청 불가입니다. 관측기에 등록하지 않은 별도 실행기는 `UNKNOWN`, `accepting_requests=null`, `reason_code=PLANNER_UNOBSERVED`입니다. 이때 기존 요청 저장 동작은 유지하지만 실행을 보장하지 않습니다. 최신 결과가 있다면 워커 비활성 여부와 별도로 신선도를 표시할 수 있습니다.
+
+병원 응답에는 같은 값인 `planning_availability`가 최상위에 있고, `planning[]`의 각 항목에도 `availability`가 포함됩니다. 따라서 환자·병원 화면 모두 `QUEUED`만으로 “계산 중”이라고 단정하지 않습니다. 현재 공개 병원 시연18027은 배정 워커가 `DISABLED`입니다.
+
+유효한 환자별 수용 응답은 있지만 계산에 필요한 정보가 부족한 경우 `result.eligibility_reasons`에 병원·문의별 사유를 반환합니다. 코드는 `LOCATION_REQUIRED`, `UNSUPPORTED_RESOURCE`, `CAPABILITY_MISMATCH`, `RESTRICTED`, `OPERATING_RESOURCE_MISSING`, `OPERATING_RESOURCE_UNKNOWN`, `OPERATING_RESOURCE_STALE`, `RESOURCE_CAPACITY_INSUFFICIENT`입니다. 관련 경고는 `코드:병원ID` 형식으로도 제공합니다. 자원 용량 부족 코드는 현재 관측값에 대한 사유이며 모든 미래 시간대의 실행 불가능성을 증명하지 않습니다.
+
+`NO_VALID_ACCEPTED_HOSPITAL`은 현재 환자 버전과 유효기간을 만족하는 수용 응답이 없을 때만 사용합니다. 응답은 있으나 계산 후보가 되지 못하면 `NO_ELIGIBLE_ACCEPTED_HOSPITAL`과 구체적 사유를 표시합니다. 공개 자료만 있고 운영 자원이 없는 병원도 기존 수용 응답과 사람의 확정은 가능합니다. **솔버 미배정을 병원 수용 불가로 표시하거나, 기존 수동 확정 버튼을 추천 성공에 종속시키지 않습니다.**
+
+추천 패널은 현재 양쪽 UI에 아직 연결되지 않았습니다. 상세 연결 순서와 팀원별 완료 기준은 [추천 표시 연결 안내](TEAM_RECOMMENDATION_INTEGRATION.md)를 따릅니다.
 
 계획 결과에는 `result.treatment_requirements`(실제로 적용한 조건), `result.treatment_evaluation`(선택 병원의 평가, 선택 병원이 없으면 null), `result.treatment_evaluations`(병원 ID별 평가)가 포함됩니다. 공개 근거만으로 확인되지 않은 조건은 `TREATMENT_CONFIRMATION_REQUIRED:<병원ID>`, 오래된 관측은 `PUBLIC_DATA_STALE:<병원ID>` 경고로 표시합니다. 이 경고가 있다는 이유만으로 병원의 유효한 환자별 수용 응답을 무효화하지는 않습니다.
 
@@ -372,7 +405,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 - 기존 목적지가 실행 불가능하면 해당 환자의 목적지·예정 수요를 DB에 유지하고, 전체 계획을 재확인 대상으로 반환합니다.
 - 솔버 제한시간 내 유효한 해가 없으면 순차 배정안으로 대체합니다. 순차안도 기존 목적지를 보존할 수 없으면 재확인 상태를 반환합니다. 제한시간은 솔버 프로세스에 적용하며 입력 수집·순차안 계산은 별도입니다.
 - 계산 전후 DB 버전과 수용 응답·자원 정보 만료를 검사합니다. 공공 관측의 추가·수정·삭제도 `revision`을 변경하며, 공개 가용 관측의 신선도 만료도 추천 만료시각에 반영합니다. 오래된 결과는 저장하지 않으며 재계산합니다. 시연 크기 제한은 모델 환자 64명, 병원 32곳입니다.
-- `--no-planner`로 워커를 끈 상태에서는 재계산 요청이 처리되지 않습니다. 독립 워커 서비스·실제 의료기관 검증·B2 비교는 후속 과제입니다.
+- `--no-planner`로 워커를 끈 상태에서는 새 재계산 요청을 409로 거부합니다. 실제 의료기관 검증과 독립 워커 서비스는 후속 과제입니다. 합성 알고리즘 비교 결과와 운영 추천 API의 임상 성능 검증은 구분합니다.
 
 ## 11. 공공 병원 데이터 (2026-10-11 추가)
 

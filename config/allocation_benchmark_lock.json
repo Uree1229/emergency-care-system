@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "kind": "allocation_benchmark_lock",
+  "settings": {
+    "at": 10,
+    "r2_lambda": 15.0,
+    "r3_enumeration_limit": 20000,
+    "cp_sat_seconds": 1.0,
+    "cp_sat_seed": 0,
+    "cp_sat_workers": 1,
+    "objective": [
+      "unassigned_priority_weight",
+      "priority_weighted_travel_minutes"
+    ],
+    "priority_weights": {
+      "high": 4,
+      "medium": 2,
+      "low": 1
+    },
+    "order": "priority descending, request time ascending, patient ID ascending",
+    "inquiry": "fixed frozen valid offers; inquiry/search time not simulated"
+  },
+  "families": [
+    "abundant",
+    "first_reply_vs_arrival",
+    "scarce_greedy_trap",
+    "multi_resource",
+    "priority_cardinality",
+    "committed_queue",
+    "no_offer_control",
+    "large_batch"
+  ],
+  "development_seeds": [
+    8101,
+    8102,
+    8103,
+    8104,
+    8105,
+    8106,
+    8107,
+    8108
+  ],
+  "validation_seeds": [
+    9101,
+    9102,
+    9103,
+    9104,
+    9105,
+    9106,
+    9107,
+    9108,
+    9109,
+    9110,
+    9111,
+    9112,
+    9113,
+    9114,
+    9115,
+    9116,
+    9117,
+    9118,
+    9119,
+    9120
+  ],
+  "runtime_versions": {
+    "python": "3.12.14",
+    "ortools": "9.15.6755"
+  },
+  "source_sha256": {
+    "simulation/allocation_benchmark.py": "de75e56e093b376acee4532d57813963306f6aba5290b90492ccd4b5b85aa8de",
+    "simulation/allocation_scenarios.py": "4f21f18f1e72f6f6706e314d7122ad71eca06ad071f326e032626a993f448b20",
+    "simulation/cp_sat_assignment.py": "27766df93991862727a1726ff8a29d41d1aabd3fb30b7dc06015b675c9a1c443",
+    "simulation/sim.py": "313c8d415c6df492a5a9c6edbc3013cc9d3030901a5dbf0a8bb5d9959ee31078",
+    "simulation/priority_assignment.py": "2316e74bf3c3be307e66f9616493e9ded1979600aece3656895a3dab73bb1b60",
+    "simulation/allocation_benchmark_audit.py": "7403f8e62ebeb2a002686e37791d269dbfec0451f8598050c33574ab41cc6050"
+  }
+}

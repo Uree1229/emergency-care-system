@@ -20,7 +20,8 @@ def publish(conn, snapshot, results, now, owner):
                if q['state'] == 'ACCEPTED' and q['expires_at'] is not None and q['expires_at'] > snapshot['now']]
     limits += [r['updated_at'] + service.STALE_AFTER + 1 for r in snapshot['resources']
                if r['updated_at'] + service.STALE_AFTER >= snapshot['now']]
-    limits += [r['starts_at'] for r in snapshot['restrictions'] if r['cleared_at'] is None and r['starts_at'] > snapshot['now']]
+    limits += [r['starts_at'] for r in snapshot['restrictions']
+               if service.restriction_status(r, snapshot['now']) == 'scheduled']
     limits += [r['source_observed_at'] + service.STALE_AFTER + 1 for r in snapshot.get('public_snapshots', [])
                if r['source_observed_at'] is not None and
                r['source_observed_at'] + service.STALE_AFTER >= snapshot['now']]

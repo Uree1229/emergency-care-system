@@ -5,6 +5,7 @@ import time
 import uuid
 
 from . import db, planning, service, solver_adapter
+from .system_status import WorkerHealth
 
 
 def _solve_child(data, seconds, pipe):
@@ -81,20 +82,26 @@ def run_once(path, estimator, clock=lambda: int(time.time()), seconds=3, runner=
 
 
 class Worker:
-    def __init__(self, path, estimator, seconds=3):
+    def __init__(self, path, estimator, seconds=3, health=None):
         self.path, self.estimator, self.seconds = path, estimator, seconds
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self.run, name='planning-worker', daemon=True)
+        self.health = health if health is not None else WorkerHealth(stale_after_seconds=360)
 
     def run(self):
         while not self.stop_event.is_set():
+            self.health.cycle_started()
             try:
                 run_once(self.path, self.estimator, seconds=self.seconds)
             except Exception:
+                self.health.cycle_failed('PLANNING_FAILED')
                 print('배정 계산 실패: DB 상태를 유지하고 재시도합니다.')
+            else:
+                self.health.cycle_succeeded()
             self.stop_event.wait(1)
 
     def start(self):
+        self.health.worker_started()
         self.thread.start()
 
     def stop(self):

@@ -6,6 +6,7 @@ venv/
 
 # 벤더링된 솔버 라이브러리 (requirements-portable.txt로 설치)
 .solver_deps/
+.codex-build/
 
 # 문서 렌더링 점검용 이미지·PDF
 .docx_qa*/
@@ -32,8 +33,23 @@ usb_import_backups/
 # 서버 실행 DB·API 수집 원본
 data/
 
+# 도로 snapshot은 재현용으로 보관하되 수집 잠금·실행 시각은 제외
+simulation/route_cache/.request_lock/
+simulation/route_cache/.last_request.json
+simulation/route_cache/*.tmp
+
+# 실험 결과 원본(JSON)과 사례별 압축 기록(*_cases/*.json.gz)은 크기가 커서(합계 약 6GB) 외부에 백업한다.
+# 보고서(.md)와 잠금 파일(*_lock.json)만 커밋한다. 이미 추적 중인 작은 JSON은 그대로 둔다.
+simulation_results/**/*.json
+simulation_results/**/*.json.gz
+!simulation_results/**/*_lock.json
+# 지도 재생용 대용량 생성 데이터(약 128MB)
+simulation/viewer/map_replay_data.json
+# 발표 파일·DB 덤프·행정 문서 등 개인 작업 산출물
+outputs/
+
+# 팀원 앱 실행 DB와 로컬 미리보기
 /emergency-app/*.db
 /emergency-app/*.db-*
 /emergency-app/*.sqlite*
 .local-preview/
-outputs/source_snapshots/

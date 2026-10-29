@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "kind": "allocation_stress_lock",
+  "settings": {
+    "at": 10,
+    "r2_lambda": 15.0,
+    "h1_max_moves": 2048,
+    "budgets_seconds": [
+      0.01,
+      0.05,
+      0.2
+    ],
+    "cp_sat_seed": 0,
+    "cp_sat_workers": 1,
+    "priority_weights": {
+      "high": 4,
+      "medium": 2,
+      "low": 1
+    },
+    "objective": [
+      "unassigned_priority_weight",
+      "priority_weighted_travel_minutes"
+    ],
+    "order": "priority descending, request time ascending, patient ID ascending",
+    "branch_order": "deterministic cyclic rotation by case index",
+    "inquiry": "fixed currently observed accepted offers; no inquiry/search simulation",
+    "budget_scope": "optional model/search work; total observable wall time reported separately"
+  },
+  "families": [
+    "singleton_trap",
+    "multi_resource",
+    "dense_random",
+    "sparse_random",
+    "scarce_long_detour",
+    "abundant_control",
+    "no_capacity_control"
+  ],
+  "sizes": [
+    20,
+    50,
+    100
+  ],
+  "development_seeds": [
+    12101,
+    12102
+  ],
+  "validation_seeds": [
+    13101,
+    13102,
+    13103,
+    13104
+  ],
+  "runtime_versions": {
+    "python": "3.12.14",
+    "ortools": "9.15.6755",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64"
+  },
+  "source_sha256": {
+    "simulation/allocation_stress_scenarios.py": "861bbb214e9b98070f3d64ca37ba68b8057d632f181da00841270823ed4c33c3",
+    "simulation/allocation_stress_experiment.py": "8f97777d29c3d5c100a11a5d5062d1ac1db9e0c2fb82b2f72ed85d3fe6acbae7",
+    "simulation/heuristic_assignment.py": "17ace2f204915695d13a7f69a2dca61236f0c25e80c79030ac294e261c1dcfcb",
+    "simulation/allocation_stress_audit.py": "97389063598afcdc23e98a8005cced104ee8ecbf25b88910d9b9d5845d3d7b51",
+    "test_allocation_stress.py": "043680d3c858efef49e7d29633debd142e39feed71b773a107cb8204e94818c1",
+    "test_allocation_stress_audit.py": "ac76f3e6e16e0bd7507886f15fbe03b72e64054f7a567ab55209e8b8e96f4d77",
+    "test_heuristic_assignment.py": "0a6d221aacd1d0477378764db69d8aa5b4be0464c4f704111730f619fc84a960",
+    "simulation/allocation_benchmark.py": "de75e56e093b376acee4532d57813963306f6aba5290b90492ccd4b5b85aa8de",
+    "simulation/allocation_scenarios.py": "4f21f18f1e72f6f6706e314d7122ad71eca06ad071f326e032626a993f448b20",
+    "simulation/cp_sat_assignment.py": "27766df93991862727a1726ff8a29d41d1aabd3fb30b7dc06015b675c9a1c443",
+    "simulation/sim.py": "313c8d415c6df492a5a9c6edbc3013cc9d3030901a5dbf0a8bb5d9959ee31078",
+    "simulation/priority_assignment.py": "2316e74bf3c3be307e66f9616493e9ded1979600aece3656895a3dab73bb1b60"
+  }
+}

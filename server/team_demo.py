@@ -212,12 +212,12 @@ def demo_config(conn, base_url=None, intake_url=None):
     return config
 
 
-def make_demo_handler(path, estimator, base_url=None, intake_url=None):
+def make_demo_handler(path, estimator, base_url=None, intake_url=None, runtime=None):
     if base_url:
         base_url = origin(base_url)
     if intake_url:
         intake_url = origin(intake_url)
-    parent = make_handler(path, estimator, cors_origin=None)
+    parent = make_handler(path, estimator, cors_origin=None, runtime=runtime)
 
     class DemoHandler(parent):
         def _static(self, path_):
@@ -258,9 +258,13 @@ def main(argv=None):
     if args.prepare_only:
         return
     estimator = TravelEstimator(use_kakao=False)
-    server = ThreadingHTTPServer((args.host, args.port),
-                                 make_demo_handler(args.db, estimator, args.base_url, args.intake_url))
+    from .system_status import RuntimeStatus
     worker = InquiryWorker(args.db, estimator)
+    runtime = RuntimeStatus()
+    runtime.configure('planning', enabled=False)
+    runtime.configure('inquiry', worker)
+    server = ThreadingHTTPServer((args.host, args.port),
+                                 make_demo_handler(args.db, estimator, args.base_url, args.intake_url, runtime=runtime))
     worker.start()
     shown_host = '127.0.0.1' if args.host in ('0.0.0.0', '::') else args.host
     print(f'http://{shown_host}:{args.port}/public-flow-demo.html', flush=True)

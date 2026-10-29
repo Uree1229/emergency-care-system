@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS inquiries (
     patient_version INTEGER NOT NULL,
     handled_by TEXT,
     version INTEGER NOT NULL DEFAULT 1,
+    requires_review_version INTEGER NOT NULL DEFAULT 0 CHECK(requires_review_version IN (0,1)),
+    review_response_fingerprint TEXT,
     UNIQUE (patient_id, hospital_id)
 );
 CREATE TABLE IF NOT EXISTS inquiry_workflows (
@@ -201,7 +203,8 @@ CREATE INDEX IF NOT EXISTS chat_messages_session ON chat_messages(hospital_sessi
 
 JSON_FIELDS = {'capabilities', 'source_ids', 'extra', 'danger_signs', 'required_capabilities',
                'resource_demands', 'data', 'explicit_required_capabilities', 'explicit_resource_demands',
-               'patient_snapshot', 'policy_config', 'hospital_ids', 'evidence', 'baseline', 'transport_baseline'}
+               'patient_snapshot', 'policy_config', 'hospital_ids', 'evidence', 'baseline', 'transport_baseline',
+               'request_payload', 'applied_resource_demands', 'applied_resource_epochs', 'arrival_accounting'}
 
 
 def connect(path):
@@ -215,9 +218,71 @@ def connect(path):
 
 def init(conn):
     conn.executescript(SCHEMA)
+    inquiry_columns = {r['name'] for r in conn.execute('PRAGMA table_info(inquiries)')}
+    if 'requires_review_version' not in inquiry_columns:
+        conn.execute('ALTER TABLE inquiries ADD COLUMN requires_review_version '
+                     'INTEGER NOT NULL DEFAULT 0 CHECK(requires_review_version IN (0,1))')
+    if 'review_response_fingerprint' not in inquiry_columns:
+        conn.execute('ALTER TABLE inquiries ADD COLUMN review_response_fingerprint TEXT')
+    # 계측·전달 확인은 업무 입력이 아니다. 기존 DB를 삭제하지 않고 확장하며
+    # 아래 planning 입력 트리거에도 포함하지 않는다.
+    from . import work_activity, important_events, call_records, patient_amendments
+    conn.executescript(work_activity.SCHEMA + important_events.SCHEMA + call_records.SCHEMA
+                       + patient_amendments.SCHEMA)
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS accounting_reconciliations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hospital_id TEXT NOT NULL REFERENCES hospitals(id),
+        target_kind TEXT NOT NULL CHECK(target_kind IN ('patient','external_arrival')),
+        target_id TEXT NOT NULL, request_id TEXT NOT NULL, created_at INTEGER NOT NULL,
+        handled_by TEXT NOT NULL, reason TEXT NOT NULL, expected_version INTEGER NOT NULL,
+        prior_state TEXT NOT NULL, prior_version INTEGER NOT NULL,
+        result_state TEXT NOT NULL, result_version INTEGER NOT NULL,
+        request_payload TEXT NOT NULL, original_accounting TEXT NOT NULL,
+        resource_snapshot TEXT NOT NULL,
+        UNIQUE(hospital_id,request_id)
+    );
+    CREATE INDEX IF NOT EXISTS accounting_reconciliation_hospital
+        ON accounting_reconciliations(hospital_id,id);
+    CREATE TRIGGER IF NOT EXISTS accounting_reconciliation_no_update
+        BEFORE UPDATE ON accounting_reconciliations
+        BEGIN SELECT RAISE(ABORT, 'accounting reconciliation audit is immutable'); END;
+    CREATE TRIGGER IF NOT EXISTS accounting_reconciliation_no_delete
+        BEFORE DELETE ON accounting_reconciliations
+        BEGIN SELECT RAISE(ABORT, 'accounting reconciliation audit is immutable'); END;
+    CREATE TRIGGER IF NOT EXISTS accounting_reconciliation_no_replace
+        BEFORE INSERT ON accounting_reconciliations
+        WHEN EXISTS (SELECT 1 FROM accounting_reconciliations
+                     WHERE id=NEW.id OR (hospital_id=NEW.hospital_id AND request_id=NEW.request_id))
+        BEGIN SELECT RAISE(ABORT, 'accounting reconciliation audit is immutable'); END;
+    """)
+    # 과거 돌발 유입은 이미 수동 정산됐을 수 있어 자동 퇴실 대상으로 추정하지 않는다.
+    arrival_columns = {r['name'] for r in conn.execute('PRAGMA table_info(external_arrivals)')}
+    for name, definition in {
+        'state': "TEXT NOT NULL DEFAULT 'LEGACY'",
+        'discharged_at': 'INTEGER', 'version': 'INTEGER NOT NULL DEFAULT 1',
+        'registered_by': 'TEXT', 'discharged_by': 'TEXT', 'request_id': 'TEXT',
+        'accounting_reconciliation_id': 'INTEGER',
+        'accounting_reconciled_at': 'INTEGER', 'accounting_reconciled_by': 'TEXT',
+        'request_payload': 'TEXT',
+        'applied_resource_demands': "TEXT NOT NULL DEFAULT '{}'",
+        'applied_resource_epochs': "TEXT NOT NULL DEFAULT '{}'",
+    }.items():
+        if name not in arrival_columns:
+            conn.execute(f'ALTER TABLE external_arrivals ADD COLUMN {name} {definition}')
+    conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS external_arrival_request '
+                 'ON external_arrivals(hospital_id,request_id) WHERE request_id IS NOT NULL')
+    conn.execute('CREATE INDEX IF NOT EXISTS external_arrival_state '
+                 'ON external_arrivals(hospital_id,state,id)')
+    resource_columns = {r['name'] for r in conn.execute('PRAGMA table_info(resources)')}
+    if 'occupancy_epoch' not in resource_columns:
+        conn.execute("ALTER TABLE resources ADD COLUMN occupancy_epoch TEXT NOT NULL DEFAULT ''")
     location_columns = {r['name'] for r in conn.execute('PRAGMA table_info(patients)')}
     for name, definition in {'location_updated_at': 'INTEGER',
                              'location_version': 'INTEGER NOT NULL DEFAULT 0',
+                             'arrival_accounting': 'TEXT',
+                             'accounting_reconciliation_id': 'INTEGER',
+                             'accounting_reconciled_at': 'INTEGER', 'accounting_reconciled_by': 'TEXT',
                              'transport_baseline': "TEXT NOT NULL DEFAULT '{}'"}.items():
         if name not in location_columns:
             conn.execute(f'ALTER TABLE patients ADD COLUMN {name} {definition}')
@@ -308,7 +373,13 @@ def row(r):
     out = dict(r)
     for k in JSON_FIELDS & out.keys():
         if out[k] is not None:
-            out[k] = json.loads(out[k])
+            try:
+                out[k] = json.loads(out[k])
+            except (ValueError, TypeError):
+                if k != 'arrival_accounting':
+                    raise
+                # 과거 정산 원장의 손상은 자동 차감 409로 다룬다. 원본은 수정하지 않는다.
+                out[k] = {'invalid': True}
     return out
 
 

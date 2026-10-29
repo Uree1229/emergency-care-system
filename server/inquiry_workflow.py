@@ -1,8 +1,8 @@
 """초기 병원 문의 자동 진행. 수용 응답과 목적지 확정은 자동화하지 않는다.
 
 기본 3곳/60초/최대 10곳/300초는 시연을 위한 운영 설정값이다. 환자 치료의
-허용 대기시간이나 임상 기준을 뜻하지 않는다. 연락한 병원에는 자동 재문의하지
-않으며 미응답을 수용 불가로 바꾸지 않는다.
+허용 대기시간이나 임상 기준을 뜻하지 않는다. 같은 환자정보 버전에서 연락한 병원에는
+자동 재문의하지 않으며 미응답을 수용 불가로 바꾸지 않는다.
 """
 import time
 
@@ -23,6 +23,11 @@ def _job(conn, pid):
 
 def _inquiries(conn, pid):
     return db.rows(conn.execute('SELECT * FROM inquiries WHERE patient_id=? ORDER BY id', (pid,)))
+
+
+def _current_inquiries(patient, inquiries):
+    """A new information version can revisit hospitals without erasing old inquiry history."""
+    return [q for q in inquiries if q['patient_version'] == patient['version']]
 
 
 def _valid_acceptances(conn, now, patient, inquiries):
@@ -150,6 +155,8 @@ def view(conn, now, pid):
                                                    'ORDER BY id DESC LIMIT 1', (pid,)).fetchone()),
                contacted_count=len(inquiries),
                contacted_hospital_ids=[q['hospital_id'] for q in inquiries],
+               current_version_contacted_count=len(_current_inquiries(patient, inquiries)),
+               current_version_contacted_hospital_ids=[q['hospital_id'] for q in _current_inquiries(patient, inquiries)],
                pending_count=sum(q['state'] in service.OPEN_INQUIRY for q in inquiries),
                valid_accepted_inquiry_ids=_valid_acceptances(conn, now, patient, inquiries))
     return out
@@ -221,7 +228,7 @@ def _capture(conn, now, pid):
         if patient['state'] != 'WAITING':
             stop_in_transaction(conn, now, pid, reason='초기 병원 선정 단계가 종료됐습니다.')
             return None, True
-        inquiries = _inquiries(conn, pid)
+        inquiries = _current_inquiries(patient, _inquiries(conn, pid))
         accepted = _valid_acceptances(conn, now, patient, inquiries)
         if accepted:
             return None, _ready(conn, now, job, accepted)
@@ -295,7 +302,7 @@ def _apply(conn, now, snapshot, candidates, ledger):
         matches, job, patient = _matches(conn, snapshot)
         if not matches:
             return False
-        inquiries = _inquiries(conn, patient['id'])
+        inquiries = _current_inquiries(patient, _inquiries(conn, patient['id']))
         accepted = _valid_acceptances(conn, now, patient, inquiries)
         if accepted:
             return _ready(conn, now, job, accepted)

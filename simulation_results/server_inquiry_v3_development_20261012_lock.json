@@ -1,0 +1,145 @@
+{
+  "kind": "server_inquiry_v3_development_lock",
+  "development_seeds": [
+    6101,
+    6102,
+    6103,
+    6104,
+    6105,
+    6106,
+    6107,
+    6108
+  ],
+  "selection_rule": {
+    "population": "development_only",
+    "aggregation": "equal_weight_per_scenario_family",
+    "ordered_objectives": [
+      "failed_fraction_mean",
+      "selection_wait_capped_mean",
+      "inquiries_per_patient_mean"
+    ],
+    "comparison": "lexicographic",
+    "tie_break": "stable_policy_name",
+    "failure_wait_seconds": 300
+  },
+  "chosen_policy": "v3_w45_h900",
+  "chosen_policy_spec": {
+    "name": "v3_w45_h900",
+    "label": "V3 개발 후보 (45초·이력 900초)",
+    "version": "1",
+    "batch_size": 1,
+    "wait_seconds": 45,
+    "review_seconds": 15,
+    "max_contacts": 10,
+    "deadline_seconds": 300,
+    "experimental": true,
+    "research_only": true,
+    "config": {
+      "window_seconds": 900,
+      "prior_reply_seconds": 180,
+      "min_samples": 2,
+      "congestion_seconds_per_unresolved": 60,
+      "hedge_after_seconds": 120,
+      "hedge_margin_seconds": 0,
+      "max_new_per_review": 1,
+      "timeout_penalty_seconds": 360,
+      "max_concurrent": 3,
+      "observation_timeout_seconds": 180,
+      "history_window_seconds": 900,
+      "max_wait_seconds": 45
+    }
+  },
+  "baseline_policy_specs": [
+    {
+      "name": "fixed_1",
+      "label": "고정 1곳 문의",
+      "version": "1",
+      "batch_size": 1,
+      "wait_seconds": 60,
+      "review_seconds": 60,
+      "max_contacts": 10,
+      "deadline_seconds": 300,
+      "experimental": true,
+      "config": {
+        "observation_timeout_seconds": 180
+      }
+    },
+    {
+      "name": "fixed_3",
+      "label": "고정 3곳 문의",
+      "version": "1",
+      "batch_size": 3,
+      "wait_seconds": 60,
+      "review_seconds": 60,
+      "max_contacts": 10,
+      "deadline_seconds": 300,
+      "experimental": true,
+      "config": {
+        "observation_timeout_seconds": 180
+      }
+    },
+    {
+      "name": "fixed_5",
+      "label": "고정 5곳 문의",
+      "version": "1",
+      "batch_size": 5,
+      "wait_seconds": 60,
+      "review_seconds": 60,
+      "max_contacts": 10,
+      "deadline_seconds": 300,
+      "experimental": true,
+      "config": {
+        "observation_timeout_seconds": 180
+      }
+    },
+    {
+      "name": "observed_v2",
+      "label": "관측 기반 V2",
+      "version": "1",
+      "batch_size": 1,
+      "wait_seconds": 120,
+      "review_seconds": 15,
+      "max_contacts": 10,
+      "deadline_seconds": 300,
+      "experimental": true,
+      "config": {
+        "window_seconds": 1800,
+        "prior_reply_seconds": 180,
+        "min_samples": 2,
+        "congestion_seconds_per_unresolved": 60,
+        "hedge_after_seconds": 120,
+        "hedge_margin_seconds": 0,
+        "max_new_per_review": 1,
+        "timeout_penalty_seconds": 360,
+        "max_concurrent": 3,
+        "observation_timeout_seconds": 180
+      }
+    }
+  ],
+  "score": {
+    "failed_fraction_mean": 0.125,
+    "selection_wait_capped_mean": 86.322265625,
+    "inquiries_per_patient_mean": 2.560546875
+  },
+  "score_vector": [
+    0.125,
+    86.322265625,
+    2.560546875
+  ],
+  "source_sha256": {
+    "server/inquiry_experiment.py": "14c2b7ca9d321b87169c39957b40f7420050bbea97b1d3e1efe95a2fc73e4e6a",
+    "server/inquiry_experiment_scenarios.py": "6ad4dc6d33a82ff9c47fa10c8b582a31d213ce3f480e810599d632d5ff26a606",
+    "server/inquiry_workflow.py": "952607d515d90d683b09e8c602720b7b2a15084bdbcce698c781f5bee1eb0fd0",
+    "server/inquiry_policies.py": "9150695c4bb251b0761b8fed848ddd13e49428eceafcd349f30d5b6088fcd36a",
+    "server/inquiry_observations.py": "b931848eafa877be74b59f586af5dcc0b1524c0fbf9f138c8f29794ce7b6cec6",
+    "server/service.py": "fd04f6aac9a6ac9378041a496e029a81817f72682f1986a95a31343351ddff38",
+    "server/db.py": "83a180a614e4643c2c4f4a5d3c4f45b9e01dffd8e4036257baab0ad610137a47",
+    "server/treatment_binding.py": "fad407469bc261a9cb063e3b78359d250810f97b20a82c161a3fd5047c61569e",
+    "simulation/observed_inquiry.py": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+    "server/inquiry_v3.py": "25123a29fe0db39b3ccd122fe23844b3652295e324d8a89064346b4311f783d1",
+    "server/inquiry_v3_experiment.py": "530eb09b040d321d007f4c5601feb0fcfb096561e7fe88641f002399c1ac6b61"
+  },
+  "development_report_path": "C:\\Users\\PC\\Documents\\ChatGPT\\캡스톤 디자인\\simulation_results\\server_inquiry_v3_development_20261012.json",
+  "development_report_sha256": "b3aa12e63e4a20c700237f0a26ad0333c55b70f62167bcf8b3af9111209d1098",
+  "sha256": "9b615792eb824054e77f0a3c16f79931c810727f58f228fd80ed21fc18f37318"
+}

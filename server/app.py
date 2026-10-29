@@ -13,8 +13,12 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import db, service, synthetic, planning, conversations, inquiry_workflow, inquiry_policies, transport_review, transport_reassignment
+from . import db, service, synthetic, conversations, inquiry_workflow, inquiry_policies, transport_review, transport_reassignment
 from .travel import TravelEstimator
+from . import system_status
+from . import recommendation_view
+from . import accounting_reconciliation
+from . import work_activity, important_events, call_records, call_inbox, patient_amendments
 
 STATIC = Path(__file__).parent / 'static'
 UI_ROOTS = {
@@ -29,6 +33,148 @@ def route(method, pattern):
         ROUTES.append((method, re.compile(f'^{pattern}$'), fn))
         return fn
     return wrap
+
+
+@route('GET', r'/api/system/status')
+def get_system_status(ctx):
+    return system_status.read_status(ctx.db_path, ctx.now, ctx.runtime)
+
+
+# ---- 현장 업무 계측·중요 사건 전달 확인 (화면 연결용, 사용자 인증과는 별도)
+def _measurement_integer(ctx, key, default=None, maximum=service.MAX_EPOCH):
+    value = ctx.query.get(key)
+    if value is None:
+        return default
+    service._require(isinstance(value, str) and value.isascii() and value.isdecimal()
+                     and len(value) <= 19, 'INVALID', f'{key}는 0 이상의 정수입니다')
+    number = int(value)
+    service._require(number <= maximum, 'INVALID', f'{key} 값이 너무 큽니다')
+    return number
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/work-activities')
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/work-activities')
+def start_work_activity(ctx, pid, hid=None):
+    return work_activity.start(ctx.conn, ctx.now, pid, 'hospital' if hid else 'paramedic',
+                               ctx.body, hospital_id=hid)
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/work-activities/(?P<aid>\d+)/stop')
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/work-activities/(?P<aid>\d+)/stop')
+def stop_work_activity(ctx, pid, aid, hid=None):
+    return work_activity.stop(ctx.conn, ctx.now, pid, 'hospital' if hid else 'paramedic',
+                              aid, ctx.body, hospital_id=hid)
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/work-activities')
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/work-activities')
+def list_work_activities(ctx, pid, hid=None):
+    return work_activity.list_records(ctx.conn, ctx.now, pid, 'hospital' if hid else 'paramedic',
+                                      ctx.query.get('actor_id'), hospital_id=hid,
+                                      limit=_measurement_integer(ctx, 'limit', 50, 100),
+                                      before_id=_measurement_integer(ctx, 'before_id'))
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/work-activities/summary')
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/work-activities/summary')
+def work_activity_summary(ctx, pid, hid=None):
+    return work_activity.summary(ctx.conn, ctx.now, pid, 'hospital' if hid else 'paramedic',
+                                 ctx.query.get('actor_id'), hospital_id=hid,
+                                 since=_measurement_integer(ctx, 'since'),
+                                 until=_measurement_integer(ctx, 'until'))
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/important-events')
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/important-events')
+def list_important_events(ctx, pid, hid=None):
+    return important_events.list_events(ctx.conn, ctx.now, pid,
+                                        actor_id=ctx.query.get('actor_id'), hospital_id=hid,
+                                        after_id=_measurement_integer(ctx, 'after_id', 0),
+                                        limit=_measurement_integer(ctx, 'limit', 100, 100),
+                                        unacknowledged_only=ctx.query.get('unacknowledged_only', False))
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/important-events/(?P<eid>\d+)/delivered')
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/important-events/(?P<eid>\d+)/delivered')
+def deliver_important_event(ctx, pid, eid, hid=None):
+    return important_events.mark_delivered(ctx.conn, ctx.now, pid, eid,
+                                           actor_id=ctx.body.get('actor_id'), hospital_id=hid)
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/important-events/(?P<eid>\d+)/acknowledge')
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/important-events/(?P<eid>\d+)/acknowledge')
+def acknowledge_important_event(ctx, pid, eid, hid=None):
+    return important_events.acknowledge(ctx.conn, ctx.now, pid, eid,
+                                      actor_id=ctx.body.get('actor_id'), hospital_id=hid)
+
+
+def _call_record_query(ctx, allowed=()):
+    service._require(not (ctx.query.keys() - set(allowed)), 'INVALID', '지원하지 않는 조회 필터입니다')
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/call-records')
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/call-records')
+def create_call_record(ctx, pid, hid=None):
+    _call_record_query(ctx)
+    return call_records.create(ctx.conn, ctx.now, pid, ctx.body, hospital_id=hid)
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/call-records')
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/call-records')
+def list_call_records(ctx, pid, hid=None):
+    _call_record_query(ctx, ('limit', 'before_id'))
+    return call_records.list_records(ctx.conn, ctx.now, pid, hospital_id=hid,
+                                     limit=_measurement_integer(ctx, 'limit', 50, 100),
+                                     before_id=_measurement_integer(ctx, 'before_id'))
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/call-records/(?P<rid>\d+)')
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/call-records/(?P<rid>\d+)')
+def get_call_record(ctx, pid, rid, hid=None):
+    _call_record_query(ctx)
+    return call_records.view(ctx.conn, ctx.now, pid, rid, hospital_id=hid)
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/call-records/(?P<rid>\d+)/confirmation')
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/call-records/(?P<rid>\d+)/confirmation')
+def confirm_call_record(ctx, pid, rid, hid=None):
+    _call_record_query(ctx)
+    return call_records.confirm(ctx.conn, ctx.now, pid, rid, ctx.body, hospital_id=hid)
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/call-records')
+def hospital_call_inbox(ctx, hid):
+    _call_record_query(ctx, ('limit', 'before_id', 'after_id', 'confirmation_status',
+                             'current_only', 'patient_id', 'author_role'))
+    return call_inbox.list_records(ctx.conn, ctx.now, hid,
+                                  limit=_measurement_integer(ctx, 'limit', 50, 100),
+                                  before_id=_measurement_integer(ctx, 'before_id'),
+                                  after_id=_measurement_integer(ctx, 'after_id'),
+                                  confirmation_status=ctx.query.get('confirmation_status', 'all'),
+                                  current_only=ctx.query.get('current_only', True),
+                                  patient_id=ctx.query.get('patient_id'),
+                                  author_role=ctx.query.get('author_role', 'all'))
+
+
+@route('POST', r'/api/patients/(?P<pid>[\w-]+)/amendments')
+def amend_patient_information(ctx, pid):
+    _call_record_query(ctx)
+    return patient_amendments.amend(ctx.conn, ctx.now, pid, ctx.body)
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/amendments')
+def list_patient_amendments(ctx, pid):
+    _call_record_query(ctx, ('limit', 'before_id'))
+    return patient_amendments.list_records(ctx.conn, ctx.now, pid,
+                                          limit=_measurement_integer(ctx, 'limit', 50, 100),
+                                          before_id=_measurement_integer(ctx, 'before_id'))
+
+
+MEASUREMENT_HANDLERS = frozenset((start_work_activity, stop_work_activity, list_work_activities,
+                                  work_activity_summary, list_important_events,
+                                  deliver_important_event, acknowledge_important_event,
+                                  create_call_record, list_call_records, get_call_record, confirm_call_record,
+                                  hospital_call_inbox, amend_patient_information, list_patient_amendments))
 
 
 # ---- 병원 웹
@@ -54,6 +200,7 @@ def _(ctx, hid, rtype):
 def _(ctx, hid):
     b = ctx.body
     return service.add_restriction(ctx.conn, ctx.now, hid, b.get('scope'), b.get('reason'), b.get('ends_at'),
+                                   starts_at=b.get('starts_at'),
                                    actor=b.get('handled_by', 'hospital'))
 
 
@@ -76,16 +223,60 @@ def _(ctx, iid):
 
 @route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/incoming')
 def _(ctx, hid):
+    observed = recommendation_view.availability(ctx.runtime)
     return dict(incoming=service.incoming(ctx.conn, ctx.now, hid),
                 affected=service.affected_patients(ctx.conn, ctx.now, hid),
-                planning=planning.hospital_results(ctx.conn, ctx.now, hid))
+                planning=recommendation_view.hospital_results(ctx.conn, ctx.now, hid, observed=observed),
+                planning_availability=observed)
 
 
 @route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/external-arrivals')
 def _(ctx, hid):
     b = ctx.body
     return service.register_external_arrival(ctx.conn, ctx.now, hid, b.get('resource_demands'),
-                                             b.get('occurred_at'), b.get('note'), b.get('handled_by', 'hospital'))
+                                             b.get('occurred_at'), b.get('note'), b.get('handled_by', 'hospital'),
+                                             request_id=b.get('request_id'))
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/external-arrivals')
+def _(ctx, hid):
+    q = ctx.query
+    return service.list_external_arrivals(ctx.conn, ctx.now, hid, q.get('state', 'ACTIVE'),
+                                          q.get('limit', 100), q.get('before_id'))
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/external-arrivals/(?P<eid>\d+)')
+def _(ctx, hid, eid):
+    return service.external_arrival_view(ctx.conn, ctx.now, hid, eid)
+
+
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/external-arrivals/(?P<eid>\d+)/discharge')
+def _(ctx, hid, eid):
+    return service.discharge_external_arrival(ctx.conn, ctx.now, hid, eid,
+                                              ctx.body.get('handled_by', 'hospital'),
+                                              ctx.body.get('expected_version'))
+
+
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/external-arrivals/(?P<eid>\d+)/reconcile-accounting')
+def _(ctx, hid, eid):
+    return service.reconcile_external_arrival_accounting(ctx.conn, ctx.now, hid, eid, ctx.body)
+
+
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/reconcile-accounting')
+def _(ctx, hid, pid):
+    return service.reconcile_patient_accounting(ctx.conn, ctx.now, pid, hid, ctx.body)
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/accounting-reconciliations')
+def _(ctx, hid):
+    q = ctx.query
+    return accounting_reconciliation.list_records(ctx.conn, ctx.now, hid, q.get('kind', 'all'),
+                                                   q.get('limit', 100), q.get('before_id'))
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/accounting-reconciliations/(?P<rid>\d+)')
+def _(ctx, hid, rid):
+    return accounting_reconciliation.view(ctx.conn, ctx.now, hid, rid)
 
 
 @route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/patients/(?P<pid>[\w-]+)/(?P<act>decision|arrive|no-show|discharge)')
@@ -170,12 +361,12 @@ def _(ctx, pid):
 
 @route('GET', r'/api/patients/(?P<pid>[\w-]+)/recommendation')
 def _(ctx, pid):
-    return planning.patient_result(ctx.conn, ctx.now, pid)
+    return recommendation_view.patient_result(ctx.conn, ctx.now, pid, ctx.runtime)
 
 
 @route('POST', r'/api/patients/(?P<pid>[\w-]+)/replan')
 def _(ctx, pid):
-    return planning.request(ctx.conn, ctx.now, pid)
+    return recommendation_view.request(ctx.conn, ctx.now, pid, ctx.runtime)
 
 
 @route('POST', r'/api/patients/(?P<pid>[\w-]+)/inquiries')
@@ -240,11 +431,12 @@ def _(ctx, hid, pid):
 
 
 class Ctx:
-    def __init__(self, conn, now, body, query, estimator):
+    def __init__(self, conn, now, body, query, estimator, db_path=None, runtime=None):
         self.conn, self.now, self.body, self.query, self.estimator = conn, now, body, query, estimator
+        self.db_path, self.runtime = db_path, runtime
 
 
-def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin='*'):
+def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin='*', runtime=None):
     """cors_origin: 화면을 다른 주소·포트에서 개발할 때 허용할 Origin. None이면 CORS 헤더를 보내지 않는다."""
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):   # 경로에 환자 ID가 있으므로 접근 로그를 남기지 않는다 (O04)
@@ -299,12 +491,22 @@ def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin
                 body = json.loads(self.rfile.read(length) or b'{}') if length else {}
                 if not isinstance(body, dict):
                     raise service.ServiceError('INVALID', 'JSON 객체가 필요합니다', 400)
-                conn = db.connect(db_path)
+                # 빈 작업자·기간 필터를 생략으로 바꿔 집계 범위를 넓히지 않는다.
+                # 기존 API의 쿼리 계약은 유지하고 신규 계측 경로에서만 엄격히 검사한다.
+                pairs = parse_qsl(url.query, keep_blank_values=fn in MEASUREMENT_HANDLERS)
+                if fn in MEASUREMENT_HANDLERS:
+                    service._require(len({key for key, value in pairs}) == len(pairs),
+                                     'INVALID', '중복된 쿼리 항목은 사용할 수 없습니다')
+                # 상태 조회는 자체 읽기 전용 연결을 쓴다. db.connect는 파일 생성·WAL 설정을 수행한다.
+                conn = None if fn is get_system_status else db.connect(db_path)
                 try:
-                    result = fn(Ctx(conn, clock(), body, dict(parse_qsl(url.query)), estimator), **match.groupdict())
+                    result = fn(Ctx(conn, clock(), body, dict(pairs), estimator,
+                                    db_path=db_path, runtime=runtime), **match.groupdict())
                 finally:
-                    conn.close()
-                self._send(200, result)
+                    if conn is not None:
+                        conn.close()
+                status = 503 if fn is get_system_status and result['database']['state'] == 'UNAVAILABLE' else 200
+                self._send(status, result)
             except service.ServiceError as e:
                 self._send(e.status, e.to_dict())
             except (json.JSONDecodeError, UnicodeDecodeError):
@@ -374,12 +576,15 @@ def main():
         scenario.build(conn, int(time.time()), args.scenario)
     conn.close()
     estimator = TravelEstimator()
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(
-        args.db, estimator, cors_origin=None if args.cors_origin == 'none' else args.cors_origin))
     from .worker import Worker
     from .inquiry_worker import InquiryWorker
     worker = None if args.no_planner else Worker(args.db, estimator, args.solver_seconds)
     inquiry_worker = None if args.no_inquiry_worker else InquiryWorker(args.db, estimator)
+    runtime = system_status.RuntimeStatus()
+    runtime.configure('planning', worker, enabled=worker is not None)
+    runtime.configure('inquiry', inquiry_worker, enabled=inquiry_worker is not None)
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(
+        args.db, estimator, cors_origin=None if args.cors_origin == 'none' else args.cors_origin, runtime=runtime))
     if worker:
         worker.start()
     if inquiry_worker:

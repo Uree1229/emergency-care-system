@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "kind": "online_allocation_lock",
+  "families": [
+    "delayed_replies",
+    "scarce_greedy_trap",
+    "scarce_long_detour",
+    "staggered_singleton",
+    "large_simultaneous",
+    "resource_change_enroute",
+    "arrival_assessment_transfer",
+    "no_capacity_control",
+    "abundant_control"
+  ],
+  "settings": {
+    "policies": [
+      {
+        "id": "R0",
+        "label": "첫 수용 순서",
+        "rule": "R0",
+        "k": 3,
+        "wait": 2,
+        "notify": true
+      },
+      {
+        "id": "R1",
+        "label": "예상 도착 우선",
+        "rule": "R1",
+        "k": 3,
+        "wait": 2,
+        "notify": true
+      },
+      {
+        "id": "R2",
+        "label": "자원 경합 고려",
+        "rule": "R2",
+        "k": 3,
+        "wait": 2,
+        "notify": true
+      },
+      {
+        "id": "R3",
+        "label": "공동 배정 · 제한 열거",
+        "rule": "R3",
+        "k": 3,
+        "wait": 2,
+        "notify": true
+      },
+      {
+        "id": "C1",
+        "label": "공동 배정 · CP-SAT",
+        "rule": "C1",
+        "k": 3,
+        "wait": 2,
+        "notify": true,
+        "time_limit_seconds": 1.0,
+        "seed": 0,
+        "require_backend": true
+      }
+    ],
+    "comparison_scope": "same_potential_environment_not_identical_offers",
+    "routing": "synthetic straight-line time estimates; no external API",
+    "simulation_unit": "integer minute",
+    "solver_wall_time": "measured separately; not added to simulation clock",
+    "replay_selection": "each family lowest validation seed, independent of results"
+  },
+  "development_seeds": [
+    10101,
+    10102,
+    10103,
+    10104,
+    10105,
+    10106
+  ],
+  "validation_seeds": [
+    11101,
+    11102,
+    11103,
+    11104,
+    11105,
+    11106,
+    11107,
+    11108,
+    11109,
+    11110,
+    11111,
+    11112
+  ],
+  "runtime_versions": {
+    "python": "3.12.14",
+    "ortools": "9.15.6755"
+  },
+  "source_sha256": {
+    "simulation/online_allocation_experiment.py": "075364344a2a966411e48dd14384bcf704ac670449196d5386c8c59056c18c8a",
+    "simulation/online_allocation_engine.py": "2c5c55a3fcd20222ba8fba7e3868dbd9a7cbd0f24800afd52d54d5efd1abb8bf",
+    "simulation/online_allocation_scenarios.py": "904f7ce986fe8ad9255da34e764bd3c2a594329377a481141bc0d23eba80d7ef",
+    "simulation/online_allocation_audit.py": "120fac98382e8cd68f011e168ad0fd5ead0c03b8ce8f5abcaea2b1b909bad17d",
+    "simulation/sim.py": "313c8d415c6df492a5a9c6edbc3013cc9d3030901a5dbf0a8bb5d9959ee31078",
+    "simulation/cp_sat_assignment.py": "27766df93991862727a1726ff8a29d41d1aabd3fb30b7dc06015b675c9a1c443",
+    "simulation/priority_assignment.py": "2316e74bf3c3be307e66f9616493e9ded1979600aece3656895a3dab73bb1b60",
+    "simulation/map_replay.py": "007b6b062497f379b60f3a2566c19afa4146533db952497da4d005a717c4f040",
+    "simulation/road_routes.py": "9d6bfcc335d04f0d359f46dbd8496b607fe5921527624cbc655313835b5013f3",
+    "simulation/inquiry_queue.py": "ad7d5724ca99333ad5256161c947269a54c0af28dd9391b8dd15001a869c5946",
+    "simulation/adaptive_inquiry.py": "081a76896f605bf14c156ebd54497955cb8a4eba2995105ef96b963122014b53",
+    "simulation/observed_inquiry.py": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+    "server/travel.py": "275131418aa6e17dbd797d609731cf0d6eff235d7fd160c0046f135082d5b136",
+    "server/synthetic.py": "0462f0b34a4b8b63da4c0352c1b45bed901711e0aa5a1d930fb7231ffd15d495"
+  }
+}

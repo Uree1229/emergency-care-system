@@ -12,6 +12,7 @@ from . import db, synthetic
 from .app import make_handler
 from .travel import TravelEstimator
 from .inquiry_worker import InquiryWorker
+from .system_status import RuntimeStatus
 
 
 def main():
@@ -33,9 +34,12 @@ def main():
         conn.close()
     # 수용 응답·확정은 사람이 시연한다. 초기 문의만 서버가 진행하며 외부 API는 쓰지 않는다.
     estimator = TravelEstimator(use_kakao=False)
-    server = ThreadingHTTPServer(('127.0.0.1', args.port),
-                                make_handler(args.db, estimator))
     worker = InquiryWorker(args.db, estimator)
+    runtime = RuntimeStatus()
+    runtime.configure('planning', enabled=False)
+    runtime.configure('inquiry', worker)
+    server = ThreadingHTTPServer(('127.0.0.1', args.port),
+                                make_handler(args.db, estimator, runtime=runtime))
     worker.start()
     print(f'http://127.0.0.1:{args.port}/conversation-demo.html', flush=True)
     try:

@@ -45,6 +45,7 @@ def build(snapshot, estimator):
         supported = set(demand) <= set(RESOURCE_TYPES)
         eligible, travel, arrivals, routes, expiries, alternatives = [], [], [], {}, [], []
         warnings = []
+        eligibility_reasons = []
         missing_capabilities = []
         treatment_evaluations = {}
         if not supported:
@@ -78,6 +79,33 @@ def build(snapshot, estimator):
                           (r['scope'] == 'all' or r['scope'] in p['required_capabilities']) and
                           service.restriction_status(r, now) in ('active', 'recheck', 'scheduled')
                           for r in snapshot['restrictions'])
+            q = next((q for q in snapshot['inquiries'] if q['patient_id'] == pid and q['hospital_id'] == hid
+                      and q['state'] == 'ACCEPTED' and q['patient_version'] == p['version']
+                      and q['expires_at'] is not None and q['expires_at'] > now), None)
+            if q is not None:
+                codes = []
+                if estimate is None:
+                    codes.append('LOCATION_REQUIRED')
+                if not supported:
+                    codes.append('UNSUPPORTED_RESOURCE')
+                if h.get('capabilities_status', 'known') != 'unknown' and not set(p['required_capabilities']) <= set(h['capabilities']):
+                    codes.append('CAPABILITY_MISMATCH')
+                if blocked:
+                    codes.append('RESTRICTED')
+                for key, need in demand.items():
+                    r = resources.get((hid, key))
+                    if r is None:
+                        codes.append('OPERATING_RESOURCE_MISSING')
+                    else:
+                        if r['status'] == 'unknown':
+                            codes.append('OPERATING_RESOURCE_UNKNOWN')
+                        if now - r['updated_at'] > service.STALE_AFTER:
+                            codes.append('OPERATING_RESOURCE_STALE')
+                        if r['status'] != 'unknown' and r['capacity'] - r['occupied'] < need:
+                            codes.append('RESOURCE_CAPACITY_INSUFFICIENT')
+                codes = sorted(set(codes))
+                eligibility_reasons.append(dict(hospital_id=hid, inquiry_id=q['id'], codes=codes))
+                warnings.extend(code + ':' + hid for code in codes)
             if locked and hid == p['destination_hospital_id']:
                 eligible.append(hi)
                 if h.get('capabilities_status', 'known') != 'unknown':
@@ -93,9 +121,6 @@ def build(snapshot, estimator):
                 continue
             known = all((hid, key) in resources and resources[hid, key]['status'] != 'unknown' and
                         now - resources[hid, key]['updated_at'] <= service.STALE_AFTER for key in demand)
-            q = next((q for q in snapshot['inquiries'] if q['patient_id'] == pid and q['hospital_id'] == hid
-                      and q['state'] == 'ACCEPTED' and q['patient_version'] == p['version']
-                      and q['expires_at'] is not None and q['expires_at'] > now), None)
             if blocked or not known or q is None:
                 continue
             if capabilities_unknown:
@@ -107,10 +132,11 @@ def build(snapshot, estimator):
                 eligible.append(hi)
                 expiries.append(q['expires_at'])
         if not eligible and not locked:
-            warnings.append('NO_VALID_ACCEPTED_HOSPITAL')
+            warnings.append('NO_ELIGIBLE_ACCEPTED_HOSPITAL' if eligibility_reasons else 'NO_VALID_ACCEPTED_HOSPITAL')
         duration = p['treatment_duration_seconds'] or DEFAULT_DURATION
         deadline = p['max_wait_seconds'] or DEFAULT_MAX_WAIT
         context[pid] = dict(patient=p, eligible=eligible, routes=routes, warnings=warnings,
+                            eligibility_reasons=eligibility_reasons,
                             acceptance_expiries=expiries, locked=locked, duration=duration, deadline=deadline,
                             accepted_alternatives=alternatives,
                             missing_capabilities=missing_capabilities,
@@ -176,6 +202,7 @@ def present(snapshot, model, context, plan, meta):
                         and q['state'] == 'ACCEPTED' and q['patient_version'] == p['version']
                         and q['expires_at'] is not None and q['expires_at'] > snapshot['now']), None)
         result[pid] = dict(status=status, hospital_id=hid, inquiry_id=inquiry['id'] if inquiry else None,
+                           eligibility_reasons=ctx.get('eligibility_reasons', []),
                            missing_capabilities=ctx['missing_capabilities'],
                            treatment_requirements=ctx['treatment_requirements'],
                            treatment_evaluation=ctx['treatment_evaluations'].get(hid),
