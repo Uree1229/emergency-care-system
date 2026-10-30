@@ -37,9 +37,11 @@ function result(text, isFinal) {
   return item;
 }
 
-function audioMock({ rate = 48_000, worklet = false, failWorklet = false, failResume = false, delayedPermission = false } = {}) {
+function audioMock({ rate = 48_000, worklet = false, failWorklet = false, failResume = false, delayedPermission = false, supportedConstraints, trackSettings } = {}) {
   const tracks = [{ stopped: 0, stop() { this.stopped += 1; } }];
+  if (trackSettings !== undefined) tracks[0].getSettings = () => trackSettings;
   const stream = { getTracks: () => tracks };
+  const requests = [];
   const contexts = [];
   const processors = [];
   let allow;
@@ -76,7 +78,10 @@ function audioMock({ rate = 48_000, worklet = false, failWorklet = false, failRe
     }
   }
   const env = {
-    navigator: { mediaDevices: { getUserMedia: async () => delayedPermission ? pending : stream } },
+    navigator: { mediaDevices: {
+      getUserMedia: async constraints => { requests.push(constraints); return delayedPermission ? pending : stream; },
+      ...(supportedConstraints !== undefined ? {getSupportedConstraints:() => supportedConstraints} : {}),
+    } },
     AudioContext: Context,
     ...(worklet ? { AudioWorkletNode: WorkletNode } : {}),
   };
@@ -87,7 +92,7 @@ function audioMock({ rate = 48_000, worklet = false, failWorklet = false, failRe
       numberOfChannels: 1, length: samples.length, getChannelData: () => samples,
     } });
   };
-  return { env, tracks, contexts, processors, emit, allow: () => allow(stream) };
+  return { env, tracks, contexts, processors, requests, emit, allow: () => allow(stream) };
 }
 
 test('WAV header, 16-bit clipping, signed little-endian PCM, and base64 are valid', () => {
@@ -499,4 +504,79 @@ test('alternatives: the start option sets maxAlternatives and final callbacks re
     assert.equal(mock.instances.at(-1).maxAlternatives, used, String(asked));
     capture.abort();
   }
+});
+
+test('PCM profiles request separate A/B settings and expose actual returned track settings', async (t) => {
+  for (const profile of ['legacy','raw','noise_suppressed']) {
+    const mock = audioMock({supportedConstraints:{noiseSuppression:true, echoCancellation:true, autoGainControl:true},
+      trackSettings:{noiseSuppression:false, echoCancellation:true, autoGainControl:false, sampleRate:48000, channelCount:1,
+        deviceId:'must-not-be-reported', groupId:'must-not-be-reported'}});
+    installEnvironment(t, mock.env);
+    const capture = new VoiceCapture();
+    await capture.start('azure', {audioProfile:profile});
+    const requested = mock.requests[0].audio;
+    assert.equal(requested.noiseSuppression, profile !== 'raw');
+    assert.equal(requested.autoGainControl, profile === 'legacy');
+    const diagnostics = capture.inputDiagnostics;
+    assert.equal(diagnostics.route, 'pcm_capture');assert.equal(diagnostics.profile, profile);
+    assert.equal(diagnostics.applied.noiseSuppression, false, 'a request is not an application guarantee');
+    assert.equal(diagnostics.requested.noiseSuppression, profile !== 'raw');
+    assert.equal(diagnostics.applied.sampleRate, 48000);
+    assert.doesNotMatch(JSON.stringify(diagnostics), /must-not-be-reported|deviceId|groupId/);
+    capture.abort();
+  }
+});
+
+test('PCM diagnostics survive stop without changing the strict audio API payload', async (t) => {
+  const mock = audioMock();installEnvironment(t, mock.env);
+  const capture = new VoiceCapture();
+  assert.equal(capture.inputDiagnostics, null);
+  await capture.start('azure', {audioProfile:'noise_suppressed'});
+  mock.emit(new Float32Array([-1,0,0.5,1.2,NaN]));
+  assert.equal(capture.inputDiagnostics.quality.sample_count, 5);
+  const audio = await capture.stop();
+  assert.deepEqual(Object.keys(audio).sort(), ['audio_base64','content_type']);
+  assert.equal('metadata' in audio, false);
+  const d = capture.inputDiagnostics;
+  assert.equal(d.quality.sample_count, 5);assert.equal(d.quality.clipping_sample_count, 2);
+  assert.equal(d.quality.silence_sample_count, 1);assert.equal(d.quality.nonfinite_sample_count, 1);
+  assert.equal(d.quality.noise_snr_measured, false);
+  d.applied.noiseSuppression = 'changed';d.quality.sample_count = 99;
+  assert.equal(capture.inputDiagnostics.applied.noiseSuppression, null);
+  assert.equal(capture.inputDiagnostics.quality.sample_count, 5);
+});
+
+test('browser mode reports app preprocessing absent and never opens a second capture stream', async (t) => {
+  const mock = recognitionMock();let micRequests=0;
+  installEnvironment(t, {SpeechRecognition:mock.Recognition,
+    navigator:{mediaDevices:{getUserMedia(){micRequests++;throw Error('not allowed');}}}});
+  const capture = new VoiceCapture();
+  await capture.start('browser', {audioProfile:'noise_suppressed'});
+  assert.equal(capture.inputDiagnostics.route, 'browser_managed');
+  assert.equal(capture.inputDiagnostics.app_preprocessing_applied, false);
+  assert.deepEqual(capture.inputDiagnostics.applied, {});
+  assert.equal(micRequests, 0);
+  capture.abort();
+  assert.equal(capture.inputDiagnostics.route, 'browser_managed');
+});
+
+test('invalid audio profiles fail before permission or recognition starts', async (t) => {
+  const mock = audioMock();installEnvironment(t, mock.env);
+  const capture = new VoiceCapture();
+  await assert.rejects(capture.start('azure', {audioProfile:'unknown'}), {code:'unsupported-audio-profile'});
+  assert.equal(mock.requests.length, 0);assert.equal(capture.active, false);
+  assert.equal(capture.inputDiagnostics, null);
+});
+
+test('PCM diagnostic sample counts follow the recording cap and ignore late chunks', async (t) => {
+  const mock = audioMock({rate:16000, worklet:true});installEnvironment(t, mock.env);
+  const capture = new VoiceCapture();
+  await capture.start('azure');
+  const late = mock.processors[0].port.onmessage;
+  mock.emit(new Float32Array(16000*61).fill(0.2));
+  late({data:new Float32Array(16).fill(1)});
+  await capture.stop();
+  assert.equal(capture.inputDiagnostics.quality.sample_count, 16000*60);
+  assert.equal(capture.inputDiagnostics.quality.duration_seconds, 60);
+  assert.equal(capture.inputDiagnostics.quality.clipping_sample_count, 0);
 });

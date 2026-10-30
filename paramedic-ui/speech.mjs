@@ -1,4 +1,6 @@
 /** Browser recognition and bounded, local microphone recording. No credentials leave this module. */
+import {normalizeAudioProfile, audioConstraints, browserInputDiagnostics, pcmInputDiagnostics,
+  newSignalStats, collectSignalStats, signalQuality} from './audio-input-profile.mjs';
 export const OUTPUT_SAMPLE_RATE = 16_000;
 export const MAX_RECORDING_SECONDS = 60;
 export const MAX_WAV_BYTES = 44 + OUTPUT_SAMPLE_RATE * MAX_RECORDING_SECONDS * 2;
@@ -153,10 +155,20 @@ export class VoiceCapture {
     this._generation = 0;
     this._speechGeneration = 0;
     this._phrasesRejected = false;
+    this._inputDiagnostics = null;
     this.setPhrases(phrases);
   }
 
   get active() { return Boolean(this._session); }
+
+  /** Last/current capture diagnostics only; never implicitly sent to the voice API. */
+  get inputDiagnostics() {
+    if (!this._inputDiagnostics) return null;
+    const result = {...this._inputDiagnostics};
+    const session = this._session;
+    if (session?.signalStats && session.sampleRate) result.quality = signalQuality(session.signalStats, session.sampleRate);
+    return JSON.parse(JSON.stringify(result));
+  }
 
   /**
    * phraseStatus: none | unsupported | pending | applied | rejected.
@@ -180,15 +192,20 @@ export class VoiceCapture {
   }
 
   /** `alternatives` asks the browser for up to that many hypotheses per final result (onFinal's 2nd argument). */
-  async start(mode = 'browser', { alternatives = 1 } = {}) {
+  async start(mode = 'browser', { alternatives = 1, audioProfile = 'legacy' } = {}) {
     if (this.active) throw voiceError('already-active', '이미 음성 입력을 진행하고 있습니다.');
     if (mode !== 'browser' && mode !== 'azure') throw voiceError('unsupported-mode', '지원하지 않는 음성 입력 방식입니다.');
+    try { audioProfile = normalizeAudioProfile(audioProfile); }
+    catch { throw voiceError('unsupported-audio-profile', '지원하지 않는 오디오 입력 프로필입니다.'); }
     this.stopSpeaking();
     const session = {
       id: ++this._generation, mode, cancelled: false, started: false, stopping: false,
       chunks: [], frameCount: 0, finalIndices: new Set(),
       alternatives: Math.min(10, Math.max(1, Math.trunc(Number(alternatives)) || 1)),
+      audioProfile,
     };
+    this._inputDiagnostics = mode === 'browser' ? browserInputDiagnostics(audioProfile)
+      : pcmInputDiagnostics(audioProfile, environment().navigator?.mediaDevices);
     this._session = session;
     try {
       if (mode === 'browser') await this._startBrowser(session);
@@ -305,20 +322,20 @@ export class VoiceCapture {
     if (!env.navigator?.mediaDevices?.getUserMedia || !Context) {
       throw voiceError('recording-unavailable', '이 브라우저는 마이크 녹음을 지원하지 않습니다. HTTPS 또는 localhost에서 실행하고 마이크를 확인하세요.');
     }
-    const stream = await env.navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-    });
+    const stream = await env.navigator.mediaDevices.getUserMedia(audioConstraints(session.audioProfile));
     if (!this._current(session)) {
       stopTracks(stream);
       throw voiceError('aborted');
     }
     session.stream = stream;
+    this._inputDiagnostics = pcmInputDiagnostics(session.audioProfile, env.navigator.mediaDevices, stream);
     const context = new Context();
     session.context = context;
     if (!Number.isFinite(context.sampleRate) || context.sampleRate <= 0) {
       throw voiceError('sample-rate-unavailable', '마이크의 오디오 샘플 속도를 확인하지 못했습니다.');
     }
     session.sampleRate = context.sampleRate;
+    session.signalStats = newSignalStats();
     session.maxFrames = Math.floor(context.sampleRate * MAX_RECORDING_SECONDS);
     session.source = context.createMediaStreamSource(stream);
     let workletFailure;
@@ -372,6 +389,7 @@ export class VoiceCapture {
     const remaining = session.maxFrames - session.frameCount;
     const chunk = Float32Array.from(samples.subarray ? samples.subarray(0, remaining) : Array.from(samples).slice(0, remaining));
     if (chunk.length) {
+      collectSignalStats(session.signalStats, chunk);
       session.chunks.push(chunk);
       session.frameCount += chunk.length;
     }
@@ -426,6 +444,7 @@ export class VoiceCapture {
     if (!this._current(session)) return;
     clearTimeout(session.endTimer);
     clearTimeout(session.limitTimer);
+    if (session.signalStats && session.sampleRate) this._inputDiagnostics.quality = signalQuality(session.signalStats, session.sampleRate);
     this._detachRecognition(session);
     this._session = null;
     this._generation += 1;

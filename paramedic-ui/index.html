@@ -71,8 +71,17 @@
 
             <div class="two-columns voice-options">
               <div class="form-field"><label for="voice-mode">입력 모드</label><select id="voice-mode"><option value="dictation">환자 상태 받아쓰기</option><option value="command">음성 명령</option></select></div>
-              <div class="form-field"><label for="speech-provider">음성 인식 방식</label><select id="speech-provider"><option value="browser">브라우저 음성 인식</option><option value="azure">Azure 음성 인식</option></select></div>
+              <div class="form-field"><label for="speech-provider">음성 인식 방식</label><select id="speech-provider"><option value="browser">브라우저 음성 인식</option><option value="azure">Azure 음성 인식</option><option value="local_wav">오디오만 녹음 · 로컬 시험</option></select></div>
             </div>
+
+            <details class="command-details"><summary>소음 환경 입력 비교</summary>
+              <label for="audio-input-profile">PCM 녹음 입력 설정 · 비교용</label>
+              <select id="audio-input-profile"><option value="legacy">기존 입력 설정</option><option value="raw">입력 처리 끄기</option><option value="noise_suppressed">소음 억제 요청 · 자동 음량 끄기</option></select>
+              <p id="audio-input-status" class="help-text">브라우저 음성 인식은 앱의 PCM 소음 설정을 사용하지 않습니다.</p>
+              <p class="help-text">입력 설정 비교는 Azure PCM 또는 로컬 오디오 시험에서 가능합니다. 로컬 시험은 음성 인식·서버 전송 없이 WAV와 설정 JSON을 직접 내려받습니다. 실제 적용 여부는 기기가 보고한 값으로 구분합니다.</p>
+              <a id="audio-test-download" class="button button-secondary" hidden>시험 WAV 내려받기</a>
+              <button id="audio-test-metadata" class="button button-secondary" type="button" hidden>시험 설정 JSON 내려받기</button>
+            </details>
 
             <div class="recording-box">
               <div class="recording-topline"><span id="recording-state" class="recording-state" role="status">녹음 대기</span><span class="recording-hint">마이크 권한 필요</span></div>

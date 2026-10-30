@@ -279,7 +279,36 @@ def _clauses(text):
             start = index + 1
     if text[start:].strip():
         clauses.append(text[start:].strip())
-    return clauses
+    return [part for clause in clauses for part in _spoken_clauses(clause)]
+
+
+_REPORT_ENDING = re.compile(r'(?:습니다|입니다|합니다|드립니다|됩니다|십니다)(?=\s)')
+_REPORT_CONTINUATION = re.compile(r'\s*(?:라고|라는|라며|냐고|고\s*말|는\s*(?:말|뜻)|지만|다만|하지만|아니|확실)')
+
+
+def _spoken_clauses(clause):
+    """Recognize explicit spoken sentence endings when STT omits punctuation.
+
+    Each part remains a contiguous source substring. Keep high-risk discourse
+    intact: splitting a family/history topic, quoted report, question or a late
+    qualifier could incorrectly promote a value into current patient evidence.
+    This deliberately improves only completed, unqualified reporting sentences;
+    it does not guess missing punctuation from field names or numeric values.
+    """
+    if (any(pattern.search(clause) for pattern in (_HISTORY, _QUESTION, _UNCERTAIN, _NEGATIVE))
+            or re.search(r'[\"\x27“”‘’「」『』]|예시|인용|아닙|아닐', clause)):
+        return [clause]
+    parts, start = [], 0
+    for match in _REPORT_ENDING.finditer(clause):
+        if _REPORT_CONTINUATION.match(clause[match.end():]):
+            continue
+        part = clause[start:match.end()].strip()
+        if part:
+            parts.append(part)
+        start = match.end()
+    if clause[start:].strip():
+        parts.append(clause[start:].strip())
+    return parts or [clause]
 
 
 def _segments(clause):

@@ -1,5 +1,6 @@
 import {VoiceClient, requestId, normalizeServer} from './voice-client.mjs';
 import {VoiceCapture} from './speech.mjs';
+import {captureDescription,localAudioTestMetadata} from './speech-test-context.mjs';
 
 const $ = id => document.getElementById(id);
 const labels = {age:'나이',age_group:'연령대',sex:'성별',symptoms:'확인된 증상',denied_symptoms:'없다고 확인한 증상',uncertain_symptoms:'미확인·의심 증상',consciousness:'의식 상태',breathing:'호흡 상태',systolic_bp:'수축기 혈압',diastolic_bp:'이완기 혈압',pulse:'맥박',spo2:'산소포화도',temperature:'체온',respiratory_rate:'호흡수',glucose:'혈당',onset_at:'증상 발생 시각',blood_pressure:'혈압'};
@@ -12,6 +13,7 @@ storage.set('actor', actor);
 let client, capabilities, catalog, currentPatient = null, tasks = 0, dirty = false, connecting = false, gpsBusy = false;
 let captureMode = 'dictation', captureProvider = 'browser', finalCount = 0, startedAt = 0, ticker;
 let canRead = VoiceCapture.capabilities().tts;
+let localAudioUrl=null,localAudioMetadata=null;
 
 const node = (tag, text, className) => {const result=document.createElement(tag);if(text!==undefined)result.textContent=text;if(className)result.className=className;return result;};
 function message(text, isError=false) {const target=$(isError?'error':'notice');target.textContent=text;target.hidden=!text;if(isError)$('notice').hidden=true;}
@@ -31,8 +33,11 @@ function controls(){
   for(const id of ['connect-server','new-case','load-patient','sample-button'])$(id).disabled=locked||dirty;
   $('server-url').disabled=locked; $('resume-patient').disabled=locked;
   for(const id of ['send-transcript','send-command','voice-mode','speech-provider'])$(id).disabled=locked||!draft()||dirty;
-  $('record-button').disabled = !capture.active && (locked||!draft()||dirty||($('speech-provider').value==='browser'?!supported.browser:!supported.recording||!capabilities?.speech?.configured));
-  $('record-button').textContent=capture.active?'녹음 마치기':'음성 입력 시작';
+  $('audio-input-profile').disabled=locked||!draft()||dirty||$('speech-provider').value==='browser';
+  $('audio-input-status').textContent=$('speech-provider').value==='browser'?captureDescription({route:'browser_managed'}):capture.inputDiagnostics?.route==='pcm_capture'?`${capture.active?'현재':'마지막'} ${captureDescription(capture.inputDiagnostics)}`:'다음 PCM 녹음에서 요청값과 기기가 보고한 실제 설정을 확인합니다.';
+  const provider=$('speech-provider').value, available=provider==='browser'?supported.browser:supported.recording&&(provider==='local_wav'||capabilities?.speech?.configured);
+  $('record-button').disabled = !capture.active && (locked||!draft()||dirty||!available);
+  $('record-button').textContent=capture.active?'녹음 마치기':provider==='local_wav'?'시험용 오디오 녹음 시작':'음성 입력 시작';
   $('record-button').classList.toggle('is-recording',capture.active);
   $('record-button').setAttribute('aria-pressed',String(capture.active));
   $('save-fields').disabled=locked||!draft()||!dirty;
@@ -134,6 +139,7 @@ async function commandFeedback(result){
   if(canRead&&!capture.active){try{capture.speak(spoken);}catch(error){message(error.message,true);}}
 }
 function resetCase(){
+  clearLocalAudio();
   currentPatient=null;dirty=false;$('candidate-list').replaceChildren(node('p','환자정보를 저장하면 후보 병원을 확인할 수 있습니다.','empty-state'));
   $('patient-result').replaceChildren();$('transcript-input').value='';$('command-input').value='';$('readback-text').textContent='';$('interim-text').textContent='';$('history-list').replaceChildren();
   $('consent').checked=false;$('lat').value='';$('lon').value='';$('location-status').textContent='현재 위치를 확인해 주세요';
@@ -153,10 +159,11 @@ async function connect(){
     $('readback-field').replaceChildren(new Option('전체 요약',''));
     for(const field of terms.readback_fields||terms.supported_fields)$('readback-field').add(new Option(labels[field]||field,field));
     const supported=VoiceCapture.capabilities();
-    $('speech-provider').value=supported.browser?'browser':'azure';
+    $('speech-provider').value=supported.browser?'browser':caps.speech.configured&&supported.recording?'azure':'local_wav';
     $('speech-provider').querySelector('[value="browser"]').disabled=!supported.browser;
     $('speech-provider').querySelector('[value="azure"]').disabled=!caps.speech.configured||!supported.recording;
-    $('capabilities-note').textContent=caps.speech.configured?'필요 진료 분야는 직접 확인해 선택하세요. 녹음 파일 인식 사용 가능.':'필요 진료 분야는 직접 확인해 선택하세요. 서버 음성인식 키 미설정 · 지원 브라우저의 실시간 인식 또는 문장 입력을 사용하세요.';
+    $('speech-provider').querySelector('[value="local_wav"]').disabled=!supported.recording;
+    $('capabilities-note').textContent=caps.speech.configured?'필요 진료 분야는 직접 확인해 선택하세요. 녹음 파일 인식 사용 가능.':'서버 음성인식 키 미설정 · 브라우저 인식, 직접 입력 또는 서버 전송 없는 로컬 오디오 시험을 사용할 수 있습니다.';
     resetCase();
     const saved=storage.get('server')===server?storage.get('session'):null;
     if(saved){try{await next.sync(saved);}catch(_){await next.create();}}
@@ -182,7 +189,7 @@ const capture=new VoiceCapture({
   onState(state){
     if(state==='limit'){finishRecording().catch(()=>{});return;}
     if(state==='idle'){clearInterval(ticker);$('recording-state').textContent='마이크 꺼짐';}
-    else $('recording-state').textContent=state==='listening'?'실시간 인식 중':'녹음 중 · 종료 후 텍스트 변환';
+    else $('recording-state').textContent=state==='listening'?'실시간 인식 중':captureProvider==='local_wav'?'로컬 시험 녹음 중 · 서버 전송 없음':'녹음 중 · 종료 후 텍스트 변환';
     controls();
   },
   onError(error){clearInterval(ticker);message(error.message,true);controls();}
@@ -190,13 +197,20 @@ const capture=new VoiceCapture({
 async function finishRecording(){
   if(!capture.active)return;
   const audio=await capture.stop();clearInterval(ticker);controls();
-  if(audio){await write('audio',{...audio,utterance_id:requestId(),mode:captureMode});message('녹음 결과를 확인하고 잘못 인식된 값을 수정해 주세요.');await history();}
+  if(audio&&captureProvider==='local_wav'){
+    const recordingId='AUDIO-'+requestId();
+    localAudioMetadata={...localAudioTestMetadata(capture.inputDiagnostics),recording_id:recordingId,wav_filename:recordingId+'.wav'};
+    localAudioUrl=URL.createObjectURL(new Blob([Uint8Array.from(atob(audio.audio_base64),char=>char.charCodeAt(0))],{type:'audio/wav'}));
+    $('audio-test-download').href=localAudioUrl;$('audio-test-download').download=localAudioMetadata.wav_filename;$('audio-test-download').hidden=false;$('audio-test-metadata').hidden=false;
+    message('로컬 오디오 시험을 마쳤습니다. 다음 녹음 전에 소음 환경 입력 비교에서 WAV와 설정 JSON을 내려받으세요. 음성 인식이나 오디오 서버 전송은 실행하지 않았습니다.');
+  }
+  else if(audio){await write('audio',{...audio,utterance_id:requestId(),mode:captureMode});message('녹음 결과를 확인하고 잘못 인식된 값을 수정해 주세요.');await history();}
   else if(finalCount===0)message('최종 인식문이 없습니다. 마이크 권한과 음성인식 지원을 확인하거나 문장을 입력해 주세요.');
 }
 bindAsync('record-button',async()=>{
   if(capture.active){await finishRecording();return;}
-  capture.stopSpeaking();captureMode=$('voice-mode').value;captureProvider=$('speech-provider').value;finalCount=0;
-  await capture.start(captureProvider);startedAt=Date.now();controls();
+  clearLocalAudio();capture.stopSpeaking();captureMode=$('voice-mode').value;captureProvider=$('speech-provider').value;finalCount=0;
+  await capture.start(captureProvider==='local_wav'?'azure':captureProvider,{audioProfile:$('audio-input-profile').value});startedAt=Date.now();controls();
   if(!capture.active)return;
   ticker=setInterval(()=>{$('recording-state').textContent=`${captureProvider==='browser'?'실시간 인식':'녹음'} · ${Math.floor((Date.now()-startedAt)/1000)}초`;},1000);
 });
@@ -274,7 +288,11 @@ bindAsync('gps-button',()=>new Promise((resolve,reject)=>{
 }));
 for(const id of ['lat','lon','consent'])$(id).addEventListener('input',controls);
 bindAsync('sample-button',()=>{$('transcript-input').value='65세 남성. 흉통. 호흡곤란 없음. 의식 명료. 혈압 110에 70. 맥박 90. 산소포화도 97. 증상은 20분 전 발생.';message('시연 문장을 넣었습니다. 음성 인식 결과가 아닙니다. 문장 반영을 눌러 시험하세요.');});
-window.addEventListener('pagehide',()=>{capture.abort();capture.stopSpeaking();clearInterval(ticker);});
+function clearLocalAudio(){if(localAudioUrl)URL.revokeObjectURL(localAudioUrl);localAudioUrl=null;localAudioMetadata=null;$('audio-test-download').hidden=true;$('audio-test-metadata').hidden=true;}
+$('audio-test-metadata').addEventListener('click',()=>{if(!localAudioMetadata)return;const url=URL.createObjectURL(new Blob([JSON.stringify(localAudioMetadata,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='voice-input-settings-'+Date.now()+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+window.addEventListener('pagehide',()=>{capture.abort();capture.stopSpeaking();clearInterval(ticker);clearLocalAudio();});
 $('server-url').value=params.get('server')||location.origin;
 $('recording-state').textContent='마이크 꺼짐';
+$('speech-provider').addEventListener('change',controls);
+$('audio-input-profile').addEventListener('change',controls);
 connect();

@@ -1,12 +1,13 @@
 import {VoiceCapture} from './speech.mjs';
 import {requestId} from './voice-client.mjs';
+import {noiseTestContext,captureTestContext,captureDescription} from './speech-test-context.mjs';
 const $=id=>document.getElementById(id);
 const familyLabels={demographics:'나이·성별',measurements_arabic:'숫자 활력징후',measurements_korean:'한글 수 읽기',abbreviations_units:'약어·단위',symptom_positive:'증상 있음',negation:'증상 없음',uncertainty:'불확실한 진술',omission_nonclinical:'미언급·일반 문구',history_family:'과거·가족 정보',questions:'질문',corrections_conflicts:'정정·상충',commands_edit_add:'수정·추가 명령',commands_review_control:'조회·제어 명령',invalid_ambiguous:'잘못된 값·모호함',onset_and_multi:'발생 시각·복합 문장'};
 let corpus,current,attempt=null,completed=[],stopping=false,transcript=[];
 function error(text){$('eval-error').textContent=text;$('eval-error').hidden=!text;}
 function status(text){$('eval-status').textContent=text;}
 function controls(){const active=capture.active||stopping,unsaved=attempt&&!attempt.saved;
-  for(const id of ['speaker','condition','eval-family','eval-case','next-case','simulate-result'])$(id).disabled=active||!!unsaved;
+  for(const id of ['speaker','condition','noise-kind','noise-asset','snr-db','snr-basis','mic-distance','pair-id','eval-family','eval-case','next-case','simulate-result'])$(id).disabled=active||!!unsaved;
   $('eval-record').disabled=stopping||!current||!VoiceCapture.capabilities().browser||(!capture.active&&!!unsaved);
   $('eval-record').textContent=capture.active?'읽기 마치기':'읽기 시작';$('eval-abort').disabled=!active&&!unsaved;
   $('save-recording').disabled=active||!attempt||!!attempt.saved||!$('reference-verified').checked;
@@ -19,14 +20,16 @@ function choose(){
 function family(){const selected=corpus.cases.filter(c=>$('eval-family').value==='all'||c.family===$('eval-family').value);
   $('eval-case').replaceChildren(...selected.map(c=>new Option(c.id+' · '+c.reference_text.slice(0,24),c.id)));choose();}
 function begin(source){if(!$('speaker').value.trim())throw Error('익명 화자 ID를 입력하세요.');
-  attempt={recording_id:'R-'+requestId(),case_id:current.id,source,engine:source==='human_voice'?'browser-speech-recognition':'synthetic-example',speaker_id:$('speaker').value.trim(),condition:$('condition').value,status:'no_match',hypothesis:'',reference_verified:false,timing:{},collection:{mode:current.mode,actual_audio_file_saved:false}};
+  const noise=noiseTestContext({noiseKind:$('noise-kind').value,noiseAssetId:$('noise-asset').value,snr:$('snr-db').value,snrBasis:$('snr-basis').value,distance:$('mic-distance').value,pairId:$('pair-id').value});
+  attempt={recording_id:'R-'+requestId(),case_id:current.id,source,engine:source==='human_voice'?'browser-speech-recognition':'synthetic-example',speaker_id:$('speaker').value.trim(),condition:$('condition').value,status:'no_match',hypothesis:'',reference_verified:false,timing:{},collection:{mode:current.mode,actual_audio_file_saved:false,noise_test:noise,audio_input:null}};
   transcript=[];
 }
+function updateInputContext(){if(attempt)attempt.collection.audio_input=captureTestContext(capture.inputDiagnostics);$('eval-input-status').textContent=captureDescription(capture.inputDiagnostics);}
 const capture=new VoiceCapture({
   onInterim(text){$('eval-interim').textContent=text;},
   onFinal(text){if(!attempt)return;transcript.push(text);attempt.hypothesis=transcript.join(' ');attempt.collection.received_final_fragments=[...transcript];attempt.status='ok';attempt.timing.stt_final_ms=performance.now();$('hypothesis').value=attempt.hypothesis;},
-  onState(state){if(state==='listening'&&attempt)attempt.collection.capture_started_ms=performance.now();if(state==='idle'){if(attempt)attempt.collection.capture_closed_ms=performance.now();status('인식 결과와 대본을 확인한 뒤 결과를 기록하세요.');}controls();},
-  onError(err){if(attempt){attempt.status='error';attempt.raw_hypothesis=transcript.join(' ');attempt.hypothesis='';attempt.collection.recognition_error_code=err.code||'unknown';$('hypothesis').value=attempt.raw_hypothesis;}error(err.message);controls();}
+  onState(state){if(state==='listening'&&attempt)attempt.collection.capture_started_ms=performance.now();if(state==='idle'){if(attempt)attempt.collection.capture_closed_ms=performance.now();status('인식 결과와 대본을 확인한 뒤 결과를 기록하세요.');}updateInputContext();controls();},
+  onError(err){if(attempt){attempt.status='error';attempt.raw_hypothesis=transcript.join(' ');attempt.hypothesis='';attempt.collection.recognition_error_code=err.code||'unknown';$('hypothesis').value=attempt.raw_hypothesis;}updateInputContext();error(err.message);controls();}
 });
 async function stop(){if(!capture.active)return;if(attempt)attempt.collection.capture_stop_requested_ms=performance.now();stopping=true;controls();try{await capture.stop();}finally{stopping=false;controls();}}
 $('eval-record').onclick=async()=>{error('');try{if(capture.active){await stop();return;}if(attempt&&!attempt.saved)throw Error('현재 결과를 기록하거나 시험 취소 후 다시 시작하세요.');begin('human_voice');$('hypothesis').value='';$('reference-verified').checked=false;const starting=capture.start('browser');controls();await starting;status('대본을 그대로 읽으세요.');controls();}catch(err){if(attempt){attempt.status='error';attempt.raw_hypothesis=transcript.join(' ');attempt.hypothesis='';attempt.collection.recognition_error_code=err.code||'start-failed';}error(err.message);controls();}};

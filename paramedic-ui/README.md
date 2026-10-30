@@ -4,7 +4,7 @@
 
 메인 이송 노트: **http://127.0.0.1:8000/paramedic/**
 
-간편 음성 시험은 **http://127.0.0.1:8000/paramedic/quick-test.html** 에서 진행한다(음성 V2, 2026-10-30). 이번 토글 변경은 `quick-test.html`에만 적용했다. 메인 화면(`/paramedic/`, `index.html`)의 입력 방식은 변경하지 않았다.
+간편 음성 시험은 **http://127.0.0.1:8000/paramedic/quick-test.html** 에서 진행한다(음성 V2, 2026-10-30). 토글·음성 종료는 이 화면에서 사용한다. 메인 화면(`/paramedic/`, `index.html`)에는 별도로 로컬 WAV 녹음과 PCM 소음 설정 비교를 추가했다. [시험 방법·실험 결과·한계](../docs/VOICE_NOISE_TESTING_20261030.md).
 
 - **화면(시안 B 대화형, 10-30 사용자 선택):** 위에 환자 요약 칩(확인 질문 12항목: 변화 ▼·질문 중·보류·미측정·빈칸 구분), 가운데에 대화(앱 질문과 말한 문장 말풍선, 그 아래 처리 결과 태그), 아래에 질문 카드와 큰 원형 마이크가 있다. 질문이 있으면 큰 마이크는 그 질문에 답하고 왼쪽 `다른 내용` 버튼이 일반 입력이다. 의식·호흡처럼 보기가 정해진 질문은 보기 버튼을 탭해도 된다. 상세 값·근거·경고는 `전체 보기`, 말하기 방식·예시·안내는 설정에 있다. 시스템 설정에 따라 다크 모드로 바뀐다.
 - **토글 방식(기본):** 버튼을 한 번 눌러 시작하고 다시 눌러 종료한다. 손을 떼어도 계속 듣는다. 확정 인식 조각을 합쳐 종료 후 서버에 한 번 보낸다. Space·Enter도 한 번 눌러 시작·종료하며 키 자동 반복은 무시한다. 앱의 상한은 180초이고, 브라우저 음성 서비스가 먼저 종료할 수도 있다.
@@ -36,6 +36,8 @@
 
 - 한국어 브라우저 실시간 음성 인식: 부분 문장은 임시 표시하고 최종 문장만 서버 초안에 반영한다.
 - Azure 짧은 녹음 인식: 마이크 PCM을 16kHz·모노·16비트 WAV로 변환해 서버에 보낸다. 최대 60초다. 서버 Speech 키가 설정되지 않으면 이 옵션을 비활성화한다.
+- 로컬 오디오 시험: 키 없이 최대 60초 WAV와 익명 설정 JSON을 직접 내려받는다. 원본 오디오를 STT·서버로 보내지 않는다. 다음 녹음 전에 내려받아야 하며 메모리의 파일은 새 녹음·새 기록·페이지 종료 때 정리한다. 페이지 연결 과정의 빈 초안 생성과 오디오 전송은 구분한다.
+- PCM 입력 비교: 기본 `legacy` 설정을 유지하고 `raw`·`noise_suppressed` 요청 프로필을 선택할 수 있다. 요청·지원·기기가 보고한 실제 값을 구분하고 미확인은 그대로 남긴다. 브라우저 STT에 이 설정이 적용됐다고 표시하지 않는다.
 - 음성 명령·수동 항목 정정·새 관찰·되돌리기, 전체·항목별 읽어주기.
 - 명령 모드에서는 최종 문장을 받으면 마이크를 닫은 뒤 결과를 읽어준다. 앱의 안내 음성이 재입력되지 않도록 한다.
 - 현재 버전 확인 → 동의·GPS 또는 직접 위치 → 환자 등록 → 병원 후보 확인. 조건과 위치는 음성에서 추정하지 않는다.
@@ -76,7 +78,7 @@ http://127.0.0.1:8000/paramedic/ 를 연다. 같은 서버의 API를 기본으�
 ## 검증
 
 ```powershell
-node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs
+node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs test_paramedic_audio_input_profile.mjs test_paramedic_speech_test_context.mjs test_paramedic_evaluation_page.mjs test_paramedic_local_audio_page.mjs
 python -m unittest test_voice_api test_voice_input test_voice_terms test_voice_audio
 ```
 
@@ -86,6 +88,6 @@ Node가 설치되지 않은 PC에서는 VS Code에 들어 있는 Node로 같은 
 ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_paramedic_quick_session.mjs test_paramedic_speech.mjs test_paramedic_voice_client.mjs test_paramedic_recording_control.mjs
 ```
 
-토글·저장 확인 표시의 Node 회귀는 131/131 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결해 토글 6개 시나리오·34개 확인, 저장 확인 표시 3개 시나리오·42개 확인을 통과했다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리했다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
+토글·저장 확인·입력 프로필·소음 조건·로컬 WAV 시험의 Node 회귀는 159/159 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결해 토글 6개 시나리오·34개 확인, 저장 확인 표시 3개 시나리오·42개 확인을 통과했다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리했다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
 
 API 계약·Speech 키 설정: [음성 입력 API](../docs/VOICE_INPUT_API.md). 실제 마이크로 녹음한 한국어의 인식 정확도와 현장 편의성은 별도 평가가 필요하다.
