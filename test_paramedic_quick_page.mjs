@@ -6,7 +6,8 @@ import {setImmediate as nextTurn} from 'node:timers/promises';
 import {VoiceClient} from './paramedic-ui/voice-client.mjs';
 import {QuickSession} from './paramedic-ui/quick-session.mjs';
 import {chooseAnswer, answerVocabulary} from './paramedic-ui/answer-match.mjs';
-import {RECORDING_LIMITS, splitStopCommand} from './paramedic-ui/recording-control.mjs';
+import {RECORDING_LIMITS, findVoiceTrigger} from './paramedic-ui/recording-control.mjs';
+import {writeDraftHandoff,readDraftHandoff,DRAFT_HANDOFF_KEY} from './paramedic-ui/draft-handoff.mjs';
 
 // Event-lifecycle unit harness with a FAKE capture object and a fake server.
 // It is NOT a browser/STT accuracy test and NOT an actual microphone test.
@@ -36,7 +37,7 @@ class Element {
   setAttribute(key,value){this.attributes[key]=value;}
 }
 
-function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]}}={}) {
+function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},storageError=false}={}) {
   const elements=Object.fromEntries(ids.map(id=>[id,new Element()])), calls=[], meta=[], captures=[], intervals=[], clock={now:1234};
   elements['followup-autoread'].checked=true;
   for(const id of startsHidden)elements[id].hidden=true;
@@ -66,9 +67,10 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]}}={
     end(){this.active=false;this.callbacks.onState('idle');}
     fail(){this.active=false;this.callbacks.onState('idle');this.callbacks.onError(new Error('recognition network failure'));}
   }
-  const events={};
-  const context=vm.createContext({VoiceCapture:FakeCapture,VoiceClient:TestClient,QuickSession,chooseAnswer,answerVocabulary,RECORDING_LIMITS,splitStopCommand,
-    requestId:()=>`page-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000'},
+  const events={},stored=new Map(),navigations=[];
+  const sessionStorage={getItem:k=>stored.get(k)??null,setItem(k,v){if(storageError)throw Error('storage unavailable');stored.set(k,v);},removeItem:k=>stored.delete(k)};
+  const context=vm.createContext({VoiceCapture:FakeCapture,VoiceClient:TestClient,QuickSession,chooseAnswer,answerVocabulary,RECORDING_LIMITS,findVoiceTrigger,writeDraftHandoff,sessionStorage,
+    requestId:()=>`page-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',assign:url=>navigations.push(url)},
     document:{getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
       querySelector:()=>new Element(),createElement:tag=>new Element(tag)},
     window:{addEventListener:(name,callback)=>{events[name]=callback;}},
@@ -85,7 +87,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]}}={
     await el(id).onpointerup({pointerId:1});await flush();
   };
   const tick=()=>{for(const callback of intervals)callback?.();};
-  return {el,capture:captures[0],calls,meta,events,clock,hold,tick};
+  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage};
 }
 
 test('multiple final segments auto-send one combined utterance when recognition ends',async()=>{
@@ -164,7 +166,7 @@ test('lost keyboard/pointer focus releases gesture state; toggle continues and h
   }
 });
 
-test('only final terminal control words stop; raw final source keeps the command and body excludes it',async()=>{
+test('only confirmed control words stop; raw final source keeps the command and body excludes it',async()=>{
   const {el,capture,calls}=harness();
   await el('quick-record').onclick();capture.callbacks.onInterim('혈압 12080 그만');await flush();
   assert.equal(capture.active,true);assert.equal(calls.length,0);
@@ -184,6 +186,201 @@ test('command-only finals, including a command split across finals, create no AP
     assert.equal(capture.active,false);assert.equal(calls.length,0,segments.join('|'));
     assert.match(textOf(lastUser(el)),/종료 명령만 있어 API에 보내지 않았습니다/);
   }
+});
+
+test('mid-sentence stop saves only the prefix in both toggle and hold, keeping the suffix for review',async()=>{
+  for(const command of ['중단','종료','녹음 종료'])for(const holdMode of [false,true]){
+    const {el,capture,calls}=harness();if(holdMode)el('recording-hold').onclick();
+    if(holdMode)await el('quick-record').onpointerdown({button:0,isPrimary:true,pointerId:1});else await el('quick-record').onclick();
+    capture.final(`47세 남성. ${command} 맥박 92입니다.`);await flush();
+    assert.equal(capture.active,false);assert.equal(calls[1].body.text,'47세 남성.');
+    assert.equal(el('recording-excluded-text').textContent,'맥박 92입니다.');
+    assert.equal(el('recording-excluded').hidden,false);assert.equal(el('quick-state').textContent,'저장 후 중단');
+    assert.equal(calls.filter(c=>c.url.endsWith('/transcripts')).length,1);
+  }
+});
+
+test('recommendation waits for the successful write and requires a separate continue action',async()=>{
+  let release;const delayed=new Promise(resolve=>{release=resolve;});
+  const h=harness(call=>call.url.endsWith('/transcripts')?delayed:response({session:draft()}));
+  await h.el('quick-record').onclick();h.capture.final('47세 남성. 병원 추천해줘 혈압 120에 80.');await flush();
+  assert.equal(h.calls[1].body.text,'47세 남성.');
+  assert.equal(h.el('recommendation-prep').hidden,true);assert.equal(h.navigations.length,0);
+  h.el('recommendation-continue').onclick();assert.equal(h.stored.size,0);
+  release(response({session:draft(2,{age:47}, {utterances:[{transcript:'47세 남성.'}]})}));await flush();
+  assert.equal(h.el('recommendation-prep').hidden,false);assert.equal(h.navigations.length,0);
+  h.el('recommendation-continue').onclick();
+  assert.deepEqual(h.navigations,['./?voice_handoff=1']);
+  const result=readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000');
+  assert.equal(result.status,'valid');assert.equal(result.payload.sessionId,'VS-PAGE');assert.equal(result.payload.version,2);
+  assert.equal(result.payload.unappliedText,'혈압 120에 80.');assert.equal(result.payload.intent,'recommend');
+  assert.ok(result.payload.actorId.startsWith('QUICK-VOICE-'));
+  assert.equal(h.calls.length,2,'continuation creates no patient, confirmation, inquiry or candidate request');
+});
+
+test('recommendation split across final segments preserves the original input mode',async()=>{
+  const {el,capture,calls}=harness();el('mode-dictation').onclick();await el('quick-record').onclick();
+  capture.final('47세 남성. 병원');capture.final('추천해줘 맥박 90.');await flush();
+  assert.equal(calls[1].body.text,'47세 남성.');assert.equal(calls[1].body.mode,'dictation');
+  assert.equal(el('recommendation-prep').hidden,false);assert.equal(el('recording-excluded-text').textContent,'맥박 90.');
+});
+
+test('first valid command runs once and a later command remains unapplied text',async()=>{
+  for(const [input,ready,tail]of [
+    ['47세 남성. 중단 병원 추천해줘',false,'병원 추천해줘'],
+    ['47세 남성. 병원 추천해줘 종료',true,'종료']]){
+    const {el,capture,calls}=harness();await el('quick-record').onclick();capture.final(input);await flush();
+    assert.equal(el('recommendation-prep').hidden,!ready);assert.equal(el('recording-excluded-text').textContent,tail);
+    capture.end();await flush();assert.equal(calls.length,2);
+  }
+});
+
+test('recommend-only speech makes no empty draft, and uses the existing draft on a later request',async()=>{
+  const h=harness();await h.el('quick-record').onclick();h.capture.final('병원 추천해줘');await flush();
+  assert.equal(h.calls.length,0);assert.equal(h.el('recommendation-prep').hidden,true);assert.equal(h.el('quick-state').textContent,'환자 정보 필요');
+  await h.el('quick-record').onclick();h.capture.final('47세 남성.');await h.el('quick-record').onclick();await flush();
+  const before=h.calls.length;
+  await h.el('quick-record').onclick();h.capture.final('병원 추천해줘');await flush();
+  assert.equal(h.calls.length,before);assert.equal(h.el('recommendation-prep').hidden,false);
+});
+
+test('uncertain recommendation write keeps action pending until the same request is retried',async()=>{
+  let count=0;const h=harness(call=>{
+    if(!call.url.endsWith('/transcripts'))return response({session:draft()});
+    if(++count===1)throw new Error('response lost after commit');
+    return response({session:draft(2,{age:47})});
+  });
+  await h.el('quick-record').onclick();h.capture.final('47세 남성. 병원 추천해줘');await flush();
+  assert.equal(h.el('recommendation-prep').hidden,true);assert.equal(h.el('quick-retry').hidden,false);
+  await h.el('quick-retry').onclick();await flush();
+  assert.equal(h.el('recommendation-prep').hidden,false);
+  assert.deepEqual(h.calls[1].body,h.calls[2].body,'same utterance ID and expected version');
+  const messages=h.el('quick-history').children.filter(c=>textOf(c).includes('앞 내용을 저장했습니다.'));
+  assert.equal(messages.length,1);assert.equal(h.navigations.length,0);
+});
+
+test('409 during a trigger does not execute the recommendation after reading the latest draft',async()=>{
+  const h=harness(call=>call.url.endsWith('/transcripts')?response({error:'changed'},409):response({session:draft()}));
+  await h.el('quick-record').onclick();h.capture.final('47세 남성. 병원 추천해줘');await flush();
+  assert.equal(h.el('recommendation-prep').hidden,true);assert.equal(h.stored.size,0);assert.equal(h.navigations.length,0);
+  assert.ok(h.calls.some(c=>c.method==='GET'));assert.ok(!h.calls.some(c=>c.url.endsWith('/submit')));
+});
+
+test('a later definitive failure invalidates an older ready action and keeps its unsaved prefix',async()=>{
+  for(const status of [400,409]){
+    let transcripts=0;
+    const h=harness(call=>call.url.endsWith('/transcripts')&&++transcripts===2?response({error:'rejected'},status):response({session:draft(2,{age:47})}));
+    await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘');await flush();
+    assert.equal(h.el('recommendation-prep').hidden,false);
+    await h.el('quick-record').onclick();h.capture.final('맥박 140 병원 추천해줘 혈압 80에 50');await flush();
+    assert.equal(h.el('recommendation-prep').hidden,true);assert.equal(h.el('recommendation-continue').disabled,true);
+    assert.equal(h.el('recording-excluded-text').textContent,'맥박 140 혈압 80에 50');
+    h.el('recommendation-continue').onclick();assert.equal(h.navigations.length,0);
+    await h.el('quick-record').onclick();h.capture.final('병원 추천해줘');await flush();
+    h.el('recommendation-continue').onclick();
+    assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'맥박 140 혈압 80에 50');
+  }
+});
+
+test('an uncertain write followed by a definitive retry failure keeps the unsaved prefix and tail',async()=>{
+  for(const status of [400,409]){
+    let transcripts=0;
+    const h=harness(call=>{
+      if(call.url.endsWith('/transcripts')){if(++transcripts===1)throw Error('connection lost');return response({error:'not saved'},status);}
+      return response({session:draft()});
+    });
+    await h.el('quick-record').onclick();h.capture.final('맥박 140 병원 추천해줘 혈압 80에 50');await flush();
+    assert.equal(h.el('recording-excluded-text').textContent,'혈압 80에 50','uncertain prefix remains owned by exact retry');
+    await h.el('quick-retry').onclick();await flush();
+    assert.equal(h.el('recording-excluded-text').textContent,'맥박 140 혈압 80에 50');
+    assert.equal(h.el('recommendation-prep').hidden,true);
+    if(status===409)assert.ok(h.calls.some(c=>c.method==='GET'));
+    await h.el('quick-record').onclick();h.capture.final('병원 추천해줘');await flush();h.el('recommendation-continue').onclick();
+    assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'맥박 140 혈압 80에 50');
+  }
+});
+
+test('unaccepted followup answer still stores its raw prefix before recommendation preparation',async()=>{
+  const q=question('consciousness','의식 상태는?',['consciousness']);
+  const h=harness(call=>call.url.endsWith('/followup/answers')?
+    response({session:draft(3,{age:47},{followup:plan(q),utterances:[{transcript:'잘 모르겠음'}]}),answer:{accepted:false}}):
+    response({session:draft(2,{age:47},{followup:plan(q)})}));
+  await h.hold('quick-record',{say:['47세 남성.']});
+  h.el('recording-toggle').onclick();await h.el('followup-record').onclick();h.capture.final('잘 모르겠음 병원 추천해줘');await flush();
+  const call=h.calls.at(-1);assert.ok(call.url.endsWith('/followup/answers'));assert.equal(call.body.text,'잘 모르겠음');
+  assert.equal(call.body.question_id,'consciousness');assert.equal(h.el('recommendation-prep').hidden,false);
+});
+
+test('suffix and delayed finals persist into handoff, including across subsequent recordings',async()=>{
+  const h=harness();h.capture.stop=async()=>{
+    h.capture.final('호흡 정상.');h.capture.active=false;h.capture.callbacks.onState('idle');
+  };
+  await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘 맥박 92.');await flush();
+  assert.equal(h.el('recording-excluded-text').textContent,'맥박 92. 호흡 정상.');
+  h.capture.stop=async()=>{h.capture.active=false;h.capture.callbacks.onState('idle');};
+  await h.el('quick-record').onclick();h.capture.final('체온 37도.');await h.el('quick-record').onclick();await flush();
+  assert.equal(h.el('recording-excluded-text').textContent,'맥박 92. 호흡 정상.');
+  h.el('recommendation-continue').onclick();
+  assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'맥박 92. 호흡 정상.');
+});
+
+test('late final negation or reported speech invalidates a provisional command before any write or action',async()=>{
+  for(const [first,late]of [
+    ['혈압 120에 80 종료','하지 마'],
+    ['혈압 120에 80 병원 추천해줘','라고 환자가 말함'],
+    ['혈압 120에 80 종료','라고 합니다. 병원 추천해줘']]){
+    const h=harness();h.capture.stop=async()=>{h.capture.final(late);h.capture.active=false;h.capture.callbacks.onState('idle');};
+    await h.el('quick-record').onclick();h.capture.final(first);await flush();
+    assert.equal(h.calls.length,0);assert.equal(h.el('recommendation-prep').hidden,true);assert.equal(h.navigations.length,0);
+    assert.equal(h.el('recording-excluded-text').textContent,first+' '+late);
+    assert.equal(h.el('quick-state').textContent,'명령 실행 안 함');assert.match(h.el('recording-ended').textContent,/실행 안 함/);
+  }
+});
+
+test('a polite stop completion arriving during drain remains a valid command without leaking its ending into recovery',async()=>{
+  const h=harness();h.capture.stop=async()=>{h.capture.final('해 주세요');h.capture.active=false;h.capture.callbacks.onState('idle');};
+  await h.el('quick-record').onclick();h.capture.final('혈압 120에 80 종료');await flush();
+  assert.equal(h.calls[1].body.text,'혈압 120에 80');assert.equal(h.el('quick-state').textContent,'저장 후 중단');
+  assert.equal(h.el('recording-excluded').hidden,true);assert.match(h.el('recording-ended').textContent,/종료 해 주세요/);
+});
+
+test('manual unapplied edits are transferred for review without auto-writing or losing the original suffix',async()=>{
+  const h=harness();await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘 맥박 92.');await flush();
+  h.el('recording-excluded-copy').onclick();h.el('recording-review').value='맥박 95로 확인.';
+  h.el('recommendation-continue').onclick();
+  const payload=readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload;
+  assert.equal(payload.unappliedText,'맥박 92.\n\n맥박 95로 확인.');assert.equal(h.calls.length,2);
+});
+
+test('reviewing a copied suffix removes it from the unapplied list only after successful manual save',async()=>{
+  const h=harness();await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘 맥박 92.');await flush();
+  h.el('recording-excluded-copy').onclick();await h.el('recording-review-apply').onclick();await flush();
+  assert.equal(h.el('recording-excluded').hidden,true);
+  h.el('recommendation-continue').onclick();assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'');
+});
+
+test('storage failure or too much unapplied text leaves the screen and draft intact',async()=>{
+  for(const storageError of [true,false]){
+    const h=harness(undefined,{storageError});await h.el('quick-record').onclick();
+    h.capture.final('47세 남성 병원 추천해줘');await flush();
+    h.el('recording-review').value=storageError?'미검토 메모':'가'.repeat(4001);
+    h.el('recommendation-continue').onclick();
+    assert.equal(h.navigations.length,0);assert.equal(h.el('recommendation-prep').hidden,false);
+    assert.equal(h.el('quick-error').hidden,false);assert.equal(h.calls.length,2);
+  }
+});
+
+test('interim recommendation, clinical stops and quoted recommendations never run actions',async()=>{
+  const h=harness();await h.el('quick-record').onclick();h.capture.callbacks.onInterim('병원 추천해줘');
+  for(const text of ['CPR 중단 시각 14시.','산소 공급 종료.','보호자가 병원 추천해줘라고 말했습니다.'])h.capture.final(text);
+  await flush();assert.equal(h.capture.active,true);assert.equal(h.calls.length,0);assert.equal(h.el('recommendation-prep').hidden,true);
+  await h.el('quick-record').onclick();await flush();assert.equal(h.calls.length,2);
+});
+
+test('new draft explicitly resets recommendation preparation and displayed unapplied text',async()=>{
+  const h=harness();await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘 맥박 92.');await flush();
+  h.el('quick-new').onclick();assert.equal(h.el('recommendation-prep').hidden,true);assert.equal(h.el('recording-excluded').hidden,true);
+  h.el('recommendation-continue').onclick();assert.equal(h.navigations.length,0);
 });
 
 test('a control command split across final segments preserves all earlier clinical text exactly once',async()=>{

@@ -64,6 +64,15 @@
           <button id="retry-request" type="button" class="button button-secondary" hidden>같은 요청 다시 시도</button>
         </div>
 
+        <section id="recommendation-prep" class="recommendation-prep" aria-labelledby="recommendation-title" hidden>
+          <h2 id="recommendation-title">저장한 초안으로 병원 추천 준비</h2>
+          <p id="recommendation-status" role="status"></p>
+          <p class="help-text">초안 검토 → 화면에서 기록 확인 → 위치·동의 확인 → 환자 등록 버튼 → 병원 후보 확인</p>
+          <p id="handoff-pending-note" class="warning-note" hidden>명령 뒤 문장은 아래 ‘인식문’에 복원되었습니다. 아직 초안에 반영되지 않았습니다. 직접 검토한 뒤 ‘문장 반영’을 누르거나 제외하세요.</p>
+          <button id="discard-handoff-text" type="button" class="button button-secondary button-small" hidden>미반영 문장 제외</button>
+          <button id="handoff-new-case" type="button" class="button button-secondary button-small" hidden>복원 대신 새 기록 시작</button>
+        </section>
+
         <div class="workspace-grid">
           <section id="input-section" class="panel input-panel" aria-labelledby="input-title">
             <div class="panel-heading"><div><p class="section-kicker">STEP 01</p><h2 id="input-title">음성 입력</h2></div><span class="section-note">한국어</span></div>

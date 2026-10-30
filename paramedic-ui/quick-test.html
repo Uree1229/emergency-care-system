@@ -21,7 +21,7 @@
     <div class="qv-sheet-head"><h2 id="settings-title">설정</h2><button type="button" id="quick-new" class="qv-pill">새 기록 시작</button></div>
     <p class="qv-label">마이크 조작</p>
     <div class="qv-seg qv-seg-two" role="group" aria-label="마이크 조작"><button type="button" id="recording-toggle" aria-pressed="true">한 번 눌러 시작 · 종료</button><button type="button" id="recording-hold" aria-pressed="false">누르는 동안 말하기</button></div>
-    <p class="qv-help">기본은 한 번 눌러 시작하고 다시 눌러 종료합니다(최대 180초). 확정 인식문 마지막의 “그만”·“종료”·“녹음 종료”도 종료합니다. 버튼을 누르는 동안 말하기는 최대 30초입니다.</p>
+    <p class="qv-help">한 번 눌러 시작·종료합니다(최대 180초). 두 조작 방식 모두 확정 인식문의 “중단”·“종료”·“그만”은 앞 내용을 저장하고 마칩니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다. 누르는 동안 말하기는 최대 30초입니다.</p>
     <details class="qv-example"><summary>사이렌·주변 소음이 클 때</summary><p class="qv-help">이 화면은 브라우저가 마이크 입력과 인식을 관리합니다. 앱의 PCM 소음 억제 설정은 이 경로에 적용되지 않습니다. 입 가까운 마이크로 항목명과 값을 짧게 말하고, 숫자·없음 표현은 원문과 비교해 확인하세요. <a href="./evaluate.html">소음 조건을 기록하며 시험하기</a></p></details>
     <p class="qv-label">말하기 방식</p>
     <div class="qv-seg" role="group" aria-label="말하기 방식"><button type="button" id="mode-auto" aria-pressed="true">자동 판단</button><button type="button" id="mode-dictation" aria-pressed="false">상태만</button><button type="button" id="mode-command" aria-pressed="false" disabled>명령만</button></div>
@@ -40,7 +40,7 @@
       <li id="hint-status"></li>
       <li>이번 기록에서 <span id="quick-history-count">0회</span> 말했습니다.</li>
       <li>누르는 동안 말하기에서 0.4초보다 짧게 누르면 취소합니다. 임시 인식문의 종료어는 실행하지 않습니다. 본문은 한 번에 최대 4000자이며, 초과하면 원문을 화면에 남기고 전송하지 않습니다.</li>
-      <li>인식 원문(종료어 포함)과 API 전송 본문은 이 화면의 말하기 기록에서 구분합니다. 서버에는 종료어를 뺀 본문만 저장하며 원본 음성은 저장하지 않습니다. 화면 기록은 새로고침 시 사라집니다.</li>
+      <li>문장 중간의 첫 명령까지만 실행합니다. 명령 앞의 본문을 저장하고, 뒤의 말과 늦게 인식된 말은 미반영 검토칸에 남깁니다. “처치 종료”·“종료하지 마”·인용한 말은 명령에서 제외합니다. 인식 원문과 API 본문을 기록에서 구분하며 원본 음성은 저장하지 않습니다. 화면 기록은 새로고침 시 사라집니다.</li>
       <li>원문과 추출 결과는 이 로컬 서버의 음성 초안에 저장합니다. 환자 등록·병원 문의·전송은 실행하지 않습니다. 실제 환자정보는 말하지 마세요.</li>
     </ul>
   </section>
@@ -62,6 +62,12 @@
   </section>
 
   <div id="quick-error" class="qv-alert" role="alert" hidden></div>
+  <section id="recommendation-prep" class="qv-sheet" aria-labelledby="recommendation-title" hidden>
+    <h2 id="recommendation-title">병원 추천 준비</h2>
+    <p id="recommendation-status" class="qv-help" role="status"></p>
+    <p class="qv-help">저장한 초안을 이어서 엽니다. 환자 정보 검토·확인, 위치와 동의, 환자 등록을 마치면 병원 후보를 조회합니다. 미반영 내용도 검토칸으로 가져갑니다.</p>
+    <button id="recommendation-continue" type="button" class="qv-chip-btn">정보 확인·병원 추천으로 계속</button>
+  </section>
 
   <section class="qv-timeline" aria-label="말한 내용과 앱 응답">
     <div class="qv-msg is-app qv-greeting"><p class="qv-bubble">가상 환자 상태를 말해 주세요. 예: “47세 남성, 20분 전부터 흉통. 의식 명료, 혈압 120에 80, 맥박 92”</p></div>
@@ -86,11 +92,11 @@
       <button type="button" id="quick-readback" class="qv-pill qv-speak" disabled>읽어주기</button>
       <button type="button" id="quick-cancel" class="qv-pill" hidden>취소</button>
     </div>
-    <div class="qv-status-line"><span id="quick-state" role="status">준비됨</span><span id="quick-time">00:00</span><span id="quick-interim" aria-live="polite">한 번 눌러 시작하고 다시 누르거나, 마지막에 “그만” 또는 “녹음 종료”라고 말하세요.</span></div>
+    <div class="qv-status-line"><span id="quick-state" role="status">준비됨</span><span id="quick-time">00:00</span><span id="quick-interim" aria-live="polite">“중단”·“녹음 종료”는 앞 내용을 저장합니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다.</span></div>
     <p id="recording-ended" class="qv-help qv-ended" role="status" hidden></p>
     <section id="recording-excluded" class="qv-excluded" aria-labelledby="recording-excluded-title" hidden>
-      <h2 id="recording-excluded-title">종료 후 추가 인식 (미반영)</h2>
-      <p class="qv-help">음성 종료 명령 뒤에 확정된 문장입니다. 인식 지연일 수 있어 원문을 남겼으며, API 본문에 자동 반영하지 않았습니다.</p>
+      <h2 id="recording-excluded-title">명령 뒤 추가 인식 (미반영)</h2>
+      <p class="qv-help">명령 뒤의 말과 늦게 확정된 문장입니다. 원문을 남겼으며 초안에 자동 반영하지 않았습니다. 직접 입력으로 가져와 검토한 뒤 반영할 수 있습니다.</p>
       <p id="recording-excluded-text"></p>
       <button type="button" id="recording-excluded-copy" class="qv-chip-btn">직접 입력으로 가져오기</button>
     </section>

@@ -2,7 +2,8 @@ import {VoiceCapture} from './speech.mjs';
 import {VoiceClient, requestId} from './voice-client.mjs';
 import {QuickSession} from './quick-session.mjs';
 import {chooseAnswer, answerVocabulary} from './answer-match.mjs';
-import {RECORDING_LIMITS, splitStopCommand} from './recording-control.mjs';
+import {RECORDING_LIMITS, findVoiceTrigger} from './recording-control.mjs';
+import {writeDraftHandoff} from './draft-handoff.mjs';
 
 const $ = id => document.getElementById(id);
 const VOICE_REVISION = 'voice-v2-20261030', HOLD_MS = 400;
@@ -15,7 +16,7 @@ const reasons = {missing:'누락',needs_clarification:'재확인 필요',uncerta
 const directions = {increased:'▲ 증가',decreased:'▼ 감소',unchanged:'= 같음'};
 const actions = {review:'읽어주기',missing:'빠진 항목 안내',undo:'되돌리기',edit:'수정',add:'추가',confirm:'확인(화면에서 누르기)',submit:'전송 요청(실행 안 함)',observe:'상태 변화 관찰'};
 const modeHints = {auto:'상태 설명은 초안에 더하고, “방금 거 취소”·“정리해줘”·“혈압 110에 70으로 수정” 같은 말은 명령으로 처리합니다.',dictation:'설명한 내용을 같은 초안에 추가합니다. 명령으로 해석하지 않습니다.',command:'“혈압 110에 70으로 수정해”, “정리해줘”, “마지막 입력 취소”처럼 말하세요.'};
-const idleHint = () => recordingMode==='hold'?'버튼을 누른 채로 말하고, 다 말하면 손을 떼세요.':'한 번 눌러 시작하고 다시 누르거나, 마지막에 “그만” 또는 “녹음 종료”라고 말하세요.';
+const idleHint = () => '“중단”·“녹음 종료”는 앞 내용을 저장하고 마칩니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다.';
 // Hints that carry a finding value (normal status, negation, numbers) could pull unclear speech
 // toward that value, so only vocabulary hints reach the recognizer.
 const VALUE_HINT = /[0-9]|[십백]|명료|정상|저하|없음|있음/;
@@ -34,6 +35,51 @@ let deferred = new Map();
 // What the latest request changed (only when it produced a new draft version).
 let recent = null;
 let manualAppliedText = '', manualCopiedSource = '';
+let unappliedText = '', recommendationReady = false;
+
+function keepUnapplied(text) {
+  if(!text.trim())return;
+  unappliedText=[unappliedText,text].filter(Boolean).join(' ');
+  $('recording-excluded-text').textContent=unappliedText;
+  $('recording-excluded').hidden=false;
+}
+function pauseRecommendation(a) {
+  recommendationReady=false;$('recommendation-prep').hidden=true;
+  // A definitive failure must not leave an older Continue action enabled, or
+  // lose this attempt's unsaved prefix when a later command opens the draft.
+  // Uncertain writes remain owned by exact retry, never a second manual write.
+  if(!a?.trigger||client.pending||a.unsentRecovered)return;
+  a.unsentRecovered=true;
+  const text=a.apiText??a.fragments.join(' ');
+  if(text.trim()){
+    unappliedText=[a.unappliedBefore||'',text,...a.excludedFinals].filter(Boolean).join(' ');
+    $('recording-excluded-text').textContent=unappliedText;$('recording-excluded').hidden=false;
+  }
+}
+// This is a preparation step. Clinical confirmation, location, consent and
+// patient registration remain explicit actions on the existing main screen.
+function afterTrigger(a) {
+  if(!a.trigger||a.actionHandled)return;
+  a.actionHandled=true;
+  capture.stopSpeaking();
+  if(a.trigger.action==='stop'){
+    state('저장 후 중단');$('quick-status').textContent='명령 앞의 내용을 저장하고 말하기를 마쳤습니다. 이어서 말하면 같은 초안에 추가됩니다.';
+    return;
+  }
+  if(!client.session){
+    state('환자 정보 필요');$('quick-status').textContent='아직 저장된 초안이 없습니다. 환자 정보를 먼저 말한 뒤 병원 추천을 요청해 주세요.';
+    appendApp('아직 저장된 초안이 없습니다. 환자 정보를 먼저 말해 주세요.');return;
+  }
+  recommendationReady=true;$('recommendation-prep').hidden=false;
+  $('recommendation-status').textContent='같은 초안의 저장 결과를 확인했습니다. 환자 정보·위치·동의를 확인한 뒤 병원 후보를 조회할 수 있습니다.';
+  state('추천 준비');$('quick-status').textContent='저장한 초안으로 추천 준비를 시작합니다. 아래 계속 버튼으로 정보 확인 화면에 이어가세요.';
+  appendApp('앞 내용을 저장했습니다. 정보 확인·병원 추천으로 계속할 수 있습니다. 명령 뒤의 미반영 내용은 별도로 검토해 주세요.');
+}
+function handoffText() {
+  const manual=$('recording-review').value;
+  const unsaved=manual.trim()&&manual.trim()!==manualAppliedText?manual:'';
+  return unsaved&&unsaved!==unappliedText?[unappliedText,unsaved].filter(Boolean).join('\n\n'):unappliedText||unsaved;
+}
 
 const node = (tag, text, className) => {const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(className)el.className=className;return el;};
 const has = value => value !== null && value !== undefined;
@@ -83,6 +129,7 @@ function controls() {
   $('recording-excluded-copy').disabled=isLocked;
   $('recording-review-apply').disabled=isLocked||!manualText||manualText.length>RECORDING_LIMITS.text||manualText===manualAppliedText;
   $('recording-review-count').textContent=`${manualText.length} / ${RECORDING_LIMITS.text}자`;
+  $('recommendation-continue').disabled=isLocked||!recommendationReady||!client.session;
 }
 function valueText(key,value) {
   if(key==='onset_at')return new Date(value*1000).toLocaleString('ko-KR');
@@ -289,6 +336,7 @@ function addHistory(a,result) {
   $('quick-history').append(item);$('quick-history-count').textContent=`${historyCount}회`;timelineEnd();
 }
 function endLabel(a) {
+  if(a.invalidTrigger)return `명령 재확인 · 실행 안 함 · ${new Date(a.endedAt||Date.now()).toLocaleTimeString('ko-KR')}`;
   const reason={button:'버튼으로 종료',release:'손을 떼어 종료',voice:`음성 명령 “${a.stopCommand||''}”`,limit:`${a.maxSeconds}초 시간 한도`,text_limit:'4000자 한도',recognizer:'브라우저 인식 종료',cancel:'취소',error:'음성 연결 오류',manual:'직접 입력 반영'}[a.endReason]||'말하기 종료';
   return `${reason}${a.failed&&a.endReason!=='error'?' · 종료 중 연결 오류':''} · ${new Date(a.endedAt||Date.now()).toLocaleTimeString('ko-KR')}`;
 }
@@ -331,7 +379,8 @@ function feedback(result,a) {
   say(spoken,'정보 처리는 완료했지만 읽어주기를 시작하지 못했습니다. ');
 }
 function settle(a,result) {
-  if(a.manual){manualAppliedText=a.apiText;$('recording-review-status').textContent='검토한 내용을 초안에 반영했습니다. 같은 본문은 다시 보내지 않습니다.';}
+  if(a.manual){manualAppliedText=a.apiText;$('recording-review-status').textContent='검토한 내용을 초안에 반영했습니다. 같은 본문은 다시 보내지 않습니다.';
+    if(a.copiedFrom&&a.copiedFrom===unappliedText){unappliedText='';$('recording-excluded-text').textContent='';$('recording-excluded').hidden=true;}}
   if(a.target==='answer'&&a.question){
     if(result.answer?.accepted)deferred.delete(a.question.id);
     else deferred.set(a.question.id,a.pick?.text||a.fragments.join(' '));
@@ -339,8 +388,10 @@ function settle(a,result) {
   recent=computeRecent(a.before);heard('');
   addHistory(a,result);render();renderChanges();feedback(result,a);state('처리 완료');
   $('quick-status').textContent=a.target!=='answer'?'자동으로 정리했습니다. 빠지거나 잘못된 값은 원문과 비교해 주세요.':result.answer?.accepted?'답변을 처리했습니다. 다음 질문이나 결과를 확인하세요.':'알아듣지 못한 답은 보류했습니다. 검토할 때 고치면 됩니다.';
+  afterTrigger(a);
 }
 async function failure(err) {
+  pauseRecommendation(attempt);
   state('처리 확인 필요');error(err.message);
   if(err.status===409&&client.session){
     // A changed draft or question is re-read, never answered against the stale question.
@@ -358,11 +409,31 @@ async function send(a,request) {
 async function finalize(a) {
   if(attempt!==a||a.cancelled||a.finished||a.failed||capture.active)return;
   a.finished=true;clearInterval(ticker);markEnd(a,'recognizer');
+  if(a.trigger){
+    // Recognition may split a negation/report across finals during stop drain:
+    // "종료" / "하지 마" must not execute as a confirmed stop instruction.
+    const complete=[a.triggerSource,...a.sourceFinals.slice(a.triggerFinalCount)].join(' ');
+    const checked=findVoiceTrigger(complete);
+    if(!checked||checked.action!==a.trigger.action||checked.prefix!==a.trigger.prefix){
+      a.invalidTrigger=true;a.apiText='';a.trigger=null;
+      recommendationReady=false;$('recommendation-prep').hidden=true;
+      unappliedText=[a.unappliedBefore||'',a.sourceFinals.join(' ')].filter(Boolean).join(' ');
+      $('recording-excluded-text').textContent=unappliedText;$('recording-excluded').hidden=false;
+      markEnd(a,'voice');addUnsentHistory(a,'명령을 부정하거나 인용한 표현으로 확인되어 실행하지 않았습니다. 전체 인식문을 미반영 검토칸에 남겼습니다.');
+      heard('');state('명령 실행 안 함');$('quick-interim').textContent='전체 인식문을 검토한 뒤 직접 반영하세요. 서버에는 전송하지 않았습니다.';controls();return;
+    }
+    a.trigger=checked;a.stopCommand=checked.command;
+    a.excludedFinals=checked.suffix.trim()?[checked.suffix]:[];
+    unappliedText=[a.unappliedBefore||'',...a.excludedFinals].filter(Boolean).join(' ');
+    $('recording-excluded-text').textContent=unappliedText;$('recording-excluded').hidden=!unappliedText;
+    markEnd(a,'voice');
+  }
   const text=a.fragments.join(' ');
   a.apiText=text;
-  $('quick-interim').textContent=a.limited?`${a.maxSeconds}초가 지나 자동으로 마쳤습니다. 이어서 말하려면 다시 누르세요.`:a.stopCommand?'종료 명령을 제외하고 앞의 내용만 정리합니다.':'말하기를 마쳤습니다. 이어서 말하려면 다시 누르세요.';
-  if(text.length>RECORDING_LIMITS.text){a.apiText='';addUnsentHistory(a,'4000자를 넘어 전송하지 않았습니다. 원문을 복사해 나누어 입력하세요.');heard('');state('4000자 초과 · 전송 안 함');error('최종 본문은 4000자까지입니다. 인식 원문을 기록에 남겼습니다. 내용을 나누어 다시 말하세요.');controls();return;}
-  if(!text.trim()&&a.stopCommand){a.apiText='';addUnsentHistory(a,'종료 명령만 있어 API에 보내지 않았습니다.');heard('');state('말하기 종료');$('quick-interim').textContent='종료 명령만 인식했습니다. 환자 본문과 새 초안을 만들지 않았습니다.';controls();return;}
+  $('quick-interim').textContent=a.limited?`${a.maxSeconds}초가 지나 자동으로 마쳤습니다. 이어서 말하려면 다시 누르세요.`:a.stopCommand?'명령을 제외하고 앞의 내용만 정리합니다.':'말하기를 마쳤습니다. 이어서 말하려면 다시 누르세요.';
+  if(text.length>RECORDING_LIMITS.text){pauseRecommendation(a);a.apiText='';addUnsentHistory(a,'4000자를 넘어 전송하지 않았습니다. 원문을 복사해 나누어 입력하세요.');heard('');state('4000자 초과 · 전송 안 함');error('최종 본문은 4000자까지입니다. 인식 원문을 기록에 남겼습니다. 내용을 나누어 다시 말하세요.');controls();return;}
+  if(!text.trim()&&a.trigger){a.apiText='';addUnsentHistory(a,a.trigger.action==='stop'?'종료 명령만 있어 API에 보내지 않았습니다.':'추천 명령만 있어 새 본문을 API에 보내지 않았습니다.');heard('');state('말하기 종료');$('quick-interim').textContent='명령만 인식했습니다. 환자 본문과 새 초안을 만들지 않았습니다.';
+    if(a.trigger.action==='recommend')afterTrigger(a);controls();return;}
   if(!text.trim()){heard('');state('인식문 없음');error('최종 인식문이 없습니다. 마이크와 브라우저 음성 인식 연결을 확인한 뒤 다시 말해 주세요.');controls();return;}
   if(a.target!=='answer'){await send(a,()=>flow.apply(text,a.mode));return;}
   // A one-breath answer may use a lower-ranked recognizer hypothesis that fits the question.
@@ -376,13 +447,15 @@ const capture=new VoiceCapture({
   onFinal(text,alternatives){
     const a=attempt;if(!a||a.cancelled||a.finished||a.failed||!capture.active)return;
     a.sourceFinals.push(text);
-    if(a.stopCommand){a.excludedFinals.push(text);$('recording-excluded-text').textContent=a.excludedFinals.join(' ');$('recording-excluded').hidden=false;heard(a.sourceFinals.join(' '));return;}
+    if(a.stopCommand){a.excludedFinals.push(text);keepUnapplied(text);heard(a.sourceFinals.join(' '));return;}
     const combined=[...a.fragments,text].join(' ');
-    const stop=recordingMode==='toggle'?splitStopCommand(combined):null;
+    const stop=findVoiceTrigger(combined);
     if(stop){a.fragments=stop.prefix.trim()?[stop.prefix]:[];a.alternatives=stop.prefix.trim()?[[stop.prefix]]:[];}
     else if(text.trim()){a.fragments.push(text);a.alternatives.push(alternatives?.length?alternatives:[text]);}
     heard(a.sourceFinals.join(' '));
-    if(stop){a.stopCommand=stop.command;press=null;void finish('voice');}
+    if(stop){a.trigger=stop;a.triggerSource=combined;a.triggerFinalCount=a.sourceFinals.length;a.stopCommand=stop.command;
+      if(stop.suffix?.trim()){a.excludedFinals.push(stop.suffix);keepUnapplied(stop.suffix);}
+      press=null;void finish('voice');}
     else if(a.fragments.join(' ').length>=RECORDING_LIMITS.text){press=null;void finish('text_limit');}
   },
   onState(next){
@@ -392,7 +465,7 @@ const capture=new VoiceCapture({
   },
   onError(err){
     if(err.code==='tts-failed'){error('읽어주기를 완료하지 못했습니다. 저장된 초안은 유지됩니다. '+err.message);controls();return;}
-    if(attempt){attempt.failed=true;markEnd(attempt,'error');}clearInterval(ticker);state('음성 연결 확인 필요');error(err.message);$('quick-interim').textContent='최종 인식문은 그대로 남겨두었습니다.';controls();
+    if(attempt){attempt.failed=true;pauseRecommendation(attempt);markEnd(attempt,'error');}clearInterval(ticker);state('음성 연결 확인 필요');error(err.message);$('quick-interim').textContent='최종 인식문은 그대로 남겨두었습니다.';controls();
   }
 });
 
@@ -409,9 +482,9 @@ async function record(target='transcript',held=false) {
   const question=target==='answer'?currentQuestion():null;
   if(target==='answer'&&!question)return;
   error('');capture.stopSpeaking();
-  const a={target,mode,question,held,maxSeconds:RECORDING_LIMITS[recordingMode],fragments:[],sourceFinals:[],excludedFinals:[],alternatives:[],started:performance.now(),listening:false};attempt=a;
+  const a={target,mode,question,held,maxSeconds:RECORDING_LIMITS[recordingMode],fragments:[],sourceFinals:[],excludedFinals:[],unappliedBefore:unappliedText,alternatives:[],started:performance.now(),listening:false};attempt=a;
   $('recording-ended').hidden=true;
-  $('recording-excluded').hidden=true;$('recording-excluded-text').textContent='';
+  // Unapplied text survives subsequent recordings until explicitly reviewed.
   heard('');$('quick-interim').textContent='마이크 연결을 기다리고 있습니다…';$('quick-time').textContent='00:00';state('마이크 준비 중');
   // While answering, bias toward every option of that question (never a specific number).
   try{
@@ -421,7 +494,7 @@ async function record(target='transcript',held=false) {
     a.started=performance.now();ticker=setInterval(()=>tick(a),500);
     $('quick-interim').textContent=!held?'이어서 말하세요. 마치면 버튼을 한 번 더 누르세요.':target==='answer'?'질문에 대한 답을 말하고 손을 떼세요.':'누른 채로 이어서 말하고, 다 말하면 손을 떼세요.';
     hintStatus();
-  }catch(err){if(a.cancelled)return;a.failed=true;markEnd(a,'error');releaseCapture();clearInterval(ticker);error(err.message);state('음성 연결 확인 필요');}
+  }catch(err){if(a.cancelled)return;a.failed=true;pauseRecommendation(a);markEnd(a,'error');releaseCapture();clearInterval(ticker);error(err.message);state('음성 연결 확인 필요');}
   finally{controls();}
 }
 function releaseCapture() {try{capture.abort();}catch(err){error('마이크 연결 해제 오류: '+err.message);}}
@@ -431,7 +504,7 @@ async function finish(reason='button') {
   const a=attempt;markEnd(a,reason);
   state('말하기 종료 중');stopping=true;controls();
   try{await capture.stop();if(capture.active)throw new Error('음성 인식이 종료되지 않아 연결을 해제했습니다.');}
-  catch(err){a.failed=true;releaseCapture();markEnd(a,'error');clearInterval(ticker);state('음성 연결 확인 필요');error(err.message);$('quick-interim').textContent='최종 인식문은 그대로 남겨두었습니다.';}
+  catch(err){a.failed=true;pauseRecommendation(a);releaseCapture();markEnd(a,'error');clearInterval(ticker);state('음성 연결 확인 필요');error(err.message);$('quick-interim').textContent='최종 인식문은 그대로 남겨두었습니다.';}
   finally{stopping=false;controls();}
   await finalize(a);
 }
@@ -504,6 +577,14 @@ window.addEventListener('blur',()=>{for(const reset of resetGestures)reset();});
 for(const next of ['toggle','hold'])$('recording-'+next).onclick=()=>{if(locked())return;recordingMode=next;press=null;$('quick-interim').textContent=idleHint();controls();};
 $('recording-excluded-copy').onclick=()=>{if(locked())return;manualCopiedSource=$('recording-excluded-text').textContent;$('recording-review').value=manualCopiedSource;$('settings').hidden=false;$('settings-toggle').setAttribute('aria-expanded','true');$('recording-manual').open=true;$('recording-review').focus?.();$('recording-review-status').textContent='직접 입력 검토칸으로 가져왔습니다. 검토한 뒤 반영 버튼을 누르세요. 자동 전송하지 않았습니다.';controls();};
 $('recording-review').oninput=()=>{if(!$('recording-review').value.trim())manualCopiedSource='';controls();};
+$('recommendation-continue').onclick=()=>{
+  if(locked()||!recommendationReady||!client.session)return;
+  try{
+    writeDraftHandoff(sessionStorage,{serverOrigin:client.server,actorId:actor,sessionId:client.session.id,
+      version:client.session.version,unappliedText:handoffText(),intent:'recommend'});
+    location.assign('./?voice_handoff=1');
+  }catch(err){error('초안을 이어갈 준비를 완료하지 못했습니다. 이 화면의 기록은 유지됩니다. '+err.message);}
+};
 $('recording-review-apply').onclick=()=>{
   if(locked())return;
   const text=$('recording-review').value.trim();
@@ -520,7 +601,7 @@ for(const next of ['auto','dictation','command'])$('mode-'+next).onclick=()=>{if
 $('quick-new').onclick=()=>{
   if(locked())return;
   capture.stopSpeaking();client=new VoiceClient({server:location.origin,actorId:actor});flow=new QuickSession(client);
-  mode=autoAvailable?'auto':'dictation';attempt=null;historyCount=0;lastSpoken='';deferred=new Map();recent=null;manualAppliedText='';manualCopiedSource='';
+  mode=autoAvailable?'auto':'dictation';attempt=null;historyCount=0;lastSpoken='';deferred=new Map();recent=null;manualAppliedText='';manualCopiedSource='';unappliedText='';recommendationReady=false;$('recommendation-prep').hidden=true;
   error('');heard('');$('quick-interim').textContent=idleHint();$('quick-status').textContent='새 기록을 준비했습니다.';$('quick-feedback').hidden=true;
   $('quick-history').replaceChildren();$('quick-history-count').textContent='0회';$('quick-time').textContent='00:00';
   $('recording-ended').hidden=true;$('recording-excluded').hidden=true;$('recording-review').value='';$('recording-review-status').textContent='자동 전송하지 않습니다. 검토한 뒤 반영 버튼을 누르세요.';
@@ -530,7 +611,7 @@ $('quick-readback').onclick=()=>say(client.session?.speak_text);
 $('followup-speak').onclick=()=>{const q=currentQuestion();if(!q||locked())return;lastSpoken=q.id+'|'+q.question;say(q.question);};
 $('followup-deferred-retry').onclick=()=>{if(locked()||!deferred.size)return;deferred.clear();render();const q=currentQuestion();if(q&&$('followup-autoread').checked){lastSpoken=q.id+'|'+q.question;say(q.question);}};
 $('followup-unavailable').onclick=()=>tapAnswer('미측정',{unavailable:true});
-$('quick-retry').onclick=async()=>{if(busy||stopping||capture.active)return;const a=attempt;busy=true;error('');controls();try{const result=await flow.retry();if(a)settle(a,result);else render();$('quick-status').textContent='같은 요청으로 저장 결과를 확인했습니다.';}catch(err){error(err.message);}finally{busy=false;controls();}};
+$('quick-retry').onclick=async()=>{if(busy||stopping||capture.active)return;const a=attempt;busy=true;error('');controls();try{const result=await flow.retry();if(a)settle(a,result);else render();$('quick-status').textContent='같은 요청으로 저장 결과를 확인했습니다.';}catch(err){await failure(err);}finally{busy=false;controls();}};
 window.addEventListener('pagehide',()=>{press=null;if(attempt)attempt.cancelled=true;releaseCapture();capture.stopSpeaking();clearInterval(ticker);});
 function hintStatus() {
   const count=phraseCount, excluded=hintPlan.excluded.length;

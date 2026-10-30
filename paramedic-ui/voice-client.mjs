@@ -54,14 +54,25 @@ export class VoiceClient {
     this.pending = request;
     try {
       const result = await this.api(request.path, request.method, request.body);
-      this.pending = null;
-      if (result.session) {
-        // An idempotent retry can return a historical snapshot. Re-read it before editing.
-        if (result.duplicate) {
+      // An idempotent retry can return a historical snapshot. Keep the original
+      // request pending until its current draft is verified too: a failed GET
+      // must not invite a manual second write for an already committed utterance.
+      if (result.duplicate) {
+        try {
+          if (!result.session?.id) throw new ApiError('최신 초안 응답 형식을 확인할 수 없습니다.');
           const fresh = await this.api(`/api/voice/sessions/${encodeURIComponent(result.session.id)}?actor_id=${encodeURIComponent(this.actorId)}`);
+          if (!fresh.session || fresh.session.id !== result.session.id ||
+              !Number.isSafeInteger(fresh.session.version) || fresh.session.version <= 0 ||
+              !['DRAFT', 'SUBMITTED'].includes(fresh.session.state)) {
+            throw new ApiError('최신 초안 응답 형식을 확인할 수 없습니다.');
+          }
           this.session = fresh.session;
-        } else this.session = result.session;
-      }
+        } catch (error) {
+          throw new ApiError('처리된 요청의 최신 초안을 조회하지 못했습니다. 같은 요청 재시도로 최신 초안을 다시 확인하세요.',
+            error.status || 0, 'DUPLICATE_REFRESH_REQUIRED', true);
+        }
+      } else if (result.session) this.session = result.session;
+      this.pending = null;
       return result;
     } catch (error) {
       if (!error.uncertain) this.pending = null;

@@ -8,9 +8,10 @@
 
 - **화면(시안 B 대화형, 10-30 사용자 선택):** 위에 환자 요약 칩(확인 질문 12항목: 변화 ▼·질문 중·보류·미측정·빈칸 구분), 가운데에 대화(앱 질문과 말한 문장 말풍선, 그 아래 처리 결과 태그), 아래에 질문 카드와 큰 원형 마이크가 있다. 질문이 있으면 큰 마이크는 그 질문에 답하고 왼쪽 `다른 내용` 버튼이 일반 입력이다. 의식·호흡처럼 보기가 정해진 질문은 보기 버튼을 탭해도 된다. 상세 값·근거·경고는 `전체 보기`, 말하기 방식·예시·안내는 설정에 있다. 시스템 설정에 따라 다크 모드로 바뀐다.
 - **토글 방식(기본):** 버튼을 한 번 눌러 시작하고 다시 눌러 종료한다. 손을 떼어도 계속 듣는다. 확정 인식 조각을 합쳐 종료 후 서버에 한 번 보낸다. Space·Enter도 한 번 눌러 시작·종료하며 키 자동 반복은 무시한다. 앱의 상한은 180초이고, 브라우저 음성 서비스가 먼저 종료할 수도 있다.
-- **음성 종료:** 토글 방식에서 확정 인식문 마지막의 “그만”·“종료”·“녹음 종료”를 종료 명령으로 처리한다. 임시 인식문은 실행하지 않는다. “혈압 120에 80, 그만”은 앞의 본문을 보존하고 종료어를 뺀 본문만 API에 보낸다. “처치 종료” 같은 임상 표현, 인용·부정 표현의 오종료를 막는 규칙이 있다. 종료어만 있으면 새 초안이나 빈 발화를 만들지 않는다.
-- **무전기 방식(선택):** 설정에서 `누르는 동안 말하기`를 고르면 기존처럼 누르는 동안 듣고 손을 떼어 종료한다. 0.4초보다 짧은 누름은 버리고 최대 30초다. 음성 종료어는 토글 방식에서만 적용한다.
-- **원문과 늦은 인식:** 말하기 기록의 `인식 원문 · API 전송 본문`에서 확정 인식 원문, 종료어를 뺀 전송 본문, 종료 사유·시각을 구분한다. 음성 종료 명령 뒤 늦게 확정된 문장은 `종료 후 추가 인식 (미반영)`에 남기고 자동 반영하지 않는다. `직접 입력으로 가져오기` → 내용을 검토·수정 → `검토한 내용을 초안에 반영`을 눌러야 별도 받아쓰기 입력으로 적용한다. 버튼·시간 상한으로 종료할 때는 종료 과정의 늦은 확정 결과까지 모은다.
+- **중간 명령:** 두 마이크 조작 방식 모두 확정 인식문의 “그만”·“중단”·“종료”·“녹음 종료”를 문장 중간에서도 처리한다. 첫 유효 명령 앞의 본문을 기존 입력 방식·질문 문맥으로 저장한 뒤 마친다. 임시 인식문과 임상·인용·부정 표현은 제외하며, 명령만 있으면 빈 초안이나 발화를 만들지 않는다.
+- **병원 추천 명령:** “병원 추천해줘”·“병원 추천해 주세요”는 앞 본문의 저장 응답을 확인한 뒤 `병원 추천 준비`를 연다. 응답 유실은 같은 요청 재시도로 확인하고, 충돌·실패 중에는 진행하지 않는다. 계속 버튼을 누르면 동일 초안을 GET으로 복원해 정보 확인·위치·동의·명시적 환자 등록을 거쳐 기존 후보 조회로 이어진다. 초안 확인·환자 등록·병원 문의를 음성 명령만으로 실행하지 않는다. [동작 계약과 검증](../docs/VOICE_MID_TRIGGER_20261030.md).
+- **무전기 방식(선택):** 설정에서 `누르는 동안 말하기`를 고르면 누르는 동안 듣고 손을 떼어 종료한다. 0.4초보다 짧은 누름은 버리고 최대 30초다. 중간 명령도 적용한다.
+- **원문과 늦은 인식:** `인식 원문 · API 전송 본문`에서 확정 원문, 명령 앞 전송 본문, 종료 사유·시각을 구분한다. 명령 뒤의 같은 문장과 늦은 확정 인식은 `명령 뒤 추가 인식 (미반영)`에 남긴다. 다음 녹음에도 유지하고, 직접 입력으로 가져와 검토·반영하거나 추천 준비 화면으로 수동 검토용으로 이어갈 수 있다. 버튼·시간 상한으로 종료할 때는 늦은 확정 결과까지 모은다.
 - **직접 입력 시험:** 설정의 `직접 입력 시험`에서 1~4000자 본문을 검토해 초안에 반영할 수 있다. 직접 입력에는 음성 종료어 규칙을 적용하지 않는다. 같은 본문을 성공 직후 다시 보내지 않으며, 녹음·요청 처리 중에는 입력 방식을 바꾸거나 수동 본문을 반영할 수 없다. 음성 본문이 4000자를 넘으면 원문을 화면에 남기고 전송하지 않는다.
 - **자동 판단(기본):** `mode: "auto"`로 보낸다. 상태 설명과 “혈압이 100에 70으로 떨어졌어” 같은 변화는 초안에 반영하고, “방금 거 취소”·“정리해줘” 같은 말은 명령으로 처리한다. 음성 “확인”·“전송”은 실행하지 않는다. `환자 상태만`·`수정·확인 명령`으로 바꿀 수 있다.
 - **방금 바뀐 내용:** `session.latest_changes`로 `이전 값 → 현재 값`과 수치 방향(▲▼)을 보여 준다. 값 없이 “맥박이 떨어졌어”처럼 말해 서버가 재확인 표시를 하면, 이전 값을 **이전 관찰값**으로 표시하고 현재 값은 미확인으로 둔다.
@@ -78,7 +79,7 @@ http://127.0.0.1:8000/paramedic/ 를 연다. 같은 서버의 API를 기본으�
 ## 검증
 
 ```powershell
-node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs test_paramedic_audio_input_profile.mjs test_paramedic_speech_test_context.mjs test_paramedic_evaluation_page.mjs test_paramedic_local_audio_page.mjs
+node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs test_paramedic_draft_handoff.mjs test_paramedic_audio_input_profile.mjs test_paramedic_speech_test_context.mjs test_paramedic_evaluation_page.mjs test_paramedic_local_audio_page.mjs
 python -m unittest test_voice_api test_voice_input test_voice_terms test_voice_audio
 ```
 
@@ -88,6 +89,6 @@ Node가 설치되지 않은 PC에서는 VS Code에 들어 있는 Node로 같은 
 ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_paramedic_quick_session.mjs test_paramedic_speech.mjs test_paramedic_voice_client.mjs test_paramedic_recording_control.mjs
 ```
 
-토글·저장 확인·입력 프로필·소음 조건·로컬 WAV 시험의 Node 회귀는 159/159 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결해 토글 6개 시나리오·34개 확인, 저장 확인 표시 3개 시나리오·42개 확인을 통과했다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리했다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
+토글·저장 확인·입력 프로필·소음 조건·로컬 WAV·중간 명령·동일 초안 복원의 Node 회귀는 359/359 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결한다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리한다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
 
 API 계약·Speech 키 설정: [음성 입력 API](../docs/VOICE_INPUT_API.md). 실제 마이크로 녹음한 한국어의 인식 정확도와 현장 편의성은 별도 평가가 필요하다.

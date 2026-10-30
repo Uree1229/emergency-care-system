@@ -1,6 +1,7 @@
 import {VoiceClient, requestId, normalizeServer} from './voice-client.mjs';
 import {VoiceCapture} from './speech.mjs';
 import {captureDescription,localAudioTestMetadata} from './speech-test-context.mjs';
+import {readDraftHandoff,clearDraftHandoff} from './draft-handoff.mjs';
 
 const $ = id => document.getElementById(id);
 const labels = {age:'나이',age_group:'연령대',sex:'성별',symptoms:'확인된 증상',denied_symptoms:'없다고 확인한 증상',uncertain_symptoms:'미확인·의심 증상',consciousness:'의식 상태',breathing:'호흡 상태',systolic_bp:'수축기 혈압',diastolic_bp:'이완기 혈압',pulse:'맥박',spo2:'산소포화도',temperature:'체온',respiratory_rate:'호흡수',glucose:'혈당',onset_at:'증상 발생 시각',blood_pressure:'혈압'};
@@ -8,8 +9,9 @@ const enums = {sex:{male:'남성',female:'여성',unknown:'미확인'},conscious
 const listFields = new Set(['symptoms','denied_symptoms','uncertain_symptoms']);
 const storage = {get(key){try{return sessionStorage.getItem('paramedic.voice.'+key);}catch(_){return null;}},set(key,value){try{sessionStorage.setItem('paramedic.voice.'+key,value);}catch(_){}}};
 const params = new URLSearchParams(location.search);
-const actor = storage.get('actor') || 'crew-' + requestId();
-storage.set('actor', actor);
+let actor = storage.get('actor') || 'crew-' + requestId();
+let handoffPending=params.get('voice_handoff')==='1', handoffFailed=false, recommendationReady=false, handoffUnapplied=false, recommendationAwaitingSubmit=false;
+if(!handoffPending)storage.set('actor', actor);
 let client, capabilities, catalog, currentPatient = null, tasks = 0, dirty = false, connecting = false, gpsBusy = false;
 let captureMode = 'dictation', captureProvider = 'browser', finalCount = 0, startedAt = 0, ticker;
 let canRead = VoiceCapture.capabilities().tts;
@@ -18,11 +20,36 @@ let localAudioUrl=null,localAudioMetadata=null;
 const node = (tag, text, className) => {const result=document.createElement(tag);if(text!==undefined)result.textContent=text;if(className)result.className=className;return result;};
 function message(text, isError=false) {const target=$(isError?'error':'notice');target.textContent=text;target.hidden=!text;if(isError)$('notice').hidden=true;}
 function clearError(){ $('error').hidden=true; $('error').textContent=''; }
-function remember(){if(client?.session){storage.set('session',client.session.id);storage.set('server',client.server);}}
+function remember(){if(client?.session&&!handoffPending&&!handoffFailed){storage.set('actor',actor);storage.set('session',client.session.id);storage.set('server',client.server);}}
+function handoffStorage(){try{return sessionStorage;}catch(_){return null;}}
+function persistRestoredIdentity(nextActor,nextSession,nextServer){
+  const target=handoffStorage(),values={'paramedic.voice.actor':nextActor,'paramedic.voice.session':nextSession,'paramedic.voice.server':nextServer},before={};
+  try{
+    if(!target)throw Error('Storage unavailable');
+    for(const key of Object.keys(values))before[key]=target.getItem(key);
+    for(const [key,value]of Object.entries(values))target.setItem(key,value);
+    if(Object.entries(values).some(([key,value])=>target.getItem(key)!==value))throw Error('Storage verification failed');
+  }catch(_){
+    for(const [key,value]of Object.entries(before)){try{if(value===null)target.removeItem(key);else target.setItem(key,value);}catch(_){}}
+    throw Error('복원한 기록의 연결 정보를 저장하지 못했습니다. 원래 음성 초안 연결은 유지했습니다. 저장 권한을 확인한 뒤 다시 시도하세요.');
+  }
+}
+function removeHandoffParameter(){
+  try{const query=new URLSearchParams(location.search);query.delete('voice_handoff');window.history.replaceState(null,'',location.pathname+(query.size?'?'+query.toString():'')+(location.hash||''));}catch(_){}
+}
+function renderRecommendation(){
+  $('recommendation-prep').hidden=!handoffPending&&!handoffFailed&&!recommendationReady;
+  $('recommendation-prep').dataset.state=handoffFailed?'error':recommendationReady?'ready':'loading';
+  $('recommendation-title').textContent=handoffFailed?'음성 초안을 불러오지 못했습니다':recommendationReady?'저장한 초안으로 병원 추천 준비':'저장한 음성 초안 확인 중';
+  if(!handoffFailed)$('recommendation-status').textContent=recommendationReady?'초안을 검토하고 기록 확인을 완료한 뒤, 위치·동의를 확인해 환자를 명시적으로 등록하세요. 등록 후 기존 병원 후보 화면에서 계속합니다.':'서버에 저장된 동일 초안과 버전을 확인합니다. 새 환자를 자동으로 등록하거나 문의하지 않습니다.';
+  $('handoff-new-case').hidden=!handoffFailed;
+  $('handoff-pending-note').hidden=!handoffUnapplied;
+  $('discard-handoff-text').hidden=!handoffUnapplied;
+}
 function draft(){return client?.session?.state==='DRAFT';}
 function blocked(){return tasks>0 || connecting || gpsBusy || capture.active || !!client?.pending;}
 function allowedSubmit(){
-  if(!client?.session?.confirmed || !draft() || blocked() || dirty)return false;
+  if(!client?.session?.confirmed || !draft() || blocked() || dirty || handoffUnapplied)return false;
   if(client.session.patient_id)return currentPatient?.state==='WAITING';
   return $('consent').checked && $('lat').value.trim()!=='' && $('lon').value.trim()!=='' &&
     Number.isFinite(Number($('lat').value)) && Math.abs(Number($('lat').value))<=90 &&
@@ -31,29 +58,36 @@ function allowedSubmit(){
 function controls(){
   const locked=blocked(), supported=VoiceCapture.capabilities();
   for(const id of ['connect-server','new-case','load-patient','sample-button'])$(id).disabled=locked||dirty;
+  $('connect-server').disabled=locked||dirty||handoffUnapplied;
+  $('load-patient').disabled=locked||dirty||handoffPending||handoffFailed;
+  $('sample-button').disabled=locked||dirty||handoffUnapplied;
+  $('handoff-new-case').disabled=locked||dirty;
+  $('discard-handoff-text').disabled=locked||!handoffUnapplied;
   $('server-url').disabled=locked; $('resume-patient').disabled=locked;
   for(const id of ['send-transcript','send-command','voice-mode','speech-provider'])$(id).disabled=locked||!draft()||dirty;
+  if(handoffUnapplied)$('send-command').disabled=true;
   $('audio-input-profile').disabled=locked||!draft()||dirty||$('speech-provider').value==='browser';
   $('audio-input-status').textContent=$('speech-provider').value==='browser'?captureDescription({route:'browser_managed'}):capture.inputDiagnostics?.route==='pcm_capture'?`${capture.active?'현재':'마지막'} ${captureDescription(capture.inputDiagnostics)}`:'다음 PCM 녹음에서 요청값과 기기가 보고한 실제 설정을 확인합니다.';
   const provider=$('speech-provider').value, available=provider==='browser'?supported.browser:supported.recording&&(provider==='local_wav'||capabilities?.speech?.configured);
-  $('record-button').disabled = !capture.active && (locked||!draft()||dirty||!available);
+  $('record-button').disabled = !capture.active && (locked||!draft()||dirty||!available||handoffUnapplied);
   $('record-button').textContent=capture.active?'녹음 마치기':provider==='local_wav'?'시험용 오디오 녹음 시작':'음성 입력 시작';
   $('record-button').classList.toggle('is-recording',capture.active);
   $('record-button').setAttribute('aria-pressed',String(capture.active));
   $('save-fields').disabled=locked||!draft()||!dirty;
   if($('discard-fields'))$('discard-fields').disabled=locked||!dirty;
   $('undo-button').disabled=locked||!draft()||!client?.session?.can_undo||dirty;
-  $('confirm-button').disabled=locked||!draft()||!Object.keys(client?.session?.fields||{}).length||dirty;
+  $('confirm-button').disabled=locked||!draft()||!Object.keys(client?.session?.fields||{}).length||dirty||handoffUnapplied;
   $('submit-button').disabled=!allowedSubmit();
   $('readback-button').disabled=locked||!client?.session||dirty;
   $('readback-field').disabled=locked||!client?.session;
   $('refresh-session').disabled=tasks>0||capture.active||!client?.session||!!client?.pending||dirty;
-  $('refresh-candidates').disabled=locked||!currentPatient;
+  $('refresh-candidates').disabled=locked||!currentPatient||recommendationAwaitingSubmit;
   $('retry-request').hidden=!client?.pending;
   $('retry-request').disabled=tasks>0||capture.active;
   for(const control of $('fields-editor').querySelectorAll('input,select,textarea'))control.disabled=locked||!draft();
   $('change-kind').disabled=locked||!draft();
   for(const id of ['lat','lon','gps-button','use-demo-location','required-capabilities','consent'])$(id).disabled=locked||!draft()||!!client?.session?.patient_id;
+  renderRecommendation();
 }
 function renderFields(){
   const values=client?.session?.fields||{};
@@ -93,7 +127,7 @@ function render(){
   remember();renderFields();
   $('session-meta').textContent=s?`${s.patient_id?'환자 '+s.patient_id:'새 환자 초안'} · 버전 ${s.version}`:'새 기록을 준비하고 있습니다';
   $('approval-status').textContent=!s?'아직 기록 없음':s.state==='SUBMITTED'?'환자정보 반영 완료':s.confirmed?'현재 버전 확인 완료':'내용 확인이 필요합니다';
-  const step=currentPatient?'hospital':s?.confirmed?'submit':Object.keys(s?.fields||{}).length?'review':'input';
+  const step=currentPatient&&!recommendationAwaitingSubmit?'hospital':s?.confirmed?'submit':Object.keys(s?.fields||{}).length?'review':'input';
   const steps={input:'01 음성으로 기록',review:'02 정보 확인·수정',submit:'03 확인 후 저장',hospital:'04 병원 후보 확인'};
   $('workflow-step').textContent=steps[step];
   for(const el of document.querySelectorAll('[data-step]'))el.classList.toggle('is-current',el.dataset.step===step);
@@ -140,19 +174,26 @@ async function commandFeedback(result){
 }
 function resetCase(){
   clearLocalAudio();
+  handoffUnapplied=false;recommendationAwaitingSubmit=false;
   currentPatient=null;dirty=false;$('candidate-list').replaceChildren(node('p','환자정보를 저장하면 후보 병원을 확인할 수 있습니다.','empty-state'));
   $('patient-result').replaceChildren();$('transcript-input').value='';$('command-input').value='';$('readback-text').textContent='';$('interim-text').textContent='';$('history-list').replaceChildren();
   $('consent').checked=false;$('lat').value='';$('lon').value='';$('location-status').textContent='현재 위치를 확인해 주세요';
   for(const option of $('required-capabilities').options)option.selected=false;
 }
-async function connect(){
+async function connect({forceNew=false}={}){
   if(blocked())return;
   connecting=true;controls();
   try{
     const server=normalizeServer($('server-url').value.trim());
-    const next=new VoiceClient({server,actorId:actor});
+    let handoff=null;
+    if(handoffPending){
+      const result=readDraftHandoff(handoffStorage(),server);
+      if(result.status!=='valid')throw Error(result.status==='expired'?'음성 초안 연결의 10분 유효시간이 지났습니다. 원래 화면에서 다시 이어가거나 새 기록을 명시적으로 시작하세요.':'음성 초안 연결 정보가 없거나 서버 주소가 일치하지 않습니다. 원래 화면을 확인하거나 새 기록을 명시적으로 시작하세요.');
+      handoff=result.payload;
+    }
+    const next=new VoiceClient({server,actorId:handoff?.actorId||actor});
     const [caps,terms,hospitals]=await Promise.all([next.api('/api/voice/capabilities'),next.api('/api/voice/terms'),next.api('/api/hospitals')]);
-    client=next;capabilities=caps;catalog=terms;
+    capabilities=caps;catalog=terms;
     $('connection-status').textContent='서버 연결됨';$('connection-status').dataset.state='connected';
     $('required-capabilities').replaceChildren();
     for(const name of [...new Set(hospitals.flatMap(h=>h.capabilities||[]))].sort())$('required-capabilities').add(new Option(name,name));
@@ -165,12 +206,30 @@ async function connect(){
     $('speech-provider').querySelector('[value="local_wav"]').disabled=!supported.recording;
     $('capabilities-note').textContent=caps.speech.configured?'필요 진료 분야는 직접 확인해 선택하세요. 녹음 파일 인식 사용 가능.':'서버 음성인식 키 미설정 · 브라우저 인식, 직접 입력 또는 서버 전송 없는 로컬 오디오 시험을 사용할 수 있습니다.';
     resetCase();
-    const saved=storage.get('server')===server?storage.get('session'):null;
-    if(saved){try{await next.sync(saved);}catch(_){await next.create();}}
-    else await next.create();
-    if(next.session.patient_id){currentPatient=await next.api('/api/patients/'+encodeURIComponent(next.session.patient_id));renderPatient();await candidates();}
-    render();message('음성으로 말하거나 인식문을 입력해 기록을 시작하세요.');
-  }catch(error){$('connection-status').textContent='연결 확인 필요';$('connection-status').dataset.state='error';message(error.message,true);}
+    if(handoff){
+      await next.sync(handoff.sessionId);
+      if(next.session?.id!==handoff.sessionId||!Number.isSafeInteger(next.session?.version)||next.session.version<handoff.version)throw Error('서버 초안의 ID 또는 버전이 저장한 기록과 일치하지 않습니다. 새 빈 초안으로 대체하지 않았습니다.');
+      if(next.session.state!=='DRAFT'||(next.session.actor_id!==undefined&&next.session.actor_id!==handoff.actorId))throw Error('서버 초안의 상태 또는 작성자가 이어갈 음성 기록과 일치하지 않습니다. 새 빈 초안으로 대체하지 않았습니다.');
+      const restoredPatient=next.session.patient_id?await next.api('/api/patients/'+encodeURIComponent(next.session.patient_id)):null;
+      persistRestoredIdentity(handoff.actorId,next.session.id,next.server);
+      actor=handoff.actorId;client=next;handoffPending=false;handoffFailed=false;recommendationReady=true;
+      currentPatient=restoredPatient;recommendationAwaitingSubmit=true;
+      $('transcript-input').value=handoff.unappliedText;handoffUnapplied=!!handoff.unappliedText;
+      remember();clearDraftHandoff(handoffStorage());removeHandoffParameter();
+    }else{
+      const saved=!forceNew&&storage.get('server')===server?storage.get('session'):null;
+      if(saved){try{await next.sync(saved);}catch(_){await next.create();}}
+      else await next.create();
+      client=next;
+      recommendationAwaitingSubmit=next.session.state==='DRAFT'&&!!next.session.patient_id;
+      if(forceNew)removeHandoffParameter();
+    }
+    if(next.session.patient_id){if(!currentPatient)currentPatient=await next.api('/api/patients/'+encodeURIComponent(next.session.patient_id));renderPatient();if(!recommendationAwaitingSubmit)await candidates();}
+    render();message(handoffUnapplied?'저장된 초안을 불러왔습니다. 명령 뒤 문장은 아직 미반영이며, 내용을 검토한 뒤 문장 반영 또는 제외를 선택하세요.':recommendationReady?'저장된 초안을 불러왔습니다. 내용 검토부터 계속하세요.':'음성으로 말하거나 인식문을 입력해 기록을 시작하세요.');
+  }catch(error){
+    if(handoffPending){handoffFailed=true;client=null;$('session-meta').textContent='음성 초안 복원 실패 · 새 빈 초안을 만들지 않았습니다';$('recommendation-status').textContent=error.message;}
+    $('connection-status').textContent='연결 확인 필요';$('connection-status').dataset.state='error';message(error.message,true);
+  }
   finally{connecting=false;controls();}
 }
 const capture=new VoiceCapture({
@@ -215,14 +274,20 @@ bindAsync('record-button',async()=>{
   ticker=setInterval(()=>{$('recording-state').textContent=`${captureProvider==='browser'?'실시간 인식':'녹음'} · ${Math.floor((Date.now()-startedAt)/1000)}초`;},1000);
 });
 bindAsync('connect-server',connect);
-bindAsync('new-case',()=>task(async()=>{capture.abort();capture.stopSpeaking();resetCase();await client.create();message('새 환자 초안을 만들었습니다.');}));
+async function newCase(){
+  if(handoffPending||handoffFailed||!client){handoffPending=false;handoffFailed=false;recommendationReady=false;resetCase();await connect({forceNew:true});return;}
+  return task(async()=>{capture.abort();capture.stopSpeaking();recommendationReady=false;resetCase();await client.create();message('새 환자 초안을 만들었습니다.');});
+}
+bindAsync('new-case',newCase);
+bindAsync('handoff-new-case',newCase);
+bindAsync('discard-handoff-text',()=>{if(blocked())return;handoffUnapplied=false;$('transcript-input').value='';message('명령 뒤 미반영 문장을 제외했습니다. 저장된 초안은 변경하지 않았습니다.');controls();});
 bindAsync('load-patient',()=>task(async()=>{
   const id=$('resume-patient').value.trim();if(!/^[\w-]+$/.test(id))throw Error('불러올 환자 ID를 입력하세요.');
   const patient=await client.api('/api/patients/'+encodeURIComponent(id));
   resetCase();await client.create(id);currentPatient=patient;renderPatient();
   if(patient.state!=='WAITING')message('목적지가 확정된 건은 현재 읽기·초안 작성만 가능합니다.');
 }));
-bindAsync('send-transcript',async()=>{await write('transcripts',{utterance_id:requestId(),text:$('transcript-input').value,is_final:true,mode:'dictation'});message('문장 내용을 초안에 반영했습니다.');await history();});
+bindAsync('send-transcript',async()=>{const text=$('transcript-input').value;await write('transcripts',{utterance_id:requestId(),text,is_final:true,mode:'dictation'});if($('transcript-input').value===text)handoffUnapplied=false;controls();message(handoffUnapplied?'보낸 문장은 반영했습니다. 그동안 검토칸에서 변경한 문장은 아직 미반영입니다.':'문장 내용을 초안에 반영했습니다.');await history();});
 bindAsync('send-command',async()=>{await task(async()=>{const result=await client.write('commands',{text:$('command-input').value});message('명령을 처리했습니다.');await commandFeedback(result);});await history();});
 $('fields-form').addEventListener('submit',event=>{
   event.preventDefault();clearError();
@@ -242,9 +307,14 @@ if($('discard-fields'))bindAsync('discard-fields',()=>{dirty=false;render();});
 bindAsync('undo-button',async()=>{await write('undo');message('직전 변경을 되돌렸습니다.');await history();});
 bindAsync('refresh-session',()=>task(async()=>{await client.sync();await history();message('최신 초안을 불러왔습니다.');}));
 bindAsync('retry-request',()=>task(async()=>{
+  const pending=client.pending,path='/api/voice/sessions/'+encodeURIComponent(client.session?.id||'');
+  const retriedTranscript=pending?.method==='POST'&&pending.path===path+'/transcripts'&&pending.body?.mode==='dictation'&&typeof pending.body.text==='string';
+  const retriedSubmit=pending?.method==='POST'&&pending.path===path+'/submit';
+  const wasUnapplied=handoffUnapplied,pendingText=retriedTranscript?pending.body.text:null;
   const result=await client.retry();
-  if(result.patient){currentPatient=result.patient;renderPatient();await candidates();}
-  message('같은 요청으로 처리 결과를 확인했습니다.');
+  if(wasUnapplied&&retriedTranscript&&$('transcript-input').value===pendingText)handoffUnapplied=false;
+  if(retriedSubmit&&result.patient){currentPatient=result.patient;recommendationAwaitingSubmit=false;renderPatient();await candidates();}
+  message(handoffUnapplied?(retriedTranscript?'같은 요청으로 보낸 문장의 반영을 확인했습니다. 현재 검토칸의 다른 문장은 아직 미반영입니다.':'같은 요청의 처리 결과를 확인했습니다. 검토칸의 미반영 문장을 확인해 주세요.'):'같은 요청으로 처리 결과를 확인했습니다.');
 }));
 bindAsync('readback-button',()=>task(async()=>{
   const result=await client.readback($('readback-field').value);$('readback-text').textContent=result.speak_text;
@@ -255,7 +325,7 @@ bindAsync('confirm-button',async()=>{await write('confirm',{confirmed:true});mes
 bindAsync('submit-button',()=>task(async()=>{
   if(!client.session.confirmed)throw Error('현재 초안을 먼저 확인하세요.');
   const context=client.session.patient_id?{}:{consent:$('consent').checked,lat:Number($('lat').value),lon:Number($('lon').value),required_capabilities:[...$('required-capabilities').selectedOptions].map(o=>o.value),resource_demands:{ed_bed:1}};
-  const result=await client.write('submit',{context,start_inquiry:false});currentPatient=result.patient;renderPatient();await candidates();
+  const result=await client.write('submit',{context,start_inquiry:false});currentPatient=result.patient;recommendationAwaitingSubmit=false;renderPatient();await candidates();
   message(result.operational_effect==='voice_record_saved_no_patient_change'?'기록 확인을 저장했습니다. 기존 병원 응답은 유지됩니다.':'환자정보를 서버에 저장했습니다. 후보 병원의 수용 확인은 별도로 필요합니다.');
 }));
 function renderPatient(){
@@ -264,7 +334,7 @@ function renderPatient(){
   if(currentPatient.lat!==null&&currentPatient.lon!==null){$('lat').value=currentPatient.lat;$('lon').value=currentPatient.lon;$('location-status').textContent='저장된 환자 위치';}
 }
 async function candidates(){
-  if(!currentPatient)return;
+  if(!currentPatient||recommendationAwaitingSubmit)return;
   const owner=client,pid=currentPatient.id;
   const result=await owner.api('/api/patients/'+encodeURIComponent(pid)+'/candidates');
   if(client!==owner||currentPatient?.id!==pid)return;

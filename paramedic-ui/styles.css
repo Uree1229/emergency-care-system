@@ -330,3 +330,8 @@ details summary::marker { color: #8da0ad; font-size: 9px; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; }
 }
+.recommendation-prep { margin: 0 0 24px; padding: 20px 22px; background: #edf7f6; border: 1px solid #a7d7cf; border-left: 4px solid #168478; border-radius: 9px; }
+.recommendation-prep h2 { font-size: 18px; margin: 0 0 10px; }
+.recommendation-prep p { line-height: 1.7; }
+.recommendation-prep[data-state="error"] { background: #fff1ef; border-color: #dfaca4; border-left-color: #b2483d; }
+.recommendation-prep .button { margin-top: 8px; }
