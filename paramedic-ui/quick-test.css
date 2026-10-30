@@ -38,6 +38,17 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 .qv-app{max-width:560px;height:100vh;height:100dvh;margin:0 auto;display:flex;flex-direction:column}
 .qv-recovery{margin:2px 12px 6px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);flex:none;max-height:24vh;overflow:auto}
 .qv-recovery p{margin:0}
+.qv-critical{margin:10px 0;padding:12px;background:var(--card);border:1px solid var(--line-strong);border-radius:14px}
+.qv-critical>summary{font-weight:700;cursor:pointer}
+.qv-critical-item{padding:12px 0;border-top:1px solid var(--line)}
+.qv-critical-item h3,.qv-critical-editor h3{margin:0 0 5px;font-size:14px}
+.qv-critical-item p{margin:4px 0;line-height:1.6}
+.qv-critical-item small{color:var(--amber-ink)}
+.qv-critical-item.is-confirmed small{color:var(--teal-ink)}
+.qv-critical-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.qv-critical-editor{padding:12px;background:var(--teal-tint);border:1px solid var(--line-strong);border-radius:10px}
+#critical-inputs label{display:block;margin:10px 0;font-size:13px;font-weight:600}
+#critical-inputs input,#critical-inputs select,#critical-inputs textarea{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid var(--line-strong);border-radius:8px;font:inherit;color:var(--text);background:var(--card)}
 @media (min-width:600px){.qv-app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
 
 /* Top bar */

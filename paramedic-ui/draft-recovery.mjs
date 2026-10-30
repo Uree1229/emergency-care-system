@@ -1,4 +1,5 @@
 /** Explicitly retained text and retry references only; no audio or clinical auto-apply. */
+import {normalizeCorrection} from './quick-session.mjs';
 export const RECOVERY_KEY = 'paramedic.voice.quick-recovery.v1';
 const TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_BYTES = 128 * 1024;
@@ -59,9 +60,10 @@ function boundedJSON(value){
 }
 function validateAttempt(attempt,job,payload){
   keys(attempt,ATTEMPT);
-  if(!['transcript','answer'].includes(attempt.target)||!MODES.includes(attempt.mode)||typeof attempt.manual!=='boolean')fail();
+  const correct=job.phase==='correct';
+  if(!['transcript','answer','correction'].includes(attempt.target)||!MODES.includes(attempt.mode)||typeof attempt.manual!=='boolean')fail();
   if(attempt.questionId!==null)identifier(attempt.questionId);
-  text(attempt.questionText,2000);text(attempt.apiText,4000,true);
+  text(attempt.questionText,2000);text(attempt.apiText,4000,!correct);
   for(const field of ['sourceText','excludedText','unappliedBefore','copiedFrom'])text(attempt[field],16000);
   integer(attempt.beforeVersion);if(attempt.beforeVersion>payload.version)fail();
   if(!Array.isArray(attempt.beforeFlagged)||attempt.beforeFlagged.length>64)fail();
@@ -71,7 +73,11 @@ function validateAttempt(attempt,job,payload){
     if(!['stop','recommend'].includes(attempt.trigger.action))fail();
     text(attempt.trigger.command,100,true);
   }
-  if(attempt.apiText!==job.text)fail();
+  if(correct){
+    if(attempt.target!=='correction'||attempt.mode!=='dictation'||attempt.questionId!==null||attempt.questionText!==''||
+        attempt.apiText!==''||attempt.sourceText!==''||attempt.trigger!==null||attempt.manual!==false||attempt.copiedFrom!=='')fail();
+  }else if(attempt.apiText!==job.text)fail();
+  if(correct)return;
   if(job.phase==='answer'){
     if(attempt.target!=='answer'||attempt.questionId!==job.questionId)fail();
   }else if(attempt.target!=='transcript'||attempt.questionId!==null||attempt.mode!==job.mode)fail();
@@ -81,20 +87,24 @@ function validatePending(pending,payload){
   keys(pending,['request','job','attempt']);
   const {request,job,attempt}=pending;
   keys(request,['path','method','body']);
-  if(request.method!=='POST'||typeof request.path!=='string')fail();
+  if(typeof request.path!=='string')fail();
   const create=request.path==='/api/voice/sessions';
   const base='/api/voice/sessions/'+encodeURIComponent(payload.sessionId||'');
   const transcript=request.path===base+'/transcripts';
   const answer=request.path===base+'/followup/answers';
-  if(!create&&!transcript&&!answer)fail();
+  const correct=request.path===base+'/fields';
+  if(!create&&!transcript&&!answer&&!correct||request.method!==(correct?'PATCH':'POST'))fail();
   if(create){
     if(payload.sessionId!==null||payload.version!==0)fail();
     keys(request.body,['actor_id','client_request_id']);
   }else{
     if(payload.sessionId===null)fail();
-    keys(request.body,transcript?['actor_id','client_request_id','expected_version','text','mode','utterance_id','is_final']:['actor_id','client_request_id','expected_version','question_id','profile','utterance_id','text'],answer?['unavailable']:[]);
+    keys(request.body,correct?['actor_id','client_request_id','expected_version','changes','unset_fields','change_kind']:transcript?['actor_id','client_request_id','expected_version','text','mode','utterance_id','is_final']:['actor_id','client_request_id','expected_version','question_id','profile','utterance_id','text'],answer?['unavailable']:[]);
     integer(request.body.expected_version,1);if(request.body.expected_version>payload.version)fail();
-    text(request.body.text,4000,true);identifier(request.body.utterance_id);
+    if(correct){
+      normalizeCorrection({changes:request.body.changes,unset_fields:request.body.unset_fields});
+      if(request.body.change_kind!=='correction')fail();
+    }else{text(request.body.text,4000,true);identifier(request.body.utterance_id);}
     if(transcript&&(!MODES.includes(request.body.mode)||request.body.is_final!==true))fail();
     if(answer){
       identifier(request.body.question_id);
@@ -103,12 +113,16 @@ function validatePending(pending,payload){
   }
   identifier(request.body.actor_id,80);identifier(request.body.client_request_id);
   if(request.body.actor_id!==payload.actorId)fail();
-  keys(job,answer?['text','questionId','utteranceId','phase']:['text','mode','utteranceId','phase']);
-  text(job.text,4000,true);identifier(job.utteranceId);
-  if(job.phase!==(create?'create':answer?'answer':'write'))fail();
+  keys(job,correct?['phase','changes','unsetFields']:answer?['text','questionId','utteranceId','phase']:['text','mode','utteranceId','phase']);
+  if(job.phase!==(create?'create':correct?'correct':answer?'answer':'write'))fail();
+  if(correct){
+    normalizeCorrection({changes:job.changes,unset_fields:job.unsetFields});
+    if(JSON.stringify(job.changes)!==JSON.stringify(request.body.changes)||JSON.stringify(job.unsetFields)!==JSON.stringify(request.body.unset_fields))fail();
+  }else{text(job.text,4000,true);identifier(job.utteranceId);}
   if(answer){identifier(job.questionId);if(job.questionId!==request.body.question_id)fail();}
-  else if(!MODES.includes(job.mode))fail();
-  if(!create&&(job.text!==request.body.text||job.utteranceId!==request.body.utterance_id))fail();
+  else if(!correct&&!MODES.includes(job.mode))fail();
+  if(create&&job.mode==='command')fail();
+  if(!create&&!correct&&(job.text!==request.body.text||job.utteranceId!==request.body.utterance_id))fail();
   if(transcript&&job.mode!==request.body.mode)fail();
   validateAttempt(attempt,job,payload);
 }

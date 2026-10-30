@@ -11,6 +11,7 @@ function attempt(overrides={}){return {target:'transcript',mode:'auto',questionI
 function transcript(){return {...payload(),pending:{request:{path:'/api/voice/sessions/VS-SYNTHETIC/transcripts',method:'POST',body:{text:'synthetic line',mode:'auto',utterance_id:'U-SYNTHETIC',is_final:true,actor_id:'QUICK-SYNTHETIC',client_request_id:'R-SYNTHETIC',expected_version:3}},job:{text:'synthetic line',mode:'auto',utteranceId:'U-SYNTHETIC',phase:'write'},attempt:attempt()}};}
 function create(){return {...payload(),sessionId:null,version:0,pending:{request:{path:'/api/voice/sessions',method:'POST',body:{actor_id:'QUICK-SYNTHETIC',client_request_id:'R-CREATE-SYNTHETIC'}},job:{text:'synthetic line',mode:'auto',utteranceId:'U-SYNTHETIC',phase:'create'},attempt:attempt({beforeVersion:0})}};}
 function answer(){return {...payload(),pending:{request:{path:'/api/voice/sessions/VS-SYNTHETIC/followup/answers',method:'POST',body:{question_id:'Q-SYNTHETIC',profile:'voice_extended_v1',utterance_id:'U-ANSWER-SYNTHETIC',text:'synthetic answer',actor_id:'QUICK-SYNTHETIC',client_request_id:'R-ANSWER-SYNTHETIC',expected_version:3,unavailable:true}},job:{text:'synthetic answer',questionId:'Q-SYNTHETIC',utteranceId:'U-ANSWER-SYNTHETIC',phase:'answer'},attempt:attempt({target:'answer',questionId:'Q-SYNTHETIC',questionText:'synthetic question?',apiText:'synthetic answer'})}};}
+function correction(){return {...payload(),pending:{request:{path:'/api/voice/sessions/VS-SYNTHETIC/fields',method:'PATCH',body:{changes:{systolic_bp:110,diastolic_bp:70,symptoms:['흉통'],denied_symptoms:['구토']},unset_fields:['glucose','spo2'],change_kind:'correction',actor_id:'QUICK-SYNTHETIC',client_request_id:'R-CORRECTION-SYNTHETIC',expected_version:3}},job:{phase:'correct',changes:{systolic_bp:110,diastolic_bp:70,symptoms:['흉통'],denied_symptoms:['구토']},unsetFields:['glucose','spo2']},attempt:attempt({target:'correction',mode:'dictation',apiText:'',sourceText:''})}};}
 function saved(value=payload(),overrides={}){return {...value,createdAt:NOW,expiresAt:NOW+TTL,...overrides};}
 function rawStorage(value){return memory({[RECOVERY_KEY]:typeof value==='string'?value:JSON.stringify(value)});}
 function assertRejected(value){const storage=memory({[RECOVERY_KEY]:'previous-synthetic-recovery'});assert.throws(()=>writeDraftRecovery(storage,value,{now:NOW}));assert.equal(storage.getItem(RECOVERY_KEY),'previous-synthetic-recovery');}
@@ -178,3 +179,41 @@ test('messages do not expose synthetic raw text or actor/session identifiers',()
   const input=saved(transcript());input.pending.request.body.actor_id='OTHER-ACTOR';input.recoveryText='SYNTHETIC_PRIVATE_RAW_TEXT';
   const result=readDraftRecovery(rawStorage(input),ORIGIN,{now:NOW});assert.equal(result.payload,null);assert.doesNotMatch(result.message,/SYNTHETIC_PRIVATE_RAW_TEXT|QUICK-SYNTHETIC|VS-SYNTHETIC/);
 });
+
+test('structured correction recovery retains the exact original PATCH and no synthetic transcript',()=>{
+  const input=correction(),before=JSON.stringify(input.pending.request),storage=memory();
+  writeDraftRecovery(storage,input,{now:NOW});
+  input.pending.job.changes.systolic_bp=120;
+  const read=readDraftRecovery(storage,ORIGIN,{now:NOW});assert.equal(read.status,'valid');
+  assert.equal(JSON.stringify(read.payload.pending.request),before);
+  assert.deepEqual(read.payload.pending.job,{phase:'correct',changes:{systolic_bp:110,diastolic_bp:70,symptoms:['흉통'],denied_symptoms:['구토']},unsetFields:['glucose','spo2']});
+  assert.equal(read.payload.pending.attempt.target,'correction');assert.equal(read.payload.pending.attempt.apiText,'');
+  assert.equal(read.payload.pending.attempt.sourceText,'');assert.equal(read.payload.pending.attempt.trigger,null);
+});
+
+test('correction may preserve an older expected version and unrelated unapplied text without marking it as submitted',()=>{
+  const input=correction();input.version=5;input.recoveryText='synthetic unapplied recording';input.manualText='synthetic manual note';
+  input.pending.attempt.excludedText='synthetic trailing line';input.pending.attempt.unappliedBefore='synthetic prior line';
+  const result=writeDraftRecovery(memory(),input,{now:NOW});assert.equal(result.pending.request.body.expected_version,3);
+  assert.equal(result.recoveryText,input.recoveryText);assert.equal(result.manualText,input.manualText);
+  assert.equal(result.pending.attempt.excludedText,input.pending.attempt.excludedText);
+});
+
+for(const [name,mutate] of [
+  ['POST method',v=>{v.pending.request.method='POST';}],['unknown field',v=>{v.pending.request.body.changes.age=v.pending.job.changes.age=47;}],
+  ['observation change kind',v=>{v.pending.request.body.change_kind='observation';}],['wrong job phase',v=>{v.pending.job.phase='write';}],
+  ['body/job changes mismatch',v=>{v.pending.job.changes.systolic_bp=120;}],['body/job unset mismatch',v=>{v.pending.job.unsetFields=['glucose'];}],
+  ['conflicting symptoms',v=>{v.pending.request.body.changes.denied_symptoms=['흉통'];v.pending.job.changes.denied_symptoms=['흉통'];}],
+  ['invalid measurement',v=>{v.pending.request.body.changes.systolic_bp=0;v.pending.job.changes.systolic_bp=0;}],
+  ['empty correction',v=>{v.pending.request.body.changes=v.pending.job.changes={};v.pending.request.body.unset_fields=v.pending.job.unsetFields=[];}],
+  ['duplicate unset',v=>{v.pending.request.body.unset_fields=v.pending.job.unsetFields=['glucose','glucose'];}],
+  ['change also unset',v=>{v.pending.request.body.unset_fields=v.pending.job.unsetFields=['systolic_bp'];}],
+  ['unknown symptom',v=>{v.pending.request.body.changes.symptoms=v.pending.job.changes.symptoms=['임의 증상'];}],
+  ['missing known session',v=>{v.sessionId=null;v.version=0;}],['future expected version',v=>{v.pending.request.body.expected_version=4;}],
+  ['another actor',v=>{v.pending.request.body.actor_id='OTHER';}],['transcript attempt',v=>{v.pending.attempt.target='transcript';}],
+  ['command mode',v=>{v.pending.attempt.mode='command';}],['question ID',v=>{v.pending.attempt.questionId='Q-OTHER';}],
+  ['question text',v=>{v.pending.attempt.questionText='not a followup';}],['synthetic API text',v=>{v.pending.attempt.apiText='not a transcript';}],
+  ['source transcript',v=>{v.pending.attempt.sourceText='not a recording';}],['manual recording',v=>{v.pending.attempt.manual=true;}],
+  ['copied source',v=>{v.pending.attempt.copiedFrom='not a recording';}],['trigger action',v=>{v.pending.attempt.trigger={action:'recommend',command:'synthetic'};}],
+  ['utterance ID',v=>{v.pending.request.body.utterance_id='not allowed';}],['patient submit context',v=>{v.pending.request.body.context={consent:true};}],
+])test(`correction recovery rejects ${name} without erasing the previous snapshot`,()=>{const input=correction();mutate(input);assertRejected(input);});

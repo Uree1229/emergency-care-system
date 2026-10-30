@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {VoiceClient} from './paramedic-ui/voice-client.mjs';
-import {QuickSession} from './paramedic-ui/quick-session.mjs';
+import {QuickSession,normalizeCorrection,CORRECTION_FIELDS} from './paramedic-ui/quick-session.mjs';
+import vm from 'node:vm';
 
 const response = (data, status=200) => ({ok:status<400,status,json:async()=>data});
 const session = (version, fields={}) => ({id:'VS-QUICK',version,state:'DRAFT',fields});
@@ -377,4 +378,113 @@ test('restore rejects a nonempty flow or a queued client operation and never sta
   assert.throws(()=>flow.restoreRecovery(pendingWrite()));release();await queued;
   assert.deepEqual(flow.restoreRecovery({pending:null,job:null}),{pending:null,job:null});
   assert.equal(calls.length,0);
+});
+
+test('correct sends one atomic draft-only PATCH with no utterance, confirmation or patient operation',async()=>{
+  const {client,flow,calls}=setup(()=>response({session:session(4,{systolic_bp:110,diastolic_bp:70}),operational_effect:'draft_only'}));
+  client.session=session(3);flow.makeId=()=>{throw Error('a correction has no utterance id');};
+  let checkpoint;client.beforeWrite=()=>{checkpoint=flow.exportRecovery();};
+  await flow.correct({changes:{systolic_bp:110,diastolic_bp:70,consciousness:'unknown'},unset_fields:['glucose']});
+  assert.equal(calls.length,1);assert.equal(calls[0].method,'PATCH');
+  assert.equal(calls[0].url,'http://127.0.0.1:8000/api/voice/sessions/VS-QUICK/fields');
+  assert.deepEqual(calls[0].body,{changes:{systolic_bp:110,diastolic_bp:70,consciousness:'unknown'},unset_fields:['glucose'],
+    change_kind:'correction',actor_id:'QUICK-VOICE-TEST',client_request_id:'request-1',expected_version:3});
+  assert.deepEqual(checkpoint.job,{phase:'correct',changes:calls[0].body.changes,unsetFields:['glucose']});
+  assert.equal(checkpoint.pending.method,'PATCH');assert.equal(flow.job,null);assert.equal(client.pending,null);
+});
+
+test('lost correction response is retried with the exact PATCH and commits only once',async()=>{
+  const committed=new Map();let mutations=0;
+  const {client,flow,calls}=setup(call=>{
+    if(call.method==='GET')return response({session:session(5,{pulse:91})});
+    const key=call.body.client_request_id;
+    if(committed.has(key))return response({...committed.get(key),duplicate:true});
+    mutations++;committed.set(key,{session:session(4,{pulse:91}),operational_effect:'draft_only'});
+    throw Error('synthetic correction response loss after commit');
+  });
+  client.session=session(3);
+  await assert.rejects(flow.correct({changes:{pulse:91}}),e=>e.uncertain);
+  const saved=flow.exportRecovery();assert.equal(saved.job.phase,'correct');
+  await assert.rejects(flow.apply('another note'));await assert.rejects(flow.correct({changes:{pulse:92}}));
+  await flow.retry();assert.deepEqual(calls[0],calls[1]);assert.equal(mutations,1);
+  assert.equal(client.session.version,5);assert.equal(flow.job,null);assert.equal(client.pending,null);
+});
+
+test('correction checkpoint failure is unsent and its exact request survives reload recovery',async()=>{
+  const source=setup(()=>{throw Error('must not reach network');});source.client.session=session(3);
+  source.client.beforeWrite=()=>{throw Error('synthetic quota failure');};
+  await assert.rejects(source.flow.correct({changes:{symptoms:['흉통'],denied_symptoms:['구토']},unset_fields:['spo2']}),e=>e.uncertain);
+  assert.equal(source.calls.length,0);const saved=source.flow.exportRecovery();
+  const target=setup(()=>response({session:session(4),operational_effect:'draft_only'}));target.client.session=session(5);
+  target.client.makeId=target.flow.makeId=()=>{throw Error('must retain original request');};
+  target.flow.restoreRecovery(saved);assert.equal(target.calls.length,0);
+  saved.job.changes.symptoms.push('기침');saved.pending.body.changes.symptoms.push('기침');
+  await target.flow.retry();assert.equal(target.calls.length,1);
+  assert.deepEqual(target.calls[0].body,source.client.pending.body);assert.equal(target.calls[0].body.expected_version,3);
+});
+
+test('definite correction conflict clears the job without regenerating or silently reapplying it',async()=>{
+  const {client,flow,calls}=setup(()=>response({error:'VOICE_VERSION_CONFLICT'},409));client.session=session(3);
+  await assert.rejects(flow.correct({unset_fields:['breathing']}),e=>e.status===409&&!e.uncertain);
+  assert.equal(calls.length,1);assert.equal(flow.job,null);assert.equal(client.pending,null);
+  assert.equal(client.session.version,3);await assert.rejects(flow.retry());
+});
+
+test('correction requires an editable draft and cannot create or submit one',async()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not reach network');});
+  await assert.rejects(flow.correct({changes:{pulse:91}}));
+  client.session={...session(3),state:'SUBMITTED'};await assert.rejects(flow.correct({changes:{pulse:91}}));
+  assert.equal(calls.length,0);assert.equal(flow.job,null);
+});
+
+test('correction whitelist contains exactly the twelve reviewed clinical fields, excluding age and severity',()=>{
+  assert.deepEqual([...CORRECTION_FIELDS].sort(),['systolic_bp','diastolic_bp','pulse','spo2','temperature','respiratory_rate','glucose',
+    'consciousness','breathing','symptoms','denied_symptoms','uncertain_symptoms'].sort());
+  const value={changes:{pulse:0,spo2:0,temperature:20,respiratory_rate:0,glucose:0,consciousness:'unknown',breathing:'unknown',
+    symptoms:[],denied_symptoms:[],uncertain_symptoms:[]},unset_fields:['systolic_bp','diastolic_bp']};
+  assert.deepEqual(normalizeCorrection(value),{changes:value.changes,unsetFields:value.unset_fields});
+  assert.deepEqual(normalizeCorrection(vm.runInNewContext('('+JSON.stringify(value)+')')),normalizeCorrection(value));
+});
+
+for(const [name,input] of [
+  ['empty',{}],['empty lists',{changes:{},unset_fields:[]}],
+  ['unknown age',{changes:{age:47}}],['severity',{changes:{pre_ktas:2}}],['patient props',{changes:{patient_id:'P-1'}}],
+  ['unknown metadata',{changes:{pulse:91},consent:true}],['invalid changes array',{changes:[]}],
+  ['null observation',{changes:{pulse:null}}],['numeric string',{changes:{pulse:'91'}}],['boolean',{changes:{pulse:false}}],
+  ['NaN',{changes:{temperature:NaN}}],['Infinity',{changes:{spo2:Infinity}}],['integer fraction',{changes:{respiratory_rate:12.5}}],
+  ['SBP low',{changes:{systolic_bp:0}}],['SBP high',{changes:{systolic_bp:351}}],['DBP high',{changes:{diastolic_bp:251}}],
+  ['pulse high',{changes:{pulse:351}}],['spo2 high',{changes:{spo2:100.1}}],['temperature low',{changes:{temperature:19.9}}],
+  ['temperature high',{changes:{temperature:45.1}}],['RR high',{changes:{respiratory_rate:101}}],['glucose high',{changes:{glucose:1501}}],
+  ['inverted BP',{changes:{systolic_bp:80,diastolic_bp:90}}],['equal BP',{changes:{systolic_bp:80,diastolic_bp:80}}],
+  ['unknown consciousness',{changes:{consciousness:'명료'}}],['unknown breathing',{changes:{breathing:'yes'}}],
+  ['symptom string',{changes:{symptoms:'흉통'}}],['unsupported symptom',{changes:{symptoms:['임의 증상']}}],
+  ['duplicate symptom',{changes:{symptoms:['흉통','흉통']}}],['conflicting symptoms',{changes:{symptoms:['흉통'],denied_symptoms:['흉통']}}],
+  ['unknown unset',{unset_fields:['age']}],['duplicate unset',{unset_fields:['pulse','pulse']}],
+  ['changed and unset',{changes:{pulse:91},unset_fields:['pulse']}],['string unset',{unset_fields:'pulse'}],
+])test(`correction validation rejects ${name} before network`,async()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not reach network');});client.session=session(3);
+  assert.throws(()=>normalizeCorrection(input));await assert.rejects(flow.correct(input));
+  assert.equal(calls.length,0);assert.equal(flow.job,null);
+});
+
+for(const changes of [
+  {systolic_bp:350,diastolic_bp:250},{pulse:350},{spo2:100},{temperature:45},{respiratory_rate:100},{glucose:1500},
+  {spo2:97.5,temperature:37.25,glucose:105.5},{consciousness:'alert',breathing:'normal'},
+  {consciousness:'impaired',breathing:'abnormal'},{consciousness:'unresponsive',breathing:'absent'},
+  {symptoms:['흉통','호흡곤란','복통','두통','어지럼','구토','오심','발열','기침','객혈','출혈','경련','실신','마비','의식저하','설사','요통','발진','외상','부종','심계항진']},
+])test(`correction preserves a server-valid boundary or enum: ${JSON.stringify(changes)}`,()=>{
+  const result=normalizeCorrection({changes});assert.deepEqual(result,{changes,unsetFields:[]});assert.notEqual(result.changes,changes);
+});
+
+for(const [name,mutate] of [
+  ['POST instead of PATCH',s=>{s.pending.method='POST';}],['observation kind',s=>{s.pending.body.change_kind='observation';}],
+  ['different job change',s=>{s.job.changes.pulse=92;}],['different unset',s=>{s.job.unsetFields=[];}],
+  ['unknown field',s=>{s.job.changes.age=s.pending.body.changes.age=47;}],['extra utterance',s=>{s.job.utteranceId='U-other';}],
+  ['unknown actor',s=>{s.pending.body.actor_id='OTHER';}],['wrong session',s=>{s.pending.path='/api/voice/sessions/VS-other/fields';}],
+])test(`restored correction rejects ${name}`,()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not reach network');});client.session=session(5);
+  const saved={pending:{path:'/api/voice/sessions/VS-QUICK/fields',method:'PATCH',body:{changes:{pulse:91},unset_fields:['glucose'],
+    change_kind:'correction',actor_id:'QUICK-VOICE-TEST',client_request_id:'saved-correction',expected_version:3}},
+    job:{phase:'correct',changes:{pulse:91},unsetFields:['glucose']}};
+  mutate(saved);assert.throws(()=>flow.restoreRecovery(saved));assert.equal(calls.length,0);assert.equal(flow.job,null);
 });
