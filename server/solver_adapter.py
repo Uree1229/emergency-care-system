@@ -1,7 +1,7 @@
 """공통 DB 스냅샷을 분 단위 배정 모델로 변환한다. 임상 판단을 수행하지 않는다."""
 import math
 
-from . import service, treatment_binding
+from . import service, treatment_binding, allocation_input_review
 
 RESOURCE_TYPES = ('ed_bed', 'special_team')
 HORIZON_MINUTES = 120
@@ -141,7 +141,8 @@ def build(snapshot, estimator):
                             accepted_alternatives=alternatives,
                             missing_capabilities=missing_capabilities,
                             treatment_requirements=treatment_binding.requirements_for(p),
-                            treatment_evaluations=treatment_evaluations)
+                            treatment_evaluations=treatment_evaluations,
+                            input_review=allocation_input_review.assess(p, now))
         if 'DESTINATION_RESTRICTED' in warnings:
             context[pid]['blocking_review'] = True
         # 별도 자원 모델이 필요한 환자는 누락 없이 명시적 검토 결과를 제공한다.
@@ -202,6 +203,7 @@ def present(snapshot, model, context, plan, meta):
                         and q['state'] == 'ACCEPTED' and q['patient_version'] == p['version']
                         and q['expires_at'] is not None and q['expires_at'] > snapshot['now']), None)
         result[pid] = dict(status=status, hospital_id=hid, inquiry_id=inquiry['id'] if inquiry else None,
+                           input_review=ctx['input_review'],
                            eligibility_reasons=ctx.get('eligibility_reasons', []),
                            missing_capabilities=ctx['missing_capabilities'],
                            treatment_requirements=ctx['treatment_requirements'],

@@ -19,9 +19,11 @@ from . import system_status
 from . import recommendation_view
 from . import accounting_reconciliation
 from . import work_activity, important_events, call_records, call_inbox, patient_amendments
+from . import voice_input, voice_terms, voice_lexicon, voice_treatment_review, allocation_input_review
 
 STATIC = Path(__file__).parent / 'static'
 UI_ROOTS = {
+    '/paramedic/': Path(__file__).resolve().parents[1] / 'paramedic-ui',
     '/patient/': Path(__file__).resolve().parents[1] / 'patient-ui',
     '/hospital/': Path(__file__).resolve().parents[1] / 'hospital-ui',
 }
@@ -33,6 +35,150 @@ def route(method, pattern):
         ROUTES.append((method, re.compile(f'^{pattern}$'), fn))
         return fn
     return wrap
+
+
+# Voice drafts are separate from patient records until an explicit confirmed submit.
+def _voice_query(ctx, allowed=()):
+    service._require(not (ctx.query.keys() - set(allowed)), 'INVALID', '지원하지 않는 조회 항목입니다')
+
+
+@route('GET', r'/api/voice/capabilities')
+def voice_capabilities(ctx):
+    _voice_query(ctx)
+    return dict(voice_input.capabilities(), dictionary=voice_lexicon.overview(ctx.conn),
+                allocation_input_review_revision=allocation_input_review.REVISION)
+
+
+@route('GET', r'/api/voice/terms')
+def voice_catalog(ctx):
+    _voice_query(ctx)
+    with voice_terms.use_dictionary(voice_lexicon.snapshot(ctx.conn)):
+        return voice_terms.catalog()
+
+
+@route('GET', r'/api/voice/dictionary')
+def voice_dictionary(ctx):
+    _voice_query(ctx)
+    return voice_lexicon.overview(ctx.conn)
+
+
+@route('GET', r'/api/voice/dictionary/search')
+def voice_dictionary_search(ctx):
+    _voice_query(ctx, ('q', 'limit', 'offset', 'source_id'))
+    return voice_lexicon.search(ctx.conn, ctx.query.get('q', ''), limit=ctx.query.get('limit', '20'),
+                               offset=ctx.query.get('offset', '0'), source_id=ctx.query.get('source_id'))
+
+
+@route('GET', r'/api/voice/command-catalog')
+def voice_command_catalog(ctx):
+    _voice_query(ctx)
+    with voice_terms.use_dictionary(voice_lexicon.snapshot(ctx.conn)):
+        return voice_terms.command_catalog()
+
+
+@route('POST', r'/api/voice/sessions')
+def create_voice_session(ctx):
+    _voice_query(ctx)
+    return voice_input.create(ctx.conn, ctx.now, ctx.body)
+
+
+@route('GET', r'/api/voice/sessions/(?P<sid>[\w-]+)')
+def get_voice_session(ctx, sid):
+    _voice_query(ctx, ('actor_id',))
+    return voice_input.get(ctx.conn, ctx.now, sid, ctx.query.get('actor_id'))
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/transcripts')
+def voice_transcript(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.transcript(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/audio')
+def voice_audio(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.audio(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('PATCH', r'/api/voice/sessions/(?P<sid>[\w-]+)/fields')
+def edit_voice_fields(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.edit(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/commands')
+def voice_command(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.command(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('GET', r'/api/voice/sessions/(?P<sid>[\w-]+)/readback')
+def voice_readback(ctx, sid):
+    _voice_query(ctx, ('actor_id', 'field'))
+    return voice_input.readback(ctx.conn, ctx.now, sid, ctx.query.get('actor_id'), ctx.query.get('field'))
+
+
+@route('GET', r'/api/voice/sessions/(?P<sid>[\w-]+)/history')
+def voice_history(ctx, sid):
+    _voice_query(ctx, ('actor_id',))
+    return voice_input.history(ctx.conn, ctx.now, sid, ctx.query.get('actor_id'))
+
+
+@route('GET', r'/api/voice/sessions/(?P<sid>[\w-]+)/followup')
+def voice_followup(ctx, sid):
+    _voice_query(ctx, ('actor_id', 'profile'))
+    return voice_input.followup(ctx.conn, ctx.now, sid, ctx.query.get('actor_id'),
+                                ctx.query.get('profile', 'voice_extended_v1'))
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/followup/answers')
+def voice_followup_answer(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.answer_followup(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/undo')
+def undo_voice_fields(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.undo(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/confirm')
+def confirm_voice_fields(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.confirm(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/submit')
+def submit_voice_fields(ctx, sid):
+    _voice_query(ctx)
+    return voice_input.submit(ctx.conn, ctx.now, sid, ctx.body)
+
+
+@route('GET', r'/api/voice/sessions/(?P<sid>[\w-]+)/treatment-review')
+def voice_treatment_preview(ctx, sid):
+    _voice_query(ctx, ('actor_id',))
+    return voice_treatment_review.preview(ctx.conn,ctx.now,sid,ctx.query.get('actor_id'))
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/treatment-review/preview')
+def voice_treatment_selection(ctx, sid):
+    _voice_query(ctx)
+    return voice_treatment_review.preview_request(ctx.conn,ctx.now,sid,ctx.body)
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/treatment-review/apply')
+def voice_treatment_apply(ctx, sid):
+    _voice_query(ctx)
+    return voice_treatment_review.apply(ctx.conn,ctx.now,sid,ctx.body,runtime=ctx.runtime)
+
+
+VOICE_HANDLERS = frozenset((voice_capabilities, voice_catalog, create_voice_session,
+    get_voice_session, voice_transcript, voice_audio, edit_voice_fields, voice_command,
+    voice_readback, voice_history, voice_followup, voice_followup_answer,
+    undo_voice_fields, confirm_voice_fields, submit_voice_fields,
+    voice_dictionary, voice_dictionary_search, voice_command_catalog,
+    voice_treatment_preview, voice_treatment_selection, voice_treatment_apply))
 
 
 @route('GET', r'/api/system/status')
@@ -335,7 +481,13 @@ def _(ctx, pid):
 
 @route('GET', r'/api/patients/(?P<pid>[\w-]+)/candidates')
 def _(ctx, pid):
-    return service.candidates(ctx.conn, ctx.now, pid, ctx.estimator)
+    return recommendation_view.candidates(ctx.conn, ctx.now, pid, ctx.estimator)
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/input-review')
+def get_allocation_input_review(ctx, pid):
+    _voice_query(ctx)
+    return recommendation_view.patient_input_review(ctx.conn, ctx.now, pid)
 
 
 @route('GET', r'/api/patients/(?P<pid>[\w-]+)/inquiry-workflow')
@@ -472,6 +624,7 @@ def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin
             if root.resolve() not in target.parents or not target.is_file():
                 return self._send(404, {'error': 'NOT_FOUND'})
             ctype = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+                     '.mjs': 'text/javascript; charset=utf-8',
                      '.css': 'text/css; charset=utf-8'}.get(target.suffix, 'application/octet-stream')
             self._send(200, target.read_bytes(), ctype)
 
@@ -487,14 +640,23 @@ def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin
             else:
                 return self._send(404, {'error': 'NOT_FOUND', 'message': '없는 경로'})
             try:
+                if fn in VOICE_HANDLERS:
+                    raw_length = self.headers.get('Content-Length', '0')
+                    service._require(raw_length.isascii() and raw_length.isdecimal() and len(raw_length) <= 10,
+                                     'INVALID', '올바른 Content-Length가 필요합니다')
+                    service._require(not self.headers.get('Transfer-Encoding'), 'INVALID',
+                                     '음성 API는 Content-Length가 있는 JSON 요청을 사용하세요')
+                    service._require(int(raw_length) <= voice_input.MAX_HTTP_BYTES, 'PAYLOAD_TOO_LARGE',
+                                     '음성 API 요청 크기를 초과했습니다', 413)
                 length = int(self.headers.get('Content-Length') or 0)
                 body = json.loads(self.rfile.read(length) or b'{}') if length else {}
                 if not isinstance(body, dict):
                     raise service.ServiceError('INVALID', 'JSON 객체가 필요합니다', 400)
                 # 빈 작업자·기간 필터를 생략으로 바꿔 집계 범위를 넓히지 않는다.
                 # 기존 API의 쿼리 계약은 유지하고 신규 계측 경로에서만 엄격히 검사한다.
-                pairs = parse_qsl(url.query, keep_blank_values=fn in MEASUREMENT_HANDLERS)
-                if fn in MEASUREMENT_HANDLERS:
+                strict_query = fn in MEASUREMENT_HANDLERS or fn in VOICE_HANDLERS or fn is get_allocation_input_review
+                pairs = parse_qsl(url.query, keep_blank_values=strict_query)
+                if strict_query:
                     service._require(len({key for key, value in pairs}) == len(pairs),
                                      'INVALID', '중복된 쿼리 항목은 사용할 수 없습니다')
                 # 상태 조회는 자체 읽기 전용 연결을 쓴다. db.connect는 파일 생성·WAL 설정을 수행한다.

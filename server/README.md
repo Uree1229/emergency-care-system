@@ -1,5 +1,11 @@
 # 공통 서버 (시연용)
 
+별도 구급대원 앱 **이송 노트**는 `/paramedic/`에서 제공합니다. 팀원 화면과 분리해 새로 만든 음성 입력·수정·확인·환자 등록·병원 후보 조회 앱입니다. [실행·사용 방법](../paramedic-ui/README.md).
+
+2026-10-30: [구급대원 음성 입력·수정·확인 API](../docs/VOICE_INPUT_API.md)를 추가했습니다. 음성 인식문에서 검토용 초안을 만들고, 항목별 수정·되돌리기·읽어주기 텍스트·현재 버전 확인 뒤 기존 환자 등록/수정으로 연결합니다. 앱 연결용 요청·응답·JavaScript 예제와 Azure 설정은 해당 문서에 있습니다. 텍스트 경로는 별도 STT 키 없이 검증할 수 있고, WAV 음성 인식은 Azure 키가 필요합니다. 실제 오디오 스트리밍과 TTS 재생은 앱 연계 대상입니다.
+
+2026-10-29: 팀원 프론트엔드를 비워 두고 서버 흐름만 확인하려면 `python -m server.flow_rehearsal run --scenario all`을 실행합니다. API만 계속 켜려면 `python -m server.flow_rehearsal serve --db data/flow-server.db --port 18030`을 사용합니다. [전체 연결 흐름·역할별 API·결과 보고서](../docs/FRONTEND_FREE_FLOW.md).
+
 2026-10-29: [응답 관측 수정·업무 계측·중요 사건 확인 API](../docs/BACKEND_MEASUREMENT_API.md)를 추가했습니다. 화면 연결과 실제 사용자 인증은 별도입니다.
 같은 이송 건의 [통화 결과 기록·상대 기관측 내용 확인·정정 API](../docs/CALL_RECORD_API.md)도 제공합니다. 통화 기록은 수용·배정 상태를 자동으로 바꾸지 않습니다.
 문의 후에는 [버전 기반 환자정보 수정](../docs/PATIENT_AMENDMENTS_API.md)을, 이송 ID를 모르는 새 통화 발견에는 `GET /api/hospitals/{hid}/call-records`를 사용합니다. 일반 정보 수정은 목적지 확정 전 단계만 지원합니다.
