@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#14283d" />
+    <title>이송 노트 · 구급대원 음성 기록</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">본문으로 이동</a>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="작업 및 서버 연결">
+        <a class="brand" href="#main-content" aria-label="이송 노트 시작">
+          <span class="brand-symbol" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M16 6v20M6 16h20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" /></svg>
+          </span>
+          <span><strong>이송 노트</strong><small>구급대원 음성 기록</small></span>
+        </a>
+
+        <button id="new-case" type="button" class="button button-primary new-case">새 환자 기록</button>
+
+        <nav class="workflow-nav" aria-label="기록 진행 단계">
+          <p class="sidebar-label">기록 순서</p>
+          <ol class="workflow-track">
+            <li class="is-current" data-step="input"><a href="#input-section"><span class="step-number">01</span><span>음성 입력<small>환자 상태 기록</small></span></a></li>
+            <li data-step="review"><a href="#review-section"><span class="step-number">02</span><span>내용 검토<small>입력값 수정 및 확인</small></span></a></li>
+            <li data-step="submit"><a href="#submit-section"><span class="step-number">03</span><span>환자 등록<small>위치와 필요 기능 확인</small></span></a></li>
+            <li data-step="hospital"><a href="#hospital-section"><span class="step-number">04</span><span>병원 후보<small>후보 목록 확인</small></span></a></li>
+          </ol>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="server-heading"><span class="sidebar-label">서버 연결</span><span id="connection-status" class="connection-status" role="status">연결 확인 전</span></div>
+          <label class="sr-only" for="server-url">서버 주소</label>
+          <input id="server-url" type="url" inputmode="url" placeholder="서버 주소" autocomplete="url" spellcheck="false" />
+          <button id="connect-server" type="button" class="button button-sidebar">연결 확인</button>
+          <details class="resume-details">
+            <summary>기존 환자 이어서 기록</summary>
+            <label for="resume-patient">환자 ID</label>
+            <input id="resume-patient" type="text" placeholder="환자 ID 입력" autocomplete="off" spellcheck="false" />
+            <button id="load-patient" type="button" class="button button-sidebar">환자 불러오기</button>
+          </details>
+          <p class="sidebar-footnote">확인한 정보만 기록하세요.<br />진단을 자동으로 추정하지 않습니다.</p>
+        </div>
+      </aside>
+
+      <main id="main-content" class="main-content">
+        <header class="page-header">
+          <div><p class="eyebrow">PARAMEDIC WORKSPACE</p><h1>환자 상태 기록</h1><p class="page-description">말로 기록하고, 내용을 확인한 뒤 등록하세요.</p></div>
+          <div class="header-actions"><span id="workflow-step" class="status-pill">입력 대기</span><button id="refresh-session" type="button" class="button button-secondary button-small">최신 기록 확인</button></div>
+        </header>
+
+        <p class="demo-banner"><span class="demo-label">로컬 시연</span> 이 앱의 등록은 시연 API에 저장되며 실제 병원에 전달되지 않습니다.</p>
+
+        <section class="session-bar" aria-label="현재 기록">
+          <span class="session-label">현재 기록</span><div id="session-meta">새 환자 기록을 시작해 주세요.</div>
+        </section>
+
+        <div class="feedback-region" aria-live="polite">
+          <div id="notice" class="notice" role="status"></div>
+          <div id="error" class="error" role="alert"></div>
+          <button id="retry-request" type="button" class="button button-secondary" hidden>같은 요청 다시 시도</button>
+        </div>
+
+        <div class="workspace-grid">
+          <section id="input-section" class="panel input-panel" aria-labelledby="input-title">
+            <div class="panel-heading"><div><p class="section-kicker">STEP 01</p><h2 id="input-title">음성 입력</h2></div><span class="section-note">한국어</span></div>
+            <p class="section-description">현재 환자의 상태와 측정값을 짧고 명확하게 말하세요.</p>
+
+            <div class="two-columns voice-options">
+              <div class="form-field"><label for="voice-mode">입력 모드</label><select id="voice-mode"><option value="dictation">환자 상태 받아쓰기</option><option value="command">음성 명령</option></select></div>
+              <div class="form-field"><label for="speech-provider">음성 인식 방식</label><select id="speech-provider"><option value="browser">브라우저 음성 인식</option><option value="azure">Azure 음성 인식</option></select></div>
+            </div>
+
+            <div class="recording-box">
+              <div class="recording-topline"><span id="recording-state" class="recording-state" role="status">녹음 대기</span><span class="recording-hint">마이크 권한 필요</span></div>
+              <button id="record-button" type="button" class="button record-button" aria-pressed="false">녹음 시작</button>
+              <output id="interim-text" class="interim-text" aria-live="polite">녹음을 시작하면 인식 중인 문장이 표시됩니다.</output>
+            </div>
+
+            <div class="transcript-heading"><label for="transcript-input">인식 문장</label><button id="sample-button" type="button" class="text-button">예시 문장 넣기</button></div>
+            <textarea id="transcript-input" rows="5" placeholder="음성 인식 결과를 확인하거나 문장을 직접 입력하세요." aria-describedby="transcript-help"></textarea>
+            <p id="transcript-help" class="help-text">예시 문장은 직접 입력되는 시연 자료이며 음성 인식 결과가 아닙니다.</p>
+            <button id="send-transcript" type="button" class="button button-primary button-full">문장을 검토 항목에 반영</button>
+
+            <details class="command-details">
+              <summary>명령 직접 입력</summary>
+              <label for="command-input">수정 또는 조회 명령</label>
+              <div class="input-action"><input id="command-input" type="text" placeholder="예: 산소포화도 97로 수정" autocomplete="off" /><button id="send-command" type="button" class="button button-secondary">실행</button></div>
+              <p class="help-text">명령은 실행 결과를 확인하세요. 지원하지 않는 명령은 반영되지 않습니다.</p>
+            </details>
+
+            <details class="transcript-details"><summary>입력 문장 기록</summary><div id="transcript-history" class="transcript-history"><p class="empty-state compact">아직 반영한 문장이 없습니다.</p></div></details>
+          </section>
+
+          <section id="review-section" class="panel review-panel" aria-labelledby="review-title">
+            <div class="panel-heading"><div><p class="section-kicker">STEP 02</p><h2 id="review-title">내용 검토</h2></div><span class="review-label">확인 후 저장</span></div>
+            <p class="section-description">기록된 값과 원문을 확인하세요. 빠진 내용은 직접 입력할 수 있습니다.</p>
+
+            <form id="fields-form" novalidate>
+              <div class="review-toolbar"><div class="form-field"><label for="change-kind">변경 유형</label><select id="change-kind"><option value="correction">잘못 입력한 값 수정</option><option value="observation">새로운 관찰 내용</option></select></div><button id="undo-button" type="button" class="button button-secondary">이전 변경 취소</button></div>
+              <div id="fields-editor" class="field-grid"><p class="empty-state">환자 기록을 시작하면 검토할 항목이 표시됩니다.</p></div>
+              <div id="field-warnings" class="field-warnings" aria-live="polite"></div>
+              <button id="save-fields" type="submit" class="button button-primary button-full">검토한 수정 내용 저장</button>
+              <button id="discard-fields" type="button" class="text-button">수정 중인 값 되돌리기</button>
+            </form>
+
+            <div class="readback-section">
+              <div class="subsection-heading"><h3>기록 읽어주기</h3><button id="stop-speaking" type="button" class="text-button">읽기 중지</button></div>
+              <label class="sr-only" for="readback-field">읽어줄 항목</label>
+              <div class="input-action"><select id="readback-field"><option value="all">전체 항목</option></select><button id="readback-button" type="button" class="button button-secondary">읽어주기</button></div>
+              <div id="readback-text" class="readback-text">읽어줄 기록을 선택하세요.</div>
+            </div>
+          </section>
+
+          <section id="submit-section" class="panel submit-panel" aria-labelledby="submit-title">
+            <div class="panel-heading"><div><p class="section-kicker">STEP 03</p><h2 id="submit-title">환자 등록</h2></div></div>
+            <p class="section-description">이송 출발 위치와 필요한 병원 기능을 확인하세요.</p>
+
+            <div class="subsection-heading"><h3>이송 출발 위치</h3><button id="gps-button" type="button" class="text-button">현재 위치 가져오기</button></div>
+            <div class="two-columns"><div class="form-field"><label for="lat">위도</label><input id="lat" type="number" step="any" min="-90" max="90" placeholder="위도 입력" inputmode="decimal" /></div><div class="form-field"><label for="lon">경도</label><input id="lon" type="number" step="any" min="-180" max="180" placeholder="경도 입력" inputmode="decimal" /></div></div>
+            <div class="location-meta"><p id="location-status" class="help-text" role="status">위치를 입력하거나 현재 위치를 가져오세요.</p><button id="use-demo-location" type="button" class="text-button">광주 시연 위치</button></div>
+
+            <div class="form-field capability-field"><label for="required-capabilities">필요 병원 기능</label><select id="required-capabilities" multiple size="4" aria-describedby="capabilities-note"></select><p id="capabilities-note" class="help-text">필요한 기능만 직접 선택하세요. 여러 항목을 선택할 수 있습니다.</p></div>
+
+            <label class="consent-label" for="consent"><input id="consent" type="checkbox" /><span>환자정보 수집·병원 전달 동의와 입력값을 확인했습니다.</span></label>
+            <div class="submit-actions"><button id="confirm-button" type="button" class="button button-secondary">기록 확인 완료</button><button id="submit-button" type="button" class="button button-primary">환자 등록</button></div>
+            <p id="approval-status" class="approval-status" role="status">기록 확인이 필요합니다.</p>
+            <div id="patient-result" class="patient-result"></div>
+          </section>
+
+          <section id="hospital-section" class="panel hospital-panel" aria-labelledby="hospital-title">
+            <div class="panel-heading"><div><p class="section-kicker">STEP 04</p><h2 id="hospital-title">병원 후보</h2></div><button id="refresh-candidates" type="button" class="button button-secondary button-small">후보 새로고침</button></div>
+            <p class="candidate-disclaimer">후보는 수용 확답이 아닙니다.</p>
+            <p class="section-description">환자 등록 후 조건에 맞는 병원 후보를 확인할 수 있습니다.</p>
+            <div id="candidate-list" class="candidate-list"><div class="empty-state candidate-empty"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M8 27V7h16v20M5 27h22M13 27v-6h6v6M12 12h8M16 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></span><strong>환자 등록을 기다리고 있습니다</strong><p>기록 확인과 환자 등록을 마치면<br />병원 후보가 여기에 표시됩니다.</p></div></div>
+          </section>
+        </div>
+
+        <section class="panel history-panel" aria-labelledby="history-title"><details><summary id="history-title">기록 변경 이력<span class="summary-note">수정 및 관찰 내용 확인</span></summary><div id="history-list" class="history-list"><p class="empty-state compact">아직 변경 이력이 없습니다.</p></div></details></section>
+        <footer class="page-footer">이송 노트 <span aria-hidden="true">·</span> 구급대원 음성 기록 <span aria-hidden="true">·</span> <a href="./quick-test.html">긴 문장 음성 시험</a> <span aria-hidden="true">·</span> <a href="./evaluate.html">문장별 정밀 평가</a></footer>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#F3F5F8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0F161D" media="(prefers-color-scheme: dark)">
+  <title>음성 기록 · 이송 노트</title>
+  <link rel="stylesheet" href="./quick-test.css">
+  <script type="module" src="./quick-test.js"></script>
+</head>
+<body class="qv">
+<div class="qv-app">
+  <header class="qv-top">
+    <a class="qv-icon-btn" href="./" aria-label="이송 노트로 돌아가기"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div class="qv-title"><h1>음성 기록</h1><p id="quick-session">가상 환자 · 새 기록</p></div>
+    <span id="server-chip" class="qv-server">서버 확인 중</span>
+    <button type="button" id="settings-toggle" class="qv-icon-btn" aria-label="설정" aria-expanded="false" aria-controls="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
+  </header>
+
+  <section id="settings" class="qv-sheet" aria-labelledby="settings-title" hidden>
+    <div class="qv-sheet-head"><h2 id="settings-title">설정</h2><button type="button" id="quick-new" class="qv-pill">새 기록 시작</button></div>
+    <p class="qv-label">말하기 방식</p>
+    <div class="qv-seg" role="group" aria-label="말하기 방식"><button type="button" id="mode-auto" aria-pressed="true">자동 판단</button><button type="button" id="mode-dictation" aria-pressed="false">상태만</button><button type="button" id="mode-command" aria-pressed="false" disabled>명령만</button></div>
+    <p id="mode-hint" class="qv-help">상태 설명은 초안에 더하고, “방금 거 취소”·“정리해줘”·“혈압 110에 70으로 수정” 같은 말은 명령으로 처리합니다.</p>
+    <label class="qv-check"><input type="checkbox" id="followup-autoread" checked> 처리 뒤 확인 질문을 소리로 읽기</label>
+    <details class="qv-example"><summary>예시 문장</summary><blockquote id="long-prompt">47세 남성 환자입니다. 20분 전부터 가슴 통증이 있습니다. 의식은 명료하고 호흡은 정상입니다. 혈압 120에 80, 맥박 92회, 산소포화도 97퍼센트, 체온 37.2도, 호흡수 20회, 혈당 105입니다. 구토와 출혈은 없습니다.</blockquote></details>
+    <ul class="qv-notes">
+      <li id="server-status">서버 음성 기능을 확인하고 있습니다.</li>
+      <li id="hint-status"></li>
+      <li>이번 기록에서 <span id="quick-history-count">0회</span> 말했습니다.</li>
+      <li>녹음은 버튼을 누르는 동안만 합니다(최대 30초). 0.4초보다 짧게 누르면 듣지 않습니다. 이 서버에는 원본 음성이 아니라 인식 문장만 저장합니다.</li>
+      <li>원문과 추출 결과는 이 로컬 서버의 음성 초안에 저장합니다. 환자 등록·병원 문의·전송은 실행하지 않습니다. 실제 환자정보는 말하지 마세요.</li>
+    </ul>
+  </section>
+
+  <section class="qv-summary" aria-labelledby="summary-title">
+    <div class="qv-summary-head"><h2 id="summary-title">환자 요약 <span id="quick-count" class="qv-count">기록 대기</span></h2><button type="button" id="summary-toggle" class="qv-link" aria-expanded="false" aria-controls="summary-detail">전체 보기 ›</button></div>
+    <div id="summary-chips" class="qv-sum-chips"></div>
+    <div id="summary-detail" class="qv-detail" hidden>
+      <section id="quick-changes" class="qv-changes" aria-labelledby="changes-title" hidden><h3 id="changes-title">방금 바뀐 내용 <span id="changes-kind"></span></h3><ul id="change-items"></ul></section>
+      <div id="quick-fields" class="quick-fields"></div>
+      <details id="quick-derived" hidden><summary>자동 해석 제안 <span id="derived-count"></span></summary><p class="qv-help">원문에서 파생한 제안입니다. 직접 관찰한 값과 구분해 확인하세요.</p><div id="derived-fields" class="quick-fields"></div></details>
+      <details id="quick-warnings" hidden><summary>확인할 내용 <span id="warning-count"></span></summary><ul id="warning-items"></ul></details>
+      <p class="qv-help">▲▼는 이전 값과의 수치 비교이며 임상 판단이 아닙니다. 값은 전송 전에 검토하세요.</p>
+    </div>
+    <p id="quick-status" class="sr-only" role="status"></p>
+    <p id="quick-feedback" class="sr-only" aria-live="polite" hidden></p>
+  </section>
+
+  <div id="quick-error" class="qv-alert" role="alert" hidden></div>
+
+  <section class="qv-timeline" aria-label="말한 내용과 앱 응답">
+    <div class="qv-msg is-app qv-greeting"><p class="qv-bubble">가상 환자 상태를 말해 주세요. 예: “47세 남성, 20분 전부터 흉통. 의식 명료, 혈압 120에 80, 맥박 92”</p></div>
+    <div id="quick-history" class="qv-thread"></div>
+    <div id="quick-live" class="qv-msg is-user is-live" hidden><p id="quick-transcript" class="qv-bubble"></p></div>
+  </section>
+
+  <div id="dock" class="qv-dock">
+    <button type="button" id="quick-retry" class="qv-retry" hidden>응답을 받지 못했습니다 · 같은 요청 재시도</button>
+    <section id="followup-card" class="qv-question" aria-labelledby="followup-title" hidden>
+      <div class="qv-q-head"><span id="followup-title" class="qv-q-kicker">확인 질문</span><span id="followup-reason" class="qv-q-reason"></span><span id="followup-progress" class="qv-q-progress"></span></div>
+      <p id="followup-question" class="qv-q-text" aria-live="polite"></p>
+      <p id="followup-hint" class="qv-q-hint"></p>
+      <div class="qv-q-actions"><span id="followup-options" class="qv-options" hidden></span><button type="button" id="followup-unavailable" class="qv-chip-btn">미측정 · 모름</button></div>
+    </section>
+    <p id="followup-done" class="qv-note is-ok" role="status" hidden></p>
+    <div id="followup-deferred" class="qv-note is-warn" hidden><p id="followup-deferred-text"></p><button type="button" id="followup-deferred-retry" class="qv-link">다시 묻기</button></div>
+    <div class="qv-mic-row">
+      <button type="button" id="quick-record" class="qv-mic ptt-button" aria-pressed="false">누른 채로 말하기</button>
+      <button type="button" id="followup-record" class="qv-mic ptt-button" aria-pressed="false">누른 채로 답하기</button>
+      <button type="button" id="followup-speak" class="qv-pill qv-speak">다시 듣기</button>
+      <button type="button" id="quick-readback" class="qv-pill qv-speak" disabled>읽어주기</button>
+      <button type="button" id="quick-cancel" class="qv-pill" hidden>취소</button>
+    </div>
+    <div class="qv-status-line"><span id="quick-state" role="status">준비됨</span><span id="quick-time">00:00</span><span id="quick-interim" aria-live="polite">가운데 버튼을 누른 채로 말하고, 다 말하면 손을 떼세요.</span></div>
+  </div>
+</div>
+</body>
+</html>

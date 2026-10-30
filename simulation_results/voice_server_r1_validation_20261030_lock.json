@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "experiment": "voice_server_r1_20261030",
+ "source_sha256": {
+  "server/voice_terms.py": "8c07bed48745d51efd5f54071524118a0dda2f65c6ab5993043a2523fd89117e",
+  "server/voice_r1.py": "ab72fe26f66c85f9ff15242d2ffa35f0d22d11c3aa8b2329e1c162d3aa1f91be",
+  "server/voice_input.py": "05949ca1613c94713f09ff3c9b75ac9ce0f90c64342153ee4624184cd9590417",
+  "config/paramedic_voice_terms.json": "daba6b25c5361ee9900f7347e71ec67cb7e5faaad4080261abed3343852224dd",
+  "voice_lab/terms.py": "986376836995066d54d32af6174df319ecf65dbae50e4a0c30a32fc5e799ffdb",
+  "voice_lab/extract.py": "5fd05e051a3440127abbff4cb6025a2a53c8364afb4eb55cd4c55e2f2496067d",
+  "voice_lab/evaluate.py": "0e097eee57c2ee88b16637045bb0ff9ac188eac6be81292f70135679323d15df",
+  "voice_lab/evaluate_server.py": "75680c943b150c8a2db37d51097939857975f2ea3d770b33984ce5035254d080",
+  "voice_lab/cases_dev.json": "d4cd38701177cc195b555cd3b36c12a87af9e518ec6beef50ee86f5dee039b36",
+  "voice_lab/cases_holdout.json": "949c1a16eababc0599cc985899a902ee8b82ce65da393fc8138c0fdc54c94024",
+  "voice_lab/cases_validation_v2.json": "db3d12e248275c393157cafbb856586c22302fdabaab3b94e1c1cd64d6bc4365"
+ },
+ "locked_at": "2026-10-30 13:07:23"
+}
