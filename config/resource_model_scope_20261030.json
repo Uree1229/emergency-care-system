@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "resource-model-scope-20261030-v1",
+  "model_resources": ["ed_bed", "special_team"],
+  "unsupported_resource_action": "NEEDS_REVIEW",
+  "unsupported_requirements_preserved": true,
+  "public_observation_to_operating_capacity": false,
+  "public_observation_confirms_patient_acceptance": false,
+  "facility_registration_is_available_capacity": false,
+  "clinical_policy_validated": false,
+  "resources": [
+    {"id":"ed_bed", "label":"진료 자리", "scheduled":true, "meaning":"병원 입력 또는 합성 운영 capacity/occupied; 공개 가용병상·등록 병상 수와 별개"},
+    {"id":"special_team", "label":"전문팀", "scheduled":true, "meaning":"실험용 전문팀 자원; ICU·NICU·분만·수술실을 대신하지 않음"},
+    {"id":"icu_bed", "label":"중환자실", "scheduled":false, "action":"NEEDS_REVIEW", "public_evidence":"공개 가용 관측·등록 시설 근거만 표시; 운영 일정 배정 미지원"},
+    {"id":"nicu_bed", "label":"신생아중환자실", "scheduled":false, "action":"NEEDS_REVIEW", "public_evidence":"공개 가용 관측·등록 시설 근거만 표시; 운영 일정 배정 미지원"},
+    {"id":"delivery_room", "label":"분만실", "scheduled":false, "action":"NEEDS_REVIEW", "public_evidence":"Y/N 서비스 관측과 수량 관측 구분; 등록 수·Y를 가용 capacity로 변환하지 않음"},
+    {"id":"operating_room", "label":"수술실", "scheduled":false, "action":"NEEDS_REVIEW", "public_evidence":"공개 가용 관측·등록 시설 근거만 표시; 운영 일정 배정 미지원"}
+  ],
+  "unknown_resource_action":"Preserve explicit demand and return UNSUPPORTED_RESOURCE/NEEDS_REVIEW; never silently drop the requirement",
+  "ui_labels": {
+    "public_identity_frozen":"공개 기관정보 · 저장본",
+    "synthetic_identity":"가상 기관",
+    "synthetic_fixture":"시연용 합성 운영값",
+    "manual_demo_entry":"시연 중 수동 입력 · 실측 아님",
+    "manual_unverified_operation":"수동 운영 입력 · 실제 담당자 확인 미검증",
+    "public_observation":"공개 관측 · 운영 총량 아님",
+    "registered_reference":"등록 현황 · 현재 가용 아님",
+    "unknown":"출처 확인 필요"
+  }
+}

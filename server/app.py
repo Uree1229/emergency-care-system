@@ -20,6 +20,7 @@ from . import recommendation_view
 from . import accounting_reconciliation
 from . import work_activity, important_events, call_records, call_inbox, patient_amendments
 from . import voice_input, voice_terms, voice_lexicon, voice_treatment_review, allocation_input_review
+from . import enroute_patient_review, data_provenance
 
 STATIC = Path(__file__).parent / 'static'
 UI_ROOTS = {
@@ -173,12 +174,69 @@ def voice_treatment_apply(ctx, sid):
     return voice_treatment_review.apply(ctx.conn,ctx.now,sid,ctx.body,runtime=ctx.runtime)
 
 
+@route('GET', r'/api/voice/sessions/(?P<sid>[\w-]+)/transport-change-review')
+def enroute_voice_preview(ctx, sid):
+    _voice_query(ctx, ('actor_id',))
+    return enroute_patient_review.preview(ctx.conn,ctx.now,sid,ctx.query.get('actor_id'))
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/transport-change-review/preview')
+def enroute_voice_selection(ctx, sid):
+    _voice_query(ctx)
+    return enroute_patient_review.preview_request(ctx.conn,ctx.now,sid,ctx.body)
+
+
+@route('POST', r'/api/voice/sessions/(?P<sid>[\w-]+)/transport-change-review/request')
+def enroute_voice_request(ctx, sid):
+    _voice_query(ctx)
+    return enroute_patient_review.request(ctx.conn,ctx.now,sid,ctx.body)
+
+
+@route('GET', r'/api/patients/(?P<pid>[\w-]+)/transport-change-reviews')
+def enroute_patient_reviews(ctx, pid):
+    _voice_query(ctx)
+    return enroute_patient_review.list_reviews(ctx.conn,ctx.now,patient_id=pid)
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/transport-change-reviews')
+def enroute_hospital_reviews(ctx, hid):
+    _voice_query(ctx)
+    return enroute_patient_review.list_reviews(ctx.conn,ctx.now,hospital_id=hid)
+
+
+@route('POST', r'/api/hospitals/(?P<hid>[\w-]+)/transport-change-reviews/(?P<rid>[\w-]+)/decision')
+def enroute_hospital_decision(ctx, hid, rid):
+    _voice_query(ctx)
+    return enroute_patient_review.decide(ctx.conn,ctx.now,rid,hid,ctx.body)
+
+
+@route('GET', r'/api/data-provenance')
+def data_provenance_inventory(ctx):
+    _voice_query(ctx)
+    return data_provenance.inventory(ctx.conn,ctx.now)
+
+
+@route('GET', r'/api/hospitals/(?P<hid>[\w-]+)/data-provenance')
+def hospital_data_provenance(ctx, hid):
+    _voice_query(ctx)
+    return data_provenance.inventory(ctx.conn,ctx.now,hospital_id=hid)
+
+
+@route('GET', r'/api/resource-model-scope')
+def resource_model_scope(ctx):
+    _voice_query(ctx)
+    return data_provenance.resource_scope()
+
+
 VOICE_HANDLERS = frozenset((voice_capabilities, voice_catalog, create_voice_session,
     get_voice_session, voice_transcript, voice_audio, edit_voice_fields, voice_command,
     voice_readback, voice_history, voice_followup, voice_followup_answer,
     undo_voice_fields, confirm_voice_fields, submit_voice_fields,
     voice_dictionary, voice_dictionary_search, voice_command_catalog,
-    voice_treatment_preview, voice_treatment_selection, voice_treatment_apply))
+    voice_treatment_preview, voice_treatment_selection, voice_treatment_apply,
+    enroute_voice_preview, enroute_voice_selection, enroute_voice_request,
+    enroute_patient_reviews, enroute_hospital_reviews, enroute_hospital_decision,
+    data_provenance_inventory, hospital_data_provenance, resource_model_scope))
 
 
 @route('GET', r'/api/system/status')

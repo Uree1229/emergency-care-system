@@ -1,11 +1,14 @@
 """Committed input uncertainty display across allocation and recommendation APIs.
 
-Synthetic in-memory DB only. These tests verify display contracts and preserve
+Synthetic in-memory/temporary DB only. These tests verify display contracts and preserve
 the existing solver model/acceptance behavior; they add no clinical thresholds.
 """
 import copy
 import json
+from pathlib import Path
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from server import db, planning, recommendation_view, service, solver_adapter
 from server import voice_input as voice
@@ -245,6 +248,65 @@ class AllocationInputReviewIntegration(unittest.TestCase):
         self.assertTrue(rows[0]['input_review']['requires_review'])
         self.assertFalse(rows[0]['input_review']['blocking'])
         self.assertEqual(self.state(), before)
+
+    def test_wal_read_snapshot_keeps_plan_and_current_review_consistent_without_blocking_writer(self):
+        scratch = Path(__file__).resolve().parent / '.codex-build' / 'allocation-input-review-20261030' / 'tmp'
+        scratch.mkdir(parents=True, exist_ok=True)
+        original_conn = self.conn
+        with tempfile.TemporaryDirectory(prefix='input-review-wal-', dir=scratch) as directory:
+            path = str(Path(directory) / 'snapshot.db')
+            reader = db.connect(path)
+            writer = None
+            try:
+                original_conn.backup(reader)
+                self.conn = reader
+                self.patient()
+                self.publish()
+                saved = planning.patient_result(reader, NOW, 'INPUT-P1')
+                self.assertEqual(saved['status'], 'READY')
+                self.assertFalse(saved['result']['input_review']['requires_review'])
+                initial_version = service._patient(reader, 'INPUT-P1')['version']
+                self.assertEqual(reader.execute('PRAGMA journal_mode').fetchone()[0], 'wal')
+
+                writer = db.connect(path)
+                # A mistakenly acquired IMMEDIATE lock must fail this write promptly.
+                writer.execute('PRAGMA busy_timeout=100')
+                real_patient_result = planning.patient_result
+                commits = []
+
+                def change_patient_after_plan_read(conn, now, pid):
+                    envelope = real_patient_result(conn, now, pid)
+                    self.assertTrue(reader.in_transaction)
+                    service.update_patient(writer, NOW + 1, pid,
+                        {'extra':self.extra(stemi_suspected='unmeasured')}, actor=self.actor)
+                    self.assertFalse(writer.in_transaction)
+                    commits.append(service._patient(writer, pid)['version'])
+                    return envelope
+
+                with patch.object(planning, 'patient_result', side_effect=change_patient_after_plan_read):
+                    first = self.result()
+
+                # The writer committed between reads, but this response uses one old snapshot.
+                self.assertEqual(commits, [initial_version + 1])
+                self.assertEqual(first['status'], 'READY')
+                self.assertEqual(first['result'], saved['result'])
+                self.assertEqual(first['input_review'], saved['result']['input_review'])
+                self.assertFalse(first['input_review']['requires_review'])
+                self.assertFalse(reader.in_transaction)
+
+                # The next request observes both the new patient and invalidated plan.
+                second = self.result(NOW + 1)
+                self.assertEqual(second['status'], 'STALE')
+                self.assertIsNone(second['result'])
+                self.assertTrue(second['input_review']['requires_review'])
+                self.assertTrue(self.items(second['input_review'], 'stemi_suspected'))
+                self.assertEqual(service._patient(reader, 'INPUT-P1')['version'], initial_version + 1)
+                self.assertFalse(reader.in_transaction)
+            finally:
+                self.conn = original_conn
+                if writer is not None:
+                    writer.close()
+                reader.close()
 
 
 if __name__ == '__main__':
