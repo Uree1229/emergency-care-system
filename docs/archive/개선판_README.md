@@ -17,6 +17,8 @@
 
 `prototype/index.html`을 브라우저에서 열면 사용성 화면이 실행됩니다. 외부 서버는 필요하지 않습니다. 실험 종료 후 JSON을 저장하세요. 새로운 실험이나 새로고침은 현재 세션 기록을 지웁니다.
 
+2026-10-31: `experiment_improved.py`와 결과 폴더(`optimization_results`, `optimization_results_v2`)는 [`archive/early_optimization/`](../../archive/early_optimization/)으로 옮겼습니다. 아래 명령은 당시 기록입니다.
+
 현재 워크스페이스에는 `.solver_deps`에 OR-Tools 9.15.6755가 있습니다. 이 폴더를 읽을 수 있는 계정에서 Python으로 실행합니다. 다른 환경에서는 같은 OR-Tools 버전이 설치된 Python 환경을 사용하세요. 실험 단위는 5분 슬롯입니다.
 
 ```powershell
