@@ -9,6 +9,7 @@ import {buildCriticalReview,planCriticalCorrection,classifyCriticalReply} from '
 import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord} from './patient-records.mjs';
 import {buildHospitalHandoff} from './hospital-handoff.mjs';
 import {buildObservationHistory,historySnapshotSignature} from './observation-history.mjs';
+import {buildConnectionStatus} from './connection-status.mjs';
 
 const $ = id => document.getElementById(id);
 const VOICE_REVISION = 'voice-v2-20261030', HOLD_MS = 400;
@@ -31,7 +32,7 @@ const SHORT = {age:'나이',sex:'성별',symptoms:'증상',onset_at:'발생',con
 const ITEM_KEYS = {age:['age','age_group'],symptoms:['symptoms','denied_symptoms','uncertain_symptoms'],blood_pressure:['systolic_bp','diastolic_bp']};
 const OPTIONS = {consciousness:['명료','저하','반응 없음'],breathing:['정상','비정상','없음'],sex:['남성','여성']};
 let actor = 'QUICK-VOICE-' + requestId();
-const makeClient = (owner=actor) => new VoiceClient({server:location.origin,actorId:owner,beforeWrite:()=>persistRecovery(true)});
+const makeClient = (owner=actor) => {let next;next=new VoiceClient({server:location.origin,actorId:owner,beforeWrite:()=>persistRecovery(true),onApiResult:event=>{if(next===client)observeConnection(event);}});return next;};
 let client = makeClient();
 let flow = new QuickSession(client), mode = 'auto', attempt = null, busy = false, stopping = false, ticker, historyCount = 0;
 let autoAvailable = true, recordingMode = 'toggle', press = null, lastSpoken = '', hintPlan = {applied: [], excluded: []}, phraseCount = 0;
@@ -47,8 +48,62 @@ let criticalAcknowledged=new Map(),criticalEditor=null,lastCriticalSpoken='';
 let patientBook=null,patientBookRaw=null,patientEpoch=0,patientStoreInvalid=false,legacyRecoveryRaw=null;
 let handoffPreview=null;
 let observationHistory=null;
+let connectionState={connectivity:'unknown',checkedAt:null,compatible:null,httpStatus:null},connectionProbe=null,connectionProbeSequence=0;
+let browserOnline=typeof navigator?.onLine==='boolean'?navigator.onLine:null,localRecovery='unknown',speechIssue=false;
+const CONNECTION_CHECK_MS=6000;
 const activePatient=()=>patientBook?.records.find(record=>record.id===patientBook.activeId)||null;
 const patientLabel=record=>`환자 ${String(record?.number??patientBook?.nextNumber??1).padStart(2,'0')}`;
+function observeConnection(event){
+  connectionState={...connectionState,connectivity:event.kind,httpStatus:event.status||null,checkedAt:Date.now()};
+  if(event.kind!=='reachable'||event.status>=400)$('connection-panel').open=true;
+  renderConnectionGuidance();
+}
+function renderConnectionGuidance(){
+  const model=buildConnectionStatus({...connectionState,connectivity:connectionProbe?'checking':connectionState.connectivity,browserOnline,
+    pending:!!client.pending||!!flow.job,recovery:localRecovery,localUnapplied:handoffHasUnapplied(),speechIssue:speechIssue||!VoiceCapture.capabilities().browser});
+  $('connection-label').textContent=model.title;$('connection-title').textContent=model.title;
+  $('connection-panel').className='qv-connection is-'+model.tone;
+  $('connection-lines').replaceChildren(...model.lines.map(line=>node('li',line)));
+  $('connection-check').textContent=model.checkLabel;$('connection-check').disabled=!!connectionProbe;
+  $('connection-manual').textContent=model.manualLabel;$('connection-manual').disabled=busy||stopping||capture.active||recovering||!!criticalEditor;
+}
+function cancelConnectionProbe(){const pending=connectionProbe;if(!pending)return;connectionProbe=null;connectionProbeSequence++;pending.cancel();}
+function currentConnectionProbe(context){
+  try{return connectionProbe===context&&context.token===connectionProbeSequence&&context.owner===client&&context.epoch===patientEpoch&&context.recordId===patientBook?.activeId&&
+    context.bookRaw===patientBookRaw&&physicalStorage()?.getItem(PATIENT_RECORDS_KEY)===context.bookRaw;}catch{return false;}
+}
+async function checkConnection(){
+  if(connectionProbe)return false;
+  const controller=typeof AbortController==='function'?new AbortController():null;
+  let timer,rejectWait;
+  const deadline=new Promise((_,reject)=>{rejectWait=reject;timer=setTimeout(()=>{const err=Error('연결 확인 시간이 초과됐습니다.');err.code='CHECK_TIMEOUT';reject(err);controller?.abort();},CONNECTION_CHECK_MS);});
+  const context={token:++connectionProbeSequence,owner:client,epoch:patientEpoch,recordId:patientBook?.activeId,bookRaw:patientBookRaw,
+    cancel:()=>{const err=Error('연결 확인을 취소했습니다.');err.code='CHECK_CANCELLED';rejectWait(err);controller?.abort();}};
+  connectionProbe=context;renderConnectionGuidance();
+  try{
+    // A separate read-only client cannot resolve or replace an uncertain write.
+    const probe=new VoiceClient({server:context.owner.server,actorId:context.owner.actorId,fetchImpl:(url,options)=>fetch(url,{...options,...(controller?{signal:controller.signal}:{})})});
+    const caps=await Promise.race([probe.api('/api/voice/capabilities'),deadline]);
+    if(!currentConnectionProbe(context))return false;
+    if(typeof caps?.voice_revision!=='string'||!Array.isArray(caps.transcript_modes)){
+      connectionState={connectivity:'invalid_response',checkedAt:Date.now(),compatible:null,httpStatus:200};$('connection-panel').open=true;return false;
+    }
+    connectionState={connectivity:'reachable',checkedAt:Date.now(),compatible:caps.voice_revision===VOICE_REVISION,httpStatus:200};applyServerCapabilities(caps);
+    return true;
+  }catch(err){
+    if(!currentConnectionProbe(context))return false;
+    connectionState={...connectionState,connectivity:err.code==='INVALID_RESPONSE'?'invalid_response':err.status>=500?'service_error':err.status>0?'reachable':'network_error',httpStatus:err.status||null,checkedAt:Date.now()};
+    $('connection-panel').open=true;return false;
+  }finally{
+    clearTimeout(timer);if(connectionProbe===context)connectionProbe=null;renderConnectionGuidance();
+  }
+}
+function openConnectionManual(){
+  if(busy||stopping||capture.active||recovering||criticalEditor)return false;
+  $('settings').hidden=false;$('settings-toggle').setAttribute('aria-expanded','true');$('recording-manual').open=true;$('recording-review').focus?.();
+  $('recording-review-status').textContent=client.pending||flow.job?'저장 확인 대기 요청이 있습니다. 같은 요청의 결과를 먼저 확인하세요. 기존 입력은 유지했고 새 본문을 전송하지 않았습니다.':'직접 입력 검토칸을 열었습니다. 기존 입력은 유지했습니다. 서버 반영에는 연결과 반영 버튼이 필요합니다.';
+  return true;
+}
 function handoffHasUnapplied(){const manual=$('recording-review').value;return !!(unappliedText.trim()||unsentVoice.trim()||(manual.trim()&&manual.trim()!==manualAppliedText)||criticalEditor?.dirty);}
 function handoffModel(session=client.session,now=Date.now()){
   const reviewPendingIds=buildCriticalReview(session).filter(item=>criticalAcknowledged.get((session?.id||'')+'|'+item.id)!==item.signature).map(item=>item.id);
@@ -179,6 +234,7 @@ function renderPatients(){
   $('patient-reset-invalid').hidden=!patientStoreInvalid;$('patient-reset-invalid').disabled=busy||stopping||capture.active||recovering||recoveryConflict;
 }
 function resetPatientUI(){
+  cancelConnectionProbe();localRecovery='unknown';
   patientEpoch++;capture.stopSpeaking();clearInterval(ticker);attempt=null;historyCount=0;press=null;lastSpoken='';deferred=new Map();recent=null;
   unsentVoice='';unappliedText='';manualAppliedText='';manualCopiedSource='';recommendationReady=false;criticalAcknowledged=new Map();criticalEditor=null;lastCriticalSpoken='';
   invalidateHandoff('현재 환자의 기록으로 인계용 요약을 만들어 주세요.');
@@ -217,6 +273,7 @@ function applyPatientState(loaded){
   resetPatientUI();actor=loaded.owner;client=loaded.client;flow=loaded.flow;const p=loaded.payload;
   mode=p?.mode||(autoAvailable?'auto':'dictation');recordingMode=p?.recordingMode||'toggle';
   recoveryRaw=activePatient()?.checkpoint??null;recoveryBlocked=false;$('patient-select').value=patientBook?.activeId||'';
+  localRecovery=p?'saved':'unknown';
   if(p){unappliedText=p.recoveryText;$('recording-excluded-text').textContent=unappliedText;$('recording-excluded').hidden=!unappliedText;$('recording-review').value=p.manualText;
     for(const u of client.session?.utterances||[]){const item=node('article',undefined,'qv-msg is-user');item.append(node('p',u.transcript,'qv-bubble'),node('div','이 환자의 서버 저장 원문','qv-meta'));$('quick-history').append(item);historyCount++;}
     $('quick-history-count').textContent=`${historyCount}회`;
@@ -392,8 +449,8 @@ function persistRecovery(required=false){
     if(!client.session&&!pending&&!recoveryText&&!manualText)return true;
     writeDraftRecovery(guardedRecoveryStorage,{serverOrigin:client.server,actorId:actor,sessionId:client.session?.id||null,
       version:client.session?.version||0,pending,recoveryText,manualText,mode,recordingMode});
-    recoveryMessage(pending?'이 브라우저에 요청을 보관했습니다 · 서버 저장 결과 확인 필요':'브라우저 복구본 저장됨 · 서버 저장 여부는 환자 요약에서 확인하세요.');return true;
-  }catch(err){recoveryMessage('브라우저 임시 저장 실패 · 현재 화면을 유지하고 원문을 복사해 주세요. '+err.message);
+    localRecovery='saved';recoveryMessage(pending?'이 브라우저에 요청을 보관했습니다 · 서버 저장 결과 확인 필요':'브라우저 복구본 저장됨 · 서버 저장 여부는 환자 요약에서 확인하세요.');renderConnectionGuidance();return true;
+  }catch(err){localRecovery='failed';recoveryMessage('브라우저 임시 저장 실패 · 현재 화면을 유지하고 원문을 복사해 주세요. '+err.message);$('connection-panel').open=true;renderConnectionGuidance();
     if(required)throw err;return false;}
 }
 async function resumeRecovery(){
@@ -507,6 +564,7 @@ function controls() {
   renderCritical();
   renderHandoff();
   renderObservationHistory();
+  renderConnectionGuidance();
 }
 function valueText(key,value) {
   if(key==='onset_at')return new Date(value*1000).toLocaleString('ko-KR');
@@ -778,6 +836,7 @@ function settle(a,result) {
   persistRecovery();
 }
 async function failure(err) {
+  if(client.pending)$('connection-panel').open=true;
   pauseRecommendation(attempt);
   if(!client.pending)unsentVoice=attempt?.manual||attempt?.unsentRecovered?'':attempt?.apiText||attempt?.fragments?.join(' ')||'';
   state('처리 확인 필요');error(err.message);
@@ -861,11 +920,13 @@ const capture=new VoiceCapture({
     else {persistRecovery();if(a.fragments.join(' ').length>=RECORDING_LIMITS.text){press=null;void finish('text_limit');}}
   },
   onState(next){
+    if(next==='listening')speechIssue=false;
     if(next==='listening'&&attempt){attempt.listening=true;state(attempt.target==='answer'?'답변을 듣고 있습니다':'듣고 있습니다');buzz();timelineEnd();}
     if(next==='idle'){clearInterval(ticker);const ending=attempt;if(ending?.endReason){ending.endedAt=Date.now();markEnd(ending,ending.endReason);}queueMicrotask(()=>{if(ending)finalize(ending);});}
     controls();
   },
   onError(err){
+    speechIssue=true;$('connection-panel').open=true;
     if(err.code==='tts-failed'){error('읽어주기를 완료하지 못했습니다. 저장된 초안은 유지됩니다. '+err.message);controls();return;}
     if(attempt){attempt.failed=true;pauseRecommendation(attempt);if(attempt.unsentRecovered)unsentVoice='';markEnd(attempt,'error');}persistRecovery();clearInterval(ticker);state('음성 연결 확인 필요');error(err.message);$('quick-interim').textContent='최종 인식문은 그대로 남겨두었습니다.';controls();
   }
@@ -898,7 +959,7 @@ async function record(target='transcript',held=false,verification=null) {
     a.started=performance.now();ticker=setInterval(()=>tick(a),500);
     $('quick-interim').textContent=!held?'이어서 말하세요. 마치면 버튼을 한 번 더 누르세요.':target==='answer'?'질문에 대한 답을 말하고 손을 떼세요.':'누른 채로 이어서 말하고, 다 말하면 손을 떼세요.';
     hintStatus();
-  }catch(err){if(a.cancelled)return;a.failed=true;pauseRecommendation(a);markEnd(a,'error');releaseCapture();clearInterval(ticker);error(err.message);state('음성 연결 확인 필요');}
+  }catch(err){if(a.cancelled)return;speechIssue=true;$('connection-panel').open=true;a.failed=true;pauseRecommendation(a);markEnd(a,'error');releaseCapture();clearInterval(ticker);error(err.message);state('음성 연결 확인 필요');controls();}
   finally{controls();}
 }
 function releaseCapture() {try{capture.abort();}catch(err){error('마이크 연결 해제 오류: '+err.message);}}
@@ -908,7 +969,7 @@ async function finish(reason='button') {
   const a=attempt;markEnd(a,reason);
   state('말하기 종료 중');stopping=true;controls();
   try{await capture.stop();if(capture.active)throw new Error('음성 인식이 종료되지 않아 연결을 해제했습니다.');}
-  catch(err){a.failed=true;pauseRecommendation(a);releaseCapture();markEnd(a,'error');clearInterval(ticker);state('음성 연결 확인 필요');error(err.message);$('quick-interim').textContent='최종 인식문은 그대로 남겨두었습니다.';}
+  catch(err){speechIssue=true;$('connection-panel').open=true;a.failed=true;pauseRecommendation(a);releaseCapture();markEnd(a,'error');clearInterval(ticker);state('음성 연결 확인 필요');error(err.message);$('quick-interim').textContent='최종 인식문은 그대로 남겨두었습니다.';}
   finally{stopping=false;controls();}
   await finalize(a);
 }
@@ -986,6 +1047,8 @@ $('critical-save').onclick=()=>saveCriticalEditor();
 $('critical-cancel').onclick=()=>{if(locked())return;criticalEditor=null;persistRecovery();controls();};
 $('critical-autoread').onchange=()=>{if($('critical-autoread').checked&&!locked())readCritical(criticalPending());};
 $('recovery-retry').onclick=()=>resumeRecovery();
+$('connection-check').onclick=()=>checkConnection();
+$('connection-manual').onclick=()=>openConnectionManual();
 $('recommendation-continue').onclick=()=>{
   if(locked()||criticalEditor||!recommendationReady||!client.session||criticalPending().length)return;
   try{
@@ -1018,8 +1081,10 @@ $('followup-speak').onclick=()=>{const q=currentQuestion();if(!q||locked())retur
 $('followup-deferred-retry').onclick=()=>{if(locked()||!deferred.size)return;deferred.clear();render();const q=currentQuestion();if(q&&$('followup-autoread').checked){lastSpoken=q.id+'|'+q.question;say(q.question);}};
 $('followup-unavailable').onclick=()=>tapAnswer('미측정',{unavailable:true});
 $('quick-retry').onclick=async()=>{if(busy||stopping||capture.active)return;const a=attempt;busy=true;error('');controls();try{const result=await flow.retry();if(a)settle(a,result);else render();$('quick-status').textContent='같은 요청으로 저장 결과를 확인했습니다.';}catch(err){await failure(err);}finally{busy=false;controls();}await performPatientAction(a);};
-window.addEventListener('pagehide',()=>{persistRecovery();press=null;if(attempt)attempt.cancelled=true;releaseCapture();capture.stopSpeaking();clearInterval(ticker);});
+window.addEventListener('pagehide',()=>{cancelConnectionProbe();persistRecovery();press=null;if(attempt)attempt.cancelled=true;releaseCapture();capture.stopSpeaking();clearInterval(ticker);});
+for(const eventName of ['online','offline'])window.addEventListener(eventName,()=>{cancelConnectionProbe();browserOnline=eventName==='online';connectionState={connectivity:'unknown',checkedAt:null,compatible:null,httpStatus:null};$('connection-panel').open=true;renderConnectionGuidance();});
 window.addEventListener('storage',event=>{if(event.key!==PATIENT_RECORDS_KEY||event.newValue===patientBookRaw)return;
+  cancelConnectionProbe();localRecovery='failed';
   recoveryBlocked=true;recoveryConflict=true;if(attempt)attempt.failed=true;releaseCapture();
   recoveryMessage('다른 탭에서 복구 기록이 변경되어 이 탭의 저장을 멈췄습니다. 현재 원문을 복사하거나 최신 탭에서 계속하세요.');controls();});
 function hintStatus() {
@@ -1028,23 +1093,33 @@ function hintStatus() {
   $('hint-status').textContent=text&&excluded?`${text} 값이 들어간 표현 ${excluded}개(정상·없음·숫자 등)는 정상 소견 쪽으로 끌릴 수 있어 제외했습니다.`:text;
 }
 function serverChip(text,tone) {$('server-chip').textContent=text;$('server-chip').className='qv-server'+(tone?' is-'+tone:'');}
-async function checkServer() {
-  let caps;
-  try{caps=await client.api('/api/voice/capabilities');}
-  catch{$('server-status').textContent='서버 음성 기능 정보를 읽지 못했습니다. 서버 실행 상태를 확인하세요.';serverChip('서버 연결 안 됨','bad');return;}
+function applyServerCapabilities(caps){
   autoAvailable=(Array.isArray(caps.transcript_modes)?caps.transcript_modes:[]).includes('auto');
   if(!autoAvailable&&mode==='auto'&&!locked()){mode='dictation';$('mode-hint').textContent=modeHints.dictation;}
   const current=caps.voice_revision===VOICE_REVISION;
   $('server-status').textContent=current?`서버 음성 기능 ${VOICE_REVISION} 확인. 자동 판단, 확인 질문, 변경 전후 표시를 사용합니다.`:`서버 음성 기능 버전이 다릅니다(${caps.voice_revision||'표시 없음'}). 이전 코드가 실행 중이면 자동 판단·확인 질문·변경 표시가 동작하지 않을 수 있습니다.`;
-  $('server-status').className=current?'':'server-mismatch';
-  serverChip(current?'음성 V2':'버전 다름',current?'ok':'warn');
+  $('server-status').className=current?'':'server-mismatch';serverChip(current?'음성 V2':'버전 다름',current?'ok':'warn');
+}
+async function checkServer() {
+  const owner=client;
+  let caps;
+  try{caps=await owner.api('/api/voice/capabilities');}
+  catch{if(owner!==client)return;$('server-status').textContent='서버 음성 기능 정보를 읽지 못했습니다. 서버 실행 상태를 확인하세요.';serverChip('서버 연결 확인 필요','bad');return;}
+  if(owner!==client)return;
+  if(typeof caps?.voice_revision!=='string'||!Array.isArray(caps.transcript_modes)){
+    connectionState={connectivity:'invalid_response',checkedAt:Date.now(),compatible:null,httpStatus:200};$('connection-panel').open=true;
+    $('server-status').textContent='서버 음성 기능 응답 형식이 맞지 않습니다. 서버 주소와 실행 중인 앱을 확인하세요.';serverChip('서버 응답 확인 필요','bad');renderConnectionGuidance();return;
+  }
+  connectionState.compatible=caps.voice_revision===VOICE_REVISION;applyServerCapabilities(caps);
   let terms={};
-  try{terms=await client.api('/api/voice/terms');}catch{/* Hints are optional; plain recognition still works. */}
+  try{terms=await owner.api('/api/voice/terms');}catch{/* Hints are optional; plain recognition still works. */}
+  if(owner!==client)return;
+  if(!terms||typeof terms!=='object'||Array.isArray(terms))terms={};
   const all=[...new Set([...(caps.speech_context_hints||[]),...(terms.speech_recognition_hints||[])].filter(h=>typeof h==='string').map(h=>h.trim()).filter(Boolean))];
   hintPlan={applied:all.filter(h=>!VALUE_HINT.test(h)),excluded:all.filter(h=>VALUE_HINT.test(h))};
   phraseCount=capture.setPhrases(hintPlan.applied).length;hintStatus();controls();
 }
 if(!VoiceCapture.capabilities().browser){state('지원 브라우저 필요');error('이 브라우저는 실시간 음성 인식을 지원하지 않습니다. 지원 브라우저에서 열어 주세요.');}
 render();
-resumeRecovery();
-checkServer();
+// Capability checks belong to the restored client, not the temporary boot client.
+void resumeRecovery().then(()=>checkServer());

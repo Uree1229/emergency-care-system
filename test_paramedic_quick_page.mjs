@@ -13,6 +13,7 @@ import {buildCriticalReview,planCriticalCorrection,classifyCriticalReply} from '
 import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord} from './paramedic-ui/patient-records.mjs';
 import {buildHospitalHandoff} from './paramedic-ui/hospital-handoff.mjs';
 import {buildObservationHistory,historySnapshotSignature} from './paramedic-ui/observation-history.mjs';
+import {buildConnectionStatus} from './paramedic-ui/connection-status.mjs';
 
 // Event-lifecycle unit harness with a FAKE capture object and a fake server.
 // It is NOT a browser/STT accuracy test and NOT an actual microphone test.
@@ -49,9 +50,9 @@ class Element {
 }
 let harnessSequence=0;
 
-function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},storageError=false,recoveryStore=new Map(),recoveryWriteError=false,criticalAutoread=false,clipboardError=false,clipboardImpl}={}) {
+function harness(handler,{capabilities=V2,capabilityHandler,networkOnline=true,terms={speech_recognition_hints:[]},storageError=false,recoveryStore=new Map(),recoveryWriteError=false,criticalAutoread=false,clipboardError=false,clipboardImpl}={}) {
   const instance=++harnessSequence;
-  const elements=Object.fromEntries(ids.map(id=>[id,new Element()])), calls=[], meta=[], captures=[], intervals=[], clock={now:1234};
+  const elements=Object.fromEntries(ids.map(id=>[id,new Element()])), calls=[], meta=[], captures=[], intervals=[],timeouts=[], clock={now:1234};
   elements['followup-autoread'].checked=true;
   // Legacy flow cases isolate followup TTS; dedicated tests enable the new
   // critical-first default explicitly (the real checkbox is checked in HTML).
@@ -60,7 +61,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
   let requestSequence=0,defaultCreates=0;
   const fakeFetch=async(url,options)=>{
     // Read-only server checks at page load are tracked apart from draft requests.
-    if(url.endsWith('/api/voice/capabilities')){meta.push(url);return response(capabilities);}
+    if(url.endsWith('/api/voice/capabilities')){meta.push(url);return capabilityHandler?capabilityHandler({url,method:options.method},meta.length):response(capabilities);}
     if(url.endsWith('/api/voice/terms')){meta.push(url);return response(terms);}
     const call={url,method:options.method,body:options.body?JSON.parse(options.body):null};calls.push(call);
     if(handler)return handler(call,calls.length);
@@ -90,7 +91,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     fail(){this.active=false;this.callbacks.onState('idle');this.callbacks.onError(new Error('recognition network failure'));}
   }
   const events={},stored=new Map(),navigations=[],copied=[];
-  const navigator={clipboard:{writeText:async text=>{if(clipboardError)throw Error('clipboard unavailable');if(clipboardImpl)return clipboardImpl(text);copied.push(text);}}};
+  const navigator={onLine:networkOnline,clipboard:{writeText:async text=>{if(clipboardError)throw Error('clipboard unavailable');if(clipboardImpl)return clipboardImpl(text);copied.push(text);}}};
   const sessionStorage={getItem:k=>stored.get(k)??null,setItem(k,v){if(storageError)throw Error('storage unavailable');stored.set(k,v);},removeItem:k=>stored.delete(k)};
   const localStorage={getItem:k=>recoveryStore.get(k)??null,setItem(k,v){if(recoveryWriteError)throw Error('local storage quota');recoveryStore.set(k,v);},removeItem:k=>recoveryStore.delete(k)};
   const checkpointStorage={getItem:()=>{const raw=recoveryStore.get(PATIENT_RECORDS_KEY);if(!raw)return recoveryStore.get(RECOVERY_KEY)??null;const book=JSON.parse(raw);return book.records.find(record=>record.id===book.activeId)?.checkpoint??null;}};
@@ -98,13 +99,13 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery,localStorage,
     buildCriticalReview,planCriticalCorrection,classifyCriticalReply,
     PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord,
-    buildHospitalHandoff,buildObservationHistory,historySnapshotSignature,navigator,
+    buildHospitalHandoff,buildObservationHistory,historySnapshotSignature,buildConnectionStatus,navigator,
     requestId:()=>`page-${instance}-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',assign:url=>navigations.push(url)},
     document:{getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
       querySelector:()=>new Element(),createElement:tag=>new Element(tag)},
     window:{addEventListener:(name,callback)=>{events[name]=callback;}},
     performance:{now:()=>clock.now},queueMicrotask,
-    setInterval:callback=>intervals.push(callback),clearInterval:id=>{intervals[id-1]=null;},console});
+    setInterval:callback=>intervals.push(callback),clearInterval:id=>{intervals[id-1]=null;},setTimeout:callback=>timeouts.push(callback),clearTimeout:id=>{timeouts[id-1]=null;},console});
   vm.runInContext(pageSource,context,{filename:'quick-test.js'});
   const el=id=>elements[id];
   const hold=async(id,{ms=1000,say=[]}={})=>{
@@ -116,7 +117,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     await el(id).onpointerup({pointerId:1});await flush();
   };
   const tick=()=>{for(const callback of intervals)callback?.();};
-  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage,checkpointStorage,copied};
+  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage,checkpointStorage,copied,expireCheck:()=>timeouts.filter(Boolean).at(-1)?.()};
 }
 
 function patientServer({before,after,followup}={}){
@@ -1702,4 +1703,143 @@ for(const fault of ['wrong-session','bad-revision','offline'])test(`observation 
   });await flush();await speak(h,'환자 A 정보');await h.el('observation-history-load').onclick();assert.match(historyText(h),/92/);
   broken=true;await h.el('observation-history-load').onclick();
   assert.equal(h.el('observation-history-list').children.length,0);assert.match(h.el('observation-history-status').textContent,/표시하지 못/);
+});
+
+const connectionLines=h=>textOf(h.el('connection-lines'));
+
+test('connection guidance: healthy API and unknown browser storage are independent; manual check is GET-only',async()=>{
+  const h=harness();await flush();assert.match(h.el('connection-title').textContent,/서버 응답 확인됨/);
+  assert.match(connectionLines(h),/임시 저장 상태는 아직 확인되지/);
+  const before=h.meta.length;await h.el('connection-check').onclick();
+  assert.equal(h.meta.length,before+1);assert.equal(h.calls.length,0);assert.equal(h.recoveryStore.has(PATIENT_RECORDS_KEY),false);
+  assert.match(connectionLines(h),/입력 저장 완료는.*별도|입력 저장 완료는.*확인/);
+});
+
+test('connection guidance: offline/online events never send or retry and never claim server failure from a hint alone',async()=>{
+  const h=harness();await flush();const reads=h.meta.length,calls=h.calls.length;
+  h.events.offline();assert.match(connectionLines(h),/브라우저는 오프라인/);assert.match(connectionLines(h),/API 응답은 아직 확인되지/);
+  assert.doesNotMatch(connectionLines(h),/서버 API 응답을 받지 못했습니다/);
+  h.events.online();assert.match(connectionLines(h),/브라우저는 온라인/);assert.match(h.el('connection-title').textContent,/확인 전/);
+  assert.equal(h.meta.length,reads);assert.equal(h.calls.length,calls);
+});
+
+test('connection guidance: a local API can respond while the browser reports offline',async()=>{
+  const h=harness(undefined,{networkOnline:false});await flush();
+  assert.match(h.el('connection-title').textContent,/서버 응답 확인됨/);assert.match(connectionLines(h),/브라우저는 오프라인/);
+  await h.el('connection-check').onclick();assert.match(h.el('connection-title').textContent,/서버 응답 확인됨/);
+});
+
+test('connection guidance: lost committed response stays pending through health checks and online events; exact retry stores once',async()=>{
+  let lost=true;const server=patientServer({after:(call)=>{if(lost&&call.url.endsWith('/transcripts')){lost=false;throw Error('synthetic response lost after commit');}}});
+  const h=harness(server.handler);await flush();await speak(h,'환자 A 정보');
+  const first=h.calls.find(call=>call.url.endsWith('/transcripts')),pending=notePayload(h,notebook(h).activeId).pending;
+  assert.match(h.el('connection-title').textContent,/저장 결과 확인 필요/);assert.match(connectionLines(h),/같은 요청 재시도/);
+  assert.match(connectionLines(h),/브라우저 임시 복구본 저장/);
+  const writes=h.calls.length;h.events.online();await h.el('connection-check').onclick();
+  assert.equal(h.calls.length,writes);assert.deepEqual(notePayload(h,notebook(h).activeId).pending,pending);
+  assert.match(h.el('connection-title').textContent,/저장 결과 확인 필요/);
+  await h.el('quick-retry').onclick();await flush();
+  const transcripts=h.calls.filter(call=>call.url.endsWith('/transcripts'));assert.equal(transcripts.length,2);assert.deepEqual(transcripts[1],first);
+  assert.equal(server.sessions.values().next().value.utterances.length,1);assert.equal(h.el('quick-retry').hidden,true);
+  assert.doesNotMatch(h.el('connection-title').textContent,/저장 결과 확인 필요/);
+});
+
+test('connection guidance: failed write-ahead storage is not labelled as a network outage and sends no draft request',async()=>{
+  const h=harness(undefined,{recoveryWriteError:true});await flush();await speak(h,'47세 남성');
+  assert.equal(h.calls.length,0);assert.match(h.el('connection-title').textContent,/브라우저 임시 저장 확인 필요/);
+  assert.match(connectionLines(h),/임시 저장에 실패/);assert.doesNotMatch(connectionLines(h),/서버 API 응답을 받지 못했습니다/);
+  assert.doesNotMatch(connectionLines(h),/최근 브라우저 임시 복구본 저장을 확인/);
+});
+
+test('connection guidance: recognition failure keeps API reachability separate and opens manual input without overwrite or send',async()=>{
+  const h=harness();await flush();h.el('recording-review').value='작성 중인 가상 메모';h.el('recording-review').oninput();
+  await h.el('quick-record').onclick();h.capture.fail();await flush();
+  assert.match(h.el('connection-title').textContent,/음성 입력 확인 필요/);assert.match(connectionLines(h),/서버 API 응답을 받았습니다/);
+  const before=h.calls.length;h.el('connection-manual').onclick();
+  assert.equal(h.el('settings').hidden,false);assert.equal(h.el('recording-manual').open,true);
+  assert.equal(h.el('recording-review').value,'작성 중인 가상 메모');assert.equal(h.calls.length,before);
+  assert.match(h.el('recording-review-status').textContent,/기존 입력은 유지/);
+  await h.el('quick-record').onclick();assert.doesNotMatch(h.el('connection-title').textContent,/음성 입력 확인 필요/);h.capture.fail();
+});
+
+test('connection guidance: pending manual review is read-only and never copies a pending transcript into a second write',async()=>{
+  const server=patientServer({after:call=>{if(call.url.endsWith('/transcripts'))throw Error('synthetic lost response');}});
+  const h=harness(server.handler);await flush();await speak(h,'환자 A 정보');const before=h.calls.length;
+  h.el('connection-manual').onclick();assert.equal(h.el('recording-review').value,'');assert.equal(h.el('recording-review').disabled,true);
+  assert.match(h.el('recording-review-status').textContent,/대기 요청/);assert.match(connectionLines(h),/대기 요청 결과를 먼저 확인/);
+  assert.equal(h.calls.length,before);
+});
+
+for(const status of [401,403,404,409])test(`connection guidance: HTTP ${status} proves a response but keeps request errors visible`,async()=>{
+  let broken=false;const h=harness(undefined,{capabilityHandler:()=>broken?response({error:'SYNTHETIC_REQUEST_ERROR'},status):response(V2)});
+  await flush();broken=true;await h.el('connection-check').onclick();
+  assert.match(h.el('connection-title').textContent,/서버 응답 있음.*요청 확인 필요/);assert.match(connectionLines(h),new RegExp('HTTP '+status));
+  assert.doesNotMatch(connectionLines(h),/서버 API 응답을 받지 못했습니다/);assert.equal(h.calls.length,0);
+});
+
+for(const fault of ['network','server','json','shape'])test(`connection guidance: manual ${fault} failure is classified without creating a draft`,async()=>{
+  let broken=false;const h=harness(undefined,{capabilityHandler:()=>{
+    if(!broken)return response(V2);if(fault==='network')throw Error('synthetic fetch failure');
+    if(fault==='server')return response({error:'SYNTHETIC_SERVICE_FAILURE'},503);
+    if(fault==='json')return {ok:true,status:200,json:async()=>{throw Error('synthetic bad JSON');}};
+    return response({});
+  }});await flush();broken=true;await h.el('connection-check').onclick();
+  assert.match(h.el('connection-title').textContent,fault==='network'?/서버 연결 확인 필요/:fault==='server'?/서버 처리 오류 확인 필요/:/서버 응답 형식 확인 필요/);
+  assert.equal(h.calls.length,0);assert.equal(h.el('connection-check').disabled,false);
+});
+
+for(const caps of [null,[],{},'wrong',false])test(`connection guidance: malformed startup capabilities ${JSON.stringify(caps)} is handled without an unhandled page error`,async()=>{
+  const h=harness(undefined,{capabilities:caps});await flush();
+  assert.match(h.el('connection-title').textContent,/서버 응답 형식 확인 필요/);assert.match(h.el('server-status').textContent,/응답 형식이 맞지/);
+  assert.equal(h.calls.length,0);assert.equal(h.meta.length,1);
+});
+
+test('connection guidance: version mismatch is reachable and distinct from a connection outage',async()=>{
+  const h=harness(undefined,{capabilities:{voice_revision:'voice-old',transcript_modes:['dictation']}});await flush();await h.el('connection-check').onclick();
+  assert.match(h.el('connection-title').textContent,/음성 기능 버전 확인 필요/);assert.match(connectionLines(h),/API 응답을 받았습니다/);
+  assert.doesNotMatch(connectionLines(h),/API 응답을 받지 못했습니다/);
+});
+
+test('connection guidance: a timed-out probe releases controls and late success cannot overwrite the failure',async()=>{
+  let held=false,resolve;const pending=new Promise(done=>resolve=done);
+  const h=harness(undefined,{capabilityHandler:()=>held?pending:response(V2)});await flush();held=true;
+  const check=h.el('connection-check').onclick();await flush();assert.equal(h.el('connection-check').disabled,true);
+  h.expireCheck();await check;assert.equal(h.el('connection-check').disabled,false);assert.match(h.el('connection-title').textContent,/서버 연결 확인 필요/);
+  resolve(response(V2));await flush();assert.match(h.el('connection-title').textContent,/서버 연결 확인 필요/);
+});
+
+test('connection guidance: changing patient cancels a held probe and ignores its old capabilities',async()=>{
+  let held=false,resolve;const pending=new Promise(done=>resolve=done),server=patientServer();
+  const h=harness(server.handler,{capabilityHandler:()=>held?pending:response(V2)});await flush();await speak(h,'환자 A 정보');held=true;
+  const check=h.el('connection-check').onclick();await flush();await h.el('patient-new').onclick();await check;
+  assert.equal(h.el('connection-check').disabled,false);assert.match(h.el('patient-current').textContent,/환자 02/);
+  resolve(response({voice_revision:'STALE-PATIENT-CAPS',transcript_modes:[]}));await flush();
+  assert.equal(h.el('server-chip').textContent,'음성 V2');assert.doesNotMatch(connectionLines(h),/버전이 이 화면과 일치하지/);
+});
+
+test('connection guidance: notebook changes and offline events invalidate held checks without auto retry',async()=>{
+  let held=false,resolve;const pending=new Promise(done=>resolve=done),server=patientServer();
+  const h=harness(server.handler,{capabilityHandler:()=>held?pending:response(V2)});await flush();await speak(h,'환자 A 정보');held=true;
+  const check=h.el('connection-check').onclick();await flush();const before=h.calls.length,reads=h.meta.length;
+  h.events.offline();await check;resolve(response(V2));await flush();
+  assert.match(connectionLines(h),/브라우저는 오프라인/);assert.match(connectionLines(h),/API 응답은 아직 확인되지/);
+  assert.equal(h.meta.length,reads);assert.equal(h.calls.length,before);
+});
+
+test('connection guidance: cross-tab raw notebook replacement prevents a held response from updating capabilities',async()=>{
+  let held=false,resolve;const pending=new Promise(done=>resolve=done),server=patientServer();
+  const h=harness(server.handler,{capabilityHandler:()=>held?pending:response(V2)});await flush();await speak(h,'환자 A 정보');held=true;
+  const check=h.el('connection-check').onclick();await flush();h.recoveryStore.set(PATIENT_RECORDS_KEY,h.recoveryStore.get(PATIENT_RECORDS_KEY)+' ');
+  resolve(response({voice_revision:'STALE-CAPS',transcript_modes:[]}));await check;
+  assert.equal(h.el('server-chip').textContent,'음성 V2');assert.doesNotMatch(connectionLines(h),/버전이 이 화면과 일치하지/);
+});
+
+test('connection guidance: startup capabilities are checked for the restored client after a delayed draft GET',async()=>{
+  const server=patientServer(),first=harness(server.handler);await flush();await speak(first,'환자 A 정보');
+  let release;const gate=new Promise(resolve=>release=resolve);
+  const restored=harness(async call=>{if(call.method==='GET')await gate;return server.handler(call);},{recoveryStore:first.recoveryStore,
+    capabilities:{voice_revision:'voice-old',transcript_modes:['dictation']}});
+  await flush();assert.equal(restored.meta.length,0);
+  release();await flush();assert.equal(restored.el('server-chip').textContent,'버전 다름');assert.equal(restored.el('mode-auto').disabled,true);
+  assert.match(restored.el('quick-session').textContent,/버전 2/);assert.match(restored.el('connection-title').textContent,/음성 기능 버전 확인 필요/);
 });

@@ -38,6 +38,14 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 .qv-app{max-width:560px;height:100vh;height:100dvh;margin:0 auto;display:flex;flex-direction:column}
 .qv-recovery{margin:2px 12px 6px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);flex:none;max-height:24vh;overflow:auto}
 .qv-recovery p{margin:0}
+.qv-connection{font-size:12px;line-height:1.6}
+.qv-connection>summary{min-height:32px;font-weight:600;cursor:pointer;overflow-wrap:anywhere}
+.qv-connection ul{margin:5px 0;padding-left:20px;color:var(--muted)}
+.qv-connection.is-warning>summary{color:var(--amber-ink)}
+.qv-connection.is-danger>summary{color:var(--danger)}
+.qv-app:has(.qv-connection[open]){height:auto;min-height:100vh;min-height:100dvh}
+.qv-recovery:has(.qv-connection[open]){max-height:none;overflow:visible}
+.qv-app:has(.qv-connection[open]) .qv-timeline{flex:none;overflow:visible}
 .qv-patients{margin:4px 12px;padding:10px 12px;background:var(--card);border:2px solid var(--teal);border-radius:12px;flex:none;max-height:28vh;overflow:auto}
 .qv-patients>strong{display:block;color:var(--teal-ink);font-size:15px}
 .qv-patient-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}

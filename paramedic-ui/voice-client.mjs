@@ -23,27 +23,44 @@ export class ApiError extends Error {
 }
 
 export class VoiceClient {
-  constructor({server, actorId, fetchImpl = globalThis.fetch, makeId = requestId, beforeWrite = null}) {
+  constructor({server, actorId, fetchImpl = globalThis.fetch, makeId = requestId, beforeWrite = null, onApiResult = null}) {
     this.server = normalizeServer(server); this.actorId = actorId;
     this.fetchImpl = fetchImpl.bind(globalThis); this.makeId = makeId;
     if (beforeWrite !== null && typeof beforeWrite !== 'function') throw new Error('beforeWrite는 동기 함수여야 합니다.');
+    if (onApiResult !== null && typeof onApiResult !== 'function') throw new Error('onApiResult는 함수여야 합니다.');
     this.beforeWrite = beforeWrite; this._queuedTasks = 0;
+    this.onApiResult = onApiResult;
     this.session = null; this.pending = null; this.queue = Promise.resolve();
   }
   get hasQueuedRequests() { return this._queuedTasks > 0; }
-  async api(path, method = 'GET', body) {
-    let response;
+  observeApiResult(method, status, kind) {
+    if (!this.onApiResult) return;
     try {
-      response = await this.fetchImpl(this.server + path, {method, cache: 'no-store',
+      // Never give diagnostics a request URL, payload, response or identifier.
+      // Observation is best-effort and cannot affect API/retry semantics.
+      Promise.resolve(this.onApiResult({method, status, kind})).catch(() => {});
+    } catch (_) { /* A failed observer must not replace the actual result. */ }
+  }
+  async api(path, method = 'GET', body) {
+    let response, dispatched = false;
+    try {
+      const options = {method, cache: 'no-store',
         headers: body === undefined ? {} : {'Content-Type': 'application/json'},
-        body: body === undefined ? undefined : JSON.stringify(body)});
+        body: body === undefined ? undefined : JSON.stringify(body)};
+      dispatched = true;
+      response = await this.fetchImpl(this.server + path, options);
     } catch (_) {
+      if (dispatched) this.observeApiResult(method, 0, 'network_error');
       throw new ApiError(method === 'GET' ? '서버에 연결하지 못했습니다. 서버 주소와 실행 상태를 확인하세요.' :
         '서버 응답을 받지 못했습니다. 같은 요청 재시도로 결과를 확인하세요.', 0, 'NETWORK', method !== 'GET');
     }
     let result;
     try { result = await response.json(); }
-    catch (_) { throw new ApiError('서버 응답 형식을 확인할 수 없습니다.', response.status, 'INVALID_RESPONSE', method !== 'GET'); }
+    catch (_) {
+      this.observeApiResult(method, response.status, 'invalid_response');
+      throw new ApiError('서버 응답 형식을 확인할 수 없습니다.', response.status, 'INVALID_RESPONSE', method !== 'GET');
+    }
+    this.observeApiResult(method, response.status, response.status >= 500 ? 'service_error' : 'reachable');
     if (!response.ok) throw new ApiError(result.message || result.error || `HTTP ${response.status}`,
       response.status, result.error, method !== 'GET' && response.status >= 500);
     return result;

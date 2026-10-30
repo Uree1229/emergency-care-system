@@ -156,3 +156,100 @@ test('an asynchronous beforeWrite hook fails closed instead of dispatching witho
   await assert.rejects(client.create(),e=>e.code==='RECOVERY_CHECKPOINT_FAILED'&&e.uncertain);
   assert.equal(calls,0);assert.ok(client.pending);assert.equal(client.session,null);
 });
+
+for(const [method,status,kind] of [
+  ['GET',200,'reachable'],['POST',201,'reachable'],['GET',401,'reachable'],['POST',403,'reachable'],
+  ['PATCH',409,'reachable'],['POST',422,'reachable'],['GET',500,'service_error'],['POST',503,'service_error'],
+])test(`API observer reports ${method} HTTP ${status} exactly once as ${kind}`,async()=>{
+  const observed=[];
+  const client=new VoiceClient({server:'http://127.0.0.1:8000',actorId:'PRIVATE_ACTOR',onApiResult:info=>observed.push(info),
+    fetchImpl:async()=>response(status<400?{privateResult:'PRIVATE_RAW'}:{error:'PRIVATE_CODE',message:'PRIVATE_MESSAGE'},status)});
+  const operation=client.api('/PRIVATE_PATH?actor_id=PRIVATE_ACTOR',method,{privateBody:'PRIVATE_RAW'});
+  if(status<400)assert.deepEqual(await operation,{privateResult:'PRIVATE_RAW'});
+  else await assert.rejects(operation,e=>e.status===status&&e.code==='PRIVATE_CODE'&&e.uncertain===(method!=='GET'&&status>=500));
+  assert.deepEqual(observed,[{method,status,kind}]);
+  assert.deepEqual(Object.keys(observed[0]).sort(),['kind','method','status']);
+  assert.doesNotMatch(JSON.stringify(observed),/PRIVATE|actor|session|path|url|body|message/u);
+});
+
+for(const [method,status] of [['GET',200],['POST',200],['GET',503],['PATCH',403]])test(`API observer classifies ${method} malformed JSON HTTP ${status} without a second event`,async()=>{
+  const observed=[];
+  const client=new VoiceClient({server:'http://127.0.0.1:8000',actorId:'crew-test',onApiResult:info=>observed.push(info),
+    fetchImpl:async()=>({status,ok:status<400,json:async()=>{throw Error('synthetic parser failure');}})});
+  await assert.rejects(client.api('/api/test',method),e=>e.code==='INVALID_RESPONSE'&&e.status===status&&e.uncertain===(method!=='GET'));
+  assert.deepEqual(observed,[{method,status,kind:'invalid_response'}]);
+});
+
+for(const method of ['GET','POST','PATCH'])test(`API observer classifies a rejected ${method} fetch once without changing uncertainty`,async()=>{
+  const observed=[];
+  const client=new VoiceClient({server:'http://127.0.0.1:8000',actorId:'crew-test',onApiResult:info=>observed.push(info),
+    fetchImpl:async()=>{throw Error('synthetic network failure');}});
+  await assert.rejects(client.api('/api/test',method),e=>e.code==='NETWORK'&&e.status===0&&e.uncertain===(method!=='GET'));
+  assert.deepEqual(observed,[{method,status:0,kind:'network_error'}]);
+});
+
+for(const asyncFailure of [false,true])test(`a ${asyncFailure?'rejected asynchronous':'throwing synchronous'} observer cannot change result, pending or serialized exact retry`,async()=>{
+  const observed=[];let failed=false;
+  const {client,calls}=setup(call=>{
+    if(!failed){failed=true;throw Error('synthetic lost write response');}
+    return response({session:session(2)});
+  });
+  client.session=session(1);
+  client.onApiResult=info=>{observed.push(info);if(asyncFailure)return Promise.reject(Error('observer failure'));throw Error('observer failure');};
+  await assert.rejects(client.write('fields',{changes:{pulse:91}}),e=>e.code==='NETWORK'&&e.uncertain);
+  const pending=client.pending;await client.retry();
+  assert.deepEqual(calls[0],calls[1]);assert.equal(client.pending,null);assert.equal(client.session.version,2);
+  assert.deepEqual(observed,[{method:'POST',status:0,kind:'network_error'},{method:'POST',status:200,kind:'reachable'}]);
+  assert.equal(pending.body.expected_version,1);await new Promise(resolve=>setImmediate(resolve));
+});
+
+test('a throwing observer cannot replace a definite API error or keep its request pending',async()=>{
+  const {client,calls}=setup(()=>response({error:'VOICE_VERSION_CONFLICT',message:'synthetic conflict'},409));client.session=session(1);
+  client.onApiResult=()=>{throw Error('observer failure');};
+  await assert.rejects(client.write('fields',{changes:{pulse:91}}),e=>e.code==='VOICE_VERSION_CONFLICT'&&e.status===409&&!e.uncertain);
+  assert.equal(calls.length,1);assert.equal(client.pending,null);assert.equal(client.session.version,1);
+});
+
+test('checkpoint failure emits no API observer event because nothing was dispatched',async()=>{
+  const observed=[];let calls=0;
+  const client=new VoiceClient({server:'http://127.0.0.1:8000',actorId:'crew-test',makeId:()=> 'checkpoint-observer',
+    beforeWrite:()=>{throw Error('synthetic quota failure');},onApiResult:info=>observed.push(info),
+    fetchImpl:async()=>{calls++;return response({session:session(1)});}});
+  await assert.rejects(client.create(),e=>e.code==='RECOVERY_CHECKPOINT_FAILED'&&e.uncertain);
+  assert.equal(calls,0);assert.deepEqual(observed,[]);assert.ok(client.pending);
+});
+
+test('duplicate POST and failed fresh GET emit their own ordered events while retaining the exact pending request',async()=>{
+  const observed=[];let writes=0,gets=0;
+  const {client,calls}=setup(call=>{
+    if(call.method==='GET')return ++gets===1?response({error:'UNAVAILABLE'},503):response({session:session(5)});
+    if(++writes===1)throw Error('synthetic response loss');
+    return response({session:session(2),duplicate:true});
+  });
+  client.session=session(1);client.onApiResult=info=>observed.push(info);
+  await assert.rejects(client.write('transcripts',{text:'synthetic note',utterance_id:'synthetic-utterance'}),e=>e.uncertain);
+  const pending=client.pending;
+  await assert.rejects(client.retry(),e=>e.code==='DUPLICATE_REFRESH_REQUIRED'&&e.uncertain);
+  assert.equal(client.pending,pending);assert.equal(client.session.version,1);
+  await client.retry();
+  assert.deepEqual(calls[0],calls[1]);assert.deepEqual(calls[0],calls[3]);
+  assert.deepEqual(observed,[{method:'POST',status:0,kind:'network_error'},
+    {method:'POST',status:200,kind:'reachable'},{method:'GET',status:503,kind:'service_error'},
+    {method:'POST',status:200,kind:'reachable'},{method:'GET',status:200,kind:'reachable'}]);
+  assert.equal(client.pending,null);assert.equal(client.session.version,5);
+});
+
+test('API observer constructor input accepts only null or a function',()=>{
+  const options={server:'http://127.0.0.1:8000',actorId:'crew-test',fetchImpl:async()=>response({})};
+  for(const value of ['',false,0,{},[],Promise.resolve()])assert.throws(()=>new VoiceClient({...options,onApiResult:value}));
+  assert.doesNotThrow(()=>new VoiceClient({...options,onApiResult:null}));
+  assert.doesNotThrow(()=>new VoiceClient({...options,onApiResult:()=>{}}));
+});
+
+test('a local body serialization failure emits no communication event before fetch is attempted',async()=>{
+  const observed=[];let calls=0;const body={};body.self=body;
+  const client=new VoiceClient({server:'http://127.0.0.1:8000',actorId:'crew-test',onApiResult:info=>observed.push(info),
+    fetchImpl:async()=>{calls++;return response({});}});
+  await assert.rejects(client.api('/api/test','POST',body),e=>e.code==='NETWORK'&&e.uncertain,'retain the legacy API error contract');
+  assert.equal(calls,0);assert.deepEqual(observed,[]);
+});
