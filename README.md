@@ -1,6 +1,19 @@
 # 응급환자 병원 연결 시스템
 
-## 팀원 연결본 실행
+## 11월 2일 연결 시험용 서버
+
+최신 서버는 `server.team_runtime`의 full 모드를 사용합니다. [11월 2일 시작·역할별 API 연결](docs/TEAM_START_20261102.md), [같은 Wi-Fi의 PC·휴대폰 HTTPS 접속](docs/TEAM_LAN_20261102.md)을 먼저 확인하세요. 기존 main의 화면은 유지하며 Claude 음성 UI와 팀원의 새 화면 파일은 이번 서버 변경에 포함하지 않습니다.
+
+```powershell
+python -m pip install --target .solver_deps -r requirements-server.txt
+python -m server.team_runtime prepare --db data/team-common.db
+python -m server.team_runtime serve --db data/team-common.db --port 18050
+```
+
+배정 기준 환경·명시적 환경 차이 허용은 [서버 통합 안내](docs/SERVER_INTEGRATION_20261030.md)를 따릅니다. 시험 직전에 새 가상 이송을 생성하며, 미리 만든 문의·수용의 유효기간을 늘리지 않습니다.
+
+
+## 이전 팀원 연결본 실행
 
 [설치와 전체 흐름 테스트 가이드](docs/TEAM_TEST_GUIDE.md)를 먼저 확인하세요. API 키 없이 실제 서울 병원20곳의 저장 정보를 사용해 환자·병원 화면을 함께 테스트할 수 있습니다.
 

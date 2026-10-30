@@ -1,0 +1,45 @@
+{
+  "schema": "paramedic-voice-terms",
+  "version": "1.2.0",
+  "description": "한국어 인식문을 검토용 초안으로 구조화하는 규칙과 동의어 도움자료. 임상 검증된 음성인식 사전이나 진단·중증도·치료 규칙이 아니다.",
+  "terms": {
+    "symptoms": [
+      {"canonical": "흉통", "synonyms": ["흉통", "가슴 통증", "가슴통증", "가슴이 아픔", "가슴이 아파"]},
+      {"canonical": "호흡곤란", "synonyms": ["호흡곤란", "호흡 곤란", "숨이 참", "숨이 차", "숨참", "숨 차"]},
+      {"canonical": "복통", "synonyms": ["복통", "배가 아픔", "배가 아파", "배 아픔", "복부 통증"]},
+      {"canonical": "두통", "synonyms": ["두통", "머리 통증", "머리가 아픔", "머리가 아파"]},
+      {"canonical": "어지럼", "synonyms": ["어지럼", "어지러움", "어지럽", "현기증"]},
+      {"canonical": "구토", "synonyms": ["구토", "토함", "토했"]},
+      {"canonical": "오심", "synonyms": ["오심", "메스꺼움", "메스껍", "울렁거림"]},
+      {"canonical": "발열", "synonyms": ["발열", "열이 남", "열이 나", "고열"]},
+      {"canonical": "기침", "synonyms": ["기침"]},
+      {"canonical": "객혈", "synonyms": ["객혈", "피 섞인 가래"]},
+      {"canonical": "출혈", "synonyms": ["출혈", "피가 남", "피가 나"]},
+      {"canonical": "경련", "synonyms": ["경련", "발작"]},
+      {"canonical": "실신", "synonyms": ["실신", "기절"]},
+      {"canonical": "마비", "synonyms": ["마비"]},
+      {"canonical": "의식저하", "synonyms": ["의식 저하", "의식저하"]},
+      {"canonical": "설사", "synonyms": ["설사"]},
+      {"canonical": "요통", "synonyms": ["요통", "허리 통증", "허리가 아픔", "허리가 아파"]},
+      {"canonical": "발진", "synonyms": ["발진"]},
+      {"canonical": "외상", "synonyms": ["외상", "다침", "다쳤"]},
+      {"canonical": "부종", "synonyms": ["부종", "부어 있음"]},
+      {"canonical": "심계항진", "synonyms": ["심계항진", "두근거림", "가슴이 두근"]}
+    ],
+    "measurements": {
+      "systolic_bp": {"label": "수축기 혈압", "synonyms": ["수축기 혈압", "수축기혈압", "수축기"], "unit": "mmHg", "type": "integer", "min": 1, "max": 350},
+      "diastolic_bp": {"label": "이완기 혈압", "synonyms": ["이완기 혈압", "이완기혈압", "이완기"], "unit": "mmHg", "type": "integer", "min": 1, "max": 250},
+      "pulse": {"label": "맥박", "synonyms": ["맥박", "심박수", "심박", "HR", "PR", "펄스", "에이치알", "피알"], "unit": "회/분", "type": "integer", "min": 0, "max": 350},
+      "spo2": {"label": "산소포화도", "synonyms": ["산소포화도", "산소 포화도", "SpO2", "에스피오투", "새츄레이션", "새츄"], "unit": "%", "type": "number", "min": 0, "max": 100},
+      "temperature": {"label": "체온", "synonyms": ["체온", "BT", "비티", "열"], "unit": "°C", "type": "number", "min": 20, "max": 45},
+      "respiratory_rate": {"label": "호흡수", "synonyms": ["호흡수", "호흡 수", "RR", "알알"], "unit": "회/분", "type": "integer", "min": 0, "max": 100},
+      "glucose": {"label": "혈당", "synonyms": ["혈당", "혈당치", "혈당 체크 결과", "혈당 체크", "혈당 측정", "BST", "BG", "비에스티"], "unit": "mg/dL", "type": "number", "min": 0, "max": 1500}
+    },
+    "negations": ["없음", "없다", "없고", "없어요", "없습니다", "부인", "아님", "아니다"],
+    "uncertainty": ["미확인", "확인 안", "확인 불가", "모름", "모르", "불명", "의심", "가능성", "추정", "같음", "같아"],
+    "notes": ["수치 범위는 입력 오류를 막는 형식 제한이며 정상·이상 또는 진료 기준이 아니다.", "직접 측정 또는 현재 환자의 명시 진술만 검토용으로 사용한다.", "R1 칸(avpu~gcs)의 용어와 규칙은 server/voice_r1.py에 있다. 주증상 묶음은 말한 증상을 R1 메뉴로 옮긴 제안이며 등급·진단을 추론하지 않는다(docs/R1_MINIMUM_INPUT.md)."]
+  },
+  "speech_recognition_hints": ["혈압", "수축기 혈압", "이완기 혈압", "맥박", "심박수", "산소포화도", "체온", "호흡수", "혈당", "의식 명료", "호흡 정상", "흉통", "호흡곤란", "구토", "출혈", "백이십에 팔십", "삼십칠 점 이 도"],
+  "supported_fields": ["age", "age_group", "sex", "symptoms", "denied_symptoms", "uncertain_symptoms", "consciousness", "breathing", "systolic_bp", "diastolic_bp", "pulse", "spo2", "temperature", "respiratory_rate", "glucose", "onset_at", "avpu", "chief_complaint", "age_category", "pre_ktas", "stemi_suspected", "injury_region", "labor", "pregnancy_weeks", "seizure_ongoing", "bleeding_risk", "high_risk_mechanism", "pain_score", "gcs"],
+  "readback_fields": ["age", "age_group", "sex", "symptoms", "denied_symptoms", "uncertain_symptoms", "consciousness", "breathing", "systolic_bp", "diastolic_bp", "pulse", "spo2", "temperature", "respiratory_rate", "glucose", "onset_at", "avpu", "chief_complaint", "age_category", "pre_ktas", "stemi_suspected", "injury_region", "labor", "pregnancy_weeks", "seizure_ongoing", "bleeding_risk", "high_risk_mechanism", "pain_score", "gcs", "blood_pressure"]
+}
