@@ -23,11 +23,14 @@ export class ApiError extends Error {
 }
 
 export class VoiceClient {
-  constructor({server, actorId, fetchImpl = globalThis.fetch, makeId = requestId}) {
+  constructor({server, actorId, fetchImpl = globalThis.fetch, makeId = requestId, beforeWrite = null}) {
     this.server = normalizeServer(server); this.actorId = actorId;
     this.fetchImpl = fetchImpl.bind(globalThis); this.makeId = makeId;
+    if (beforeWrite !== null && typeof beforeWrite !== 'function') throw new Error('beforeWrite는 동기 함수여야 합니다.');
+    this.beforeWrite = beforeWrite; this._queuedTasks = 0;
     this.session = null; this.pending = null; this.queue = Promise.resolve();
   }
+  get hasQueuedRequests() { return this._queuedTasks > 0; }
   async api(path, method = 'GET', body) {
     let response;
     try {
@@ -46,13 +49,28 @@ export class VoiceClient {
     return result;
   }
   serial(task) {
-    const run = this.queue.then(task);
+    this._queuedTasks++;
+    const run = this.queue.then(task).finally(() => { this._queuedTasks--; });
     this.queue = run.catch(() => {});
     return run;
   }
   async execute(request) {
     this.pending = request;
     try {
+      if (this.beforeWrite) {
+        try {
+          const checkpoint = this.beforeWrite(JSON.parse(JSON.stringify(request)));
+          if (checkpoint && typeof checkpoint.then === 'function') {
+            // A Promise cannot prove that a synchronous write-ahead checkpoint
+            // was durable before dispatch. Consume a rejection, but never send.
+            Promise.resolve(checkpoint).catch(() => {});
+            throw new Error('beforeWrite must complete synchronously.');
+          }
+        } catch (_) {
+          throw new ApiError('중간 저장에 실패하여 서버 요청을 보내지 않았습니다. 저장 상태를 확인한 뒤 같은 요청으로 재시도하세요.',
+            0, 'RECOVERY_CHECKPOINT_FAILED', true);
+        }
+      }
       const result = await this.api(request.path, request.method, request.body);
       // An idempotent retry can return a historical snapshot. Keep the original
       // request pending until its current draft is verified too: a failed GET

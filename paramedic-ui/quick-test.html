@@ -40,7 +40,7 @@
       <li id="hint-status"></li>
       <li>이번 기록에서 <span id="quick-history-count">0회</span> 말했습니다.</li>
       <li>누르는 동안 말하기에서 0.4초보다 짧게 누르면 취소합니다. 임시 인식문의 종료어는 실행하지 않습니다. 본문은 한 번에 최대 4000자이며, 초과하면 원문을 화면에 남기고 전송하지 않습니다.</li>
-      <li>문장 중간의 첫 명령까지만 실행합니다. 명령 앞의 본문을 저장하고, 뒤의 말과 늦게 인식된 말은 미반영 검토칸에 남깁니다. “처치 종료”·“종료하지 마”·인용한 말은 명령에서 제외합니다. 인식 원문과 API 본문을 기록에서 구분하며 원본 음성은 저장하지 않습니다. 화면 기록은 새로고침 시 사라집니다.</li>
+      <li>문장 중간의 첫 명령까지만 실행합니다. 명령 앞의 본문을 저장하고, 뒤의 말과 늦게 인식된 말은 미반영 검토칸에 남깁니다. “처치 종료”·“종료하지 마”·인용한 말은 명령에서 제외합니다. 인식 원문과 API 본문을 구분하며 원본 음성은 저장하지 않습니다. 새로고침 후 서버 원문·미반영 내용·확인 대기 요청을 복원합니다.</li>
       <li>원문과 추출 결과는 이 로컬 서버의 음성 초안에 저장합니다. 환자 등록·병원 문의·전송은 실행하지 않습니다. 실제 환자정보는 말하지 마세요.</li>
     </ul>
   </section>
@@ -62,6 +62,11 @@
   </section>
 
   <div id="quick-error" class="qv-alert" role="alert" hidden></div>
+  <section class="qv-recovery" aria-label="중간 저장·복구">
+    <p id="recovery-status" class="qv-help" role="status">이 브라우저의 복구 기록을 확인하고 있습니다.</p>
+    <button id="recovery-retry" type="button" class="qv-chip-btn" hidden>저장된 기록 다시 복원</button>
+    <details class="qv-source"><summary>브라우저 임시 보관 안내</summary><p>확정 인식문·직접 입력·저장 확인 대기 요청을 이 브라우저에 임시 보관합니다. 마지막 저장 후 12시간 이내에 새로고침·재접속하면 같은 초안을 복원하며 자동 전송하지 않습니다. 원본 음성과 임시 인식문은 보관하지 않습니다. 공용 기기에서는 마친 뒤 설정의 새 기록 시작으로 브라우저 복구본을 지우세요. 서버 원기록은 유지됩니다.</p></details>
+  </section>
   <section id="recommendation-prep" class="qv-sheet" aria-labelledby="recommendation-title" hidden>
     <h2 id="recommendation-title">병원 추천 준비</h2>
     <p id="recommendation-status" class="qv-help" role="status"></p>

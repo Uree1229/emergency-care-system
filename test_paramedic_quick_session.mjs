@@ -205,3 +205,176 @@ test('a definite answer conflict clears the job so the refreshed question can be
   assert.equal(calls[1].body.question_id,'pulse');
   assert.notEqual(calls[0].body.utterance_id,calls[1].body.utterance_id);
 });
+
+test('exportRecovery returns detached JSON-safe pending and job copies without audio',async()=>{
+  const {client,flow}=setup(()=>{throw Error('synthetic response loss');});
+  assert.deepEqual(flow.exportRecovery(),{pending:null,job:null});
+  client.session=session(1);
+  await assert.rejects(flow.apply('synthetic pending note','dictation'));
+  const saved=flow.exportRecovery();
+  assert.deepEqual(saved,{pending:client.pending,job:flow.job});
+  assert.equal(JSON.stringify(saved.pending.body),JSON.stringify(client.pending.body));
+  saved.pending.body.text='changed copy';saved.job.text='changed copy';
+  assert.equal(client.pending.body.text,'synthetic pending note');assert.equal(flow.job.text,'synthetic pending note');
+  client.pending.body.audio_base64='must never be checkpointed';
+  assert.throws(()=>flow.exportRecovery());
+});
+
+test('restore create retries the original create then checkpoints the original utterance in write phase',async()=>{
+  const source=setup(()=>{throw Error('synthetic create response loss');});
+  await assert.rejects(source.flow.apply('synthetic new draft note','auto'));
+  const saved=source.flow.exportRecovery();
+  const target=setup(call=>response({session:session(call.url.endsWith('/transcripts')?2:1)}));
+  target.client.makeId=()=> 'resumed-transcript-request';
+  target.flow.makeId=()=>{throw Error('restoration must not generate another utterance id');};
+  const checkpoints=[];
+  target.client.beforeWrite=()=>checkpoints.push(target.flow.exportRecovery());
+  target.flow.restoreRecovery(saved);
+  assert.equal(target.calls.length,0,'restoration itself never dispatches a request');
+  await target.flow.retry();
+  assert.deepEqual(target.calls[0].body,saved.pending.body);
+  assert.equal(target.calls[1].body.text,saved.job.text);
+  assert.equal(target.calls[1].body.utterance_id,saved.job.utteranceId);
+  assert.equal(target.calls[1].body.mode,'auto');
+  assert.deepEqual(checkpoints.map(c=>c.job.phase),['create','write']);
+  assert.equal(checkpoints[1].pending.body.text,saved.job.text);
+  assert.equal(target.client.pending,null);assert.equal(target.flow.job,null);
+});
+
+for(const kind of ['write','answer'])test(`restore ${kind} uses the saved request unchanged after server GET`,async()=>{
+  const source=setup(()=>{throw Error('synthetic response loss');});source.client.session=session(2);
+  await assert.rejects(kind==='write'?source.flow.apply('synthetic pending note','dictation'):
+    source.flow.answer(BP,'100에 80',{unavailable:true}));
+  const saved=source.flow.exportRecovery();
+  const target=setup(call=>call.method==='GET'?response({session:session(5)}):
+    response({session:session(3),duplicate:true,...(kind==='answer'?{answer:{accepted:true}}:{})}));
+  target.client.makeId=target.flow.makeId=()=>{throw Error('no request or utterance ids may be regenerated');};
+  await target.client.sync('VS-QUICK');
+  const before=target.calls.length;
+  target.flow.restoreRecovery(saved);assert.equal(target.calls.length,before);
+  saved.pending.body.text='caller mutation after restore';saved.job.text='caller mutation after restore';
+  await target.flow.retry();
+  assert.deepEqual(target.calls[1].body,source.client.pending.body);
+  assert.equal(target.calls[1].body.expected_version,2,'the fresher session does not change the saved version');
+  assert.equal(target.client.session.version,5);assert.equal(target.flow.job,null);assert.equal(target.client.pending,null);
+});
+
+test('restore retains an unsent checkpoint-failed job and retries only after checkpointing succeeds',async()=>{
+  const source=setup(()=>{throw Error('network must not be called');});source.client.session=session(1);
+  source.client.beforeWrite=()=>{throw Error('synthetic quota failure');};
+  await assert.rejects(source.flow.apply('synthetic unsent note'),e=>e.uncertain);
+  assert.equal(source.calls.length,0);
+  const target=setup(()=>response({session:session(2)}));target.client.session=session(1);
+  let checkpoint;
+  target.client.beforeWrite=()=>{checkpoint=target.flow.exportRecovery();};
+  target.flow.restoreRecovery(source.flow.exportRecovery());await target.flow.retry();
+  assert.equal(target.calls.length,1);assert.deepEqual(target.calls[0].body,checkpoint.pending.body);
+});
+
+test('checkpoint failure between successful create and transcript dispatch preserves the write-phase request',async()=>{
+  const source=setup(()=>response({session:session(1)}));
+  const phases=[];
+  source.client.beforeWrite=()=>{
+    const saved=source.flow.exportRecovery();phases.push(saved.job.phase);
+    if(saved.job.phase==='write')throw Error('synthetic transcript checkpoint quota failure');
+  };
+  await assert.rejects(source.flow.apply('synthetic original note','auto'),e=>e.uncertain&&e.code==='RECOVERY_CHECKPOINT_FAILED');
+  assert.deepEqual(phases,['create','write']);assert.equal(source.calls.length,1);
+  assert.equal(source.flow.job.phase,'write');assert.equal(source.client.session.version,1);
+  const saved=source.flow.exportRecovery();
+  const target=setup(()=>response({session:session(2)}));target.client.session=session(1);
+  target.flow.restoreRecovery(saved);await target.flow.retry();
+  assert.equal(target.calls.length,1);assert.deepEqual(target.calls[0].body,saved.pending.body);
+  assert.equal(target.calls[0].body.utterance_id,'utterance-1');assert.equal(target.calls[0].body.client_request_id,'request-2');
+});
+
+test('create recovery rejects command mode, unknown fields and invalid identifiers before any HTTP request',()=>{
+  for(const change of [s=>{s.job.mode='command';},s=>{s.pending.body.patient_id='not-allowed';},
+    s=>{s.pending.body.client_request_id='bad request';},s=>{s.job.phase='write';}]){
+    const {flow,calls}=setup(()=>{throw Error('must not dispatch');});
+    const saved={pending:{path:'/api/voice/sessions',method:'POST',body:{actor_id:'QUICK-VOICE-TEST',client_request_id:'saved-request'}},
+      job:{text:'synthetic note',mode:'dictation',utteranceId:'saved-utterance',phase:'create'}};
+    change(saved);assert.throws(()=>flow.restoreRecovery(saved));assert.equal(calls.length,0);
+  }
+});
+
+test('a restored stale request is never regenerated or silently reapplied after a definite conflict',async()=>{
+  const source=setup(()=>{throw Error('synthetic response loss');});source.client.session=session(1);
+  await assert.rejects(source.flow.apply('synthetic note'));
+  const saved=source.flow.exportRecovery();
+  const target=setup(()=>response({error:'VOICE_VERSION_CONFLICT'},409));target.client.session=session(5);
+  target.flow.restoreRecovery(saved);
+  await assert.rejects(target.flow.retry(),e=>e.status===409&&!e.uncertain);
+  assert.equal(target.calls.length,1);assert.deepEqual(target.calls[0].body,saved.pending.body);
+  assert.equal(target.client.session.version,5);assert.equal(target.client.pending,null);assert.equal(target.flow.job,null);
+});
+
+const pendingWrite=()=>({
+  pending:{path:'/api/voice/sessions/VS-QUICK/transcripts',method:'POST',body:{
+    text:'synthetic note',mode:'dictation',utterance_id:'saved-utterance',is_final:true,
+    actor_id:'QUICK-VOICE-TEST',client_request_id:'saved-request',expected_version:2}},
+  job:{text:'synthetic note',mode:'dictation',utteranceId:'saved-utterance',phase:'write'},
+});
+
+for(const [name,change] of [
+  ['another actor',s=>{s.pending.body.actor_id='other-actor';}],
+  ['another session',s=>{s.pending.path='/api/voice/sessions/VS-OTHER/transcripts';}],
+  ['wrong phase',s=>{s.job.phase='create';}],
+  ['changed job text',s=>{s.job.text='changed';}],
+  ['changed request text',s=>{s.pending.body.text='changed';}],
+  ['changed mode',s=>{s.job.mode='auto';}],
+  ['changed utterance id',s=>{s.job.utteranceId='other-utterance';}],
+  ['wrong method',s=>{s.pending.method='PUT';}],
+  ['unsupported endpoint',s=>{s.pending.path='/api/patients';}],
+  ['audio in body',s=>{s.pending.body.audio_base64='not allowed';}],
+  ['extra job field',s=>{s.job.audio='not allowed';}],
+  ['extra request field',s=>{s.pending.secret='not allowed';}],
+  ['extra snapshot field',s=>{s.session={};}],
+  ['missing job',s=>{s.job=null;}],
+  ['missing pending',s=>{s.pending=null;}],
+  ['bad request id',s=>{s.pending.body.client_request_id='bad request';}],
+  ['zero expected version',s=>{s.pending.body.expected_version=0;}],
+  ['future expected version',s=>{s.pending.body.expected_version=6;}],
+  ['non-final transcript',s=>{s.pending.body.is_final=false;}],
+  ['oversized text',s=>{s.job.text=s.pending.body.text='가'.repeat(4001);}],
+  ['undefined field',s=>{s.job.unexpected=undefined;}],
+])test(`restore rejects incoherent recovery: ${name}`,()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});client.session=session(5);
+  const saved=pendingWrite();change(saved);
+  assert.throws(()=>flow.restoreRecovery(saved));
+  assert.equal(flow.job,null);assert.equal(client.pending,null);assert.equal(calls.length,0);
+});
+
+test('restore requires the current matching server session for a write and no session for create',()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});
+  assert.throws(()=>flow.restoreRecovery(pendingWrite()));
+  client.session={...session(5),id:'VS-OTHER'};assert.throws(()=>flow.restoreRecovery(pendingWrite()));
+  client.session={...session(5),actor_id:'other-actor'};assert.throws(()=>flow.restoreRecovery(pendingWrite()));
+  client.session=session(5);
+  const create={pending:{path:'/api/voice/sessions',method:'POST',body:{actor_id:'QUICK-VOICE-TEST',client_request_id:'saved-request'}},
+    job:{text:'synthetic note',mode:'dictation',utteranceId:'saved-utterance',phase:'create'}};
+  assert.throws(()=>flow.restoreRecovery(create));assert.equal(calls.length,0);
+});
+
+test('restore validates answer profile, question and utterance against its saved job',()=>{
+  for(const key of ['profile','question_id','utterance_id','text','unavailable']){
+    const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});client.session=session(5);
+    const saved={pending:{path:'/api/voice/sessions/VS-QUICK/followup/answers',method:'POST',body:{
+      question_id:'blood_pressure',profile:'voice_extended_v1',utterance_id:'saved-utterance',text:'100에 80',
+      actor_id:'QUICK-VOICE-TEST',client_request_id:'saved-request',expected_version:2}},
+      job:{text:'100에 80',questionId:'blood_pressure',utteranceId:'saved-utterance',phase:'answer'}};
+    saved.pending.body[key]=key==='unavailable'?false:'changed';
+    assert.throws(()=>flow.restoreRecovery(saved),key);assert.equal(calls.length,0);
+  }
+});
+
+test('restore rejects a nonempty flow or a queued client operation and never starts automatic writes',async()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});client.session=session(5);
+  flow.job=pendingWrite().job;assert.throws(()=>flow.restoreRecovery(pendingWrite()));flow.job=null;
+  client.pending=pendingWrite().pending;assert.throws(()=>flow.restoreRecovery(pendingWrite()));client.pending=null;
+  let release;const gate=new Promise(resolve=>{release=resolve;});
+  const queued=client.serial(()=>gate);
+  assert.throws(()=>flow.restoreRecovery(pendingWrite()));release();await queued;
+  assert.deepEqual(flow.restoreRecovery({pending:null,job:null}),{pending:null,job:null});
+  assert.equal(calls.length,0);
+});

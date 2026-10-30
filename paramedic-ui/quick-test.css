@@ -36,6 +36,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 .qv-app{max-width:560px;height:100vh;height:100dvh;margin:0 auto;display:flex;flex-direction:column}
+.qv-recovery{margin:2px 12px 6px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);flex:none;max-height:24vh;overflow:auto}
+.qv-recovery p{margin:0}
 @media (min-width:600px){.qv-app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
 
 /* Top bar */

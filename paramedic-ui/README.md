@@ -23,13 +23,14 @@
   - 값 판정 자체(‘분당 20회’, ‘혈압 120 80’ 등)는 서버 담당이며, 완화안을 [작업 기록](../docs/VOICE_UI_CLAUDE_HANDOFF.md) 5.5절에 넘겼다.
 - **서버 확인:** 시작할 때 `voice_revision`이 `voice-v2-20261030`인지 확인하고, 다르면 화면 아래에 경고한다. 서버가 `auto`를 지원하지 않으면 `환자 상태만`으로 바꾼다.
 - **저장 확인:** 서버 응답으로 확인한 저장 발화 수를 표시한다. `저장된 기록 확인`에서 서버 주소·전체 기록 ID·버전을 볼 수 있다. 원문이 저장돼도 환자 항목이 추출되지 않을 수 있어 두 상태를 구분한다. 응답이 불확실하면 이번 입력은 확인 중으로 표시한다. [실행 중인 서버의 DB 점검 방법](../docs/VOICE_STORAGE_CHECK.md).
+- **중간 저장·복구:** 같은 브라우저·서버 주소에서 마지막 임시 저장 후 12시간 이내에 다시 열면 같은 작성자·초안을 GET으로 복원한다. 아직 전송하지 않은 확정 인식문과 직접 입력은 미반영 검토용으로, 저장 여부가 불확실한 요청은 원래 요청 번호·본문·버전을 유지한 재시도 대상으로 복원한다. 마이크·음성 명령·환자 등록·병원 문의는 복원만으로 실행하지 않는다. [저장 범위와 검증](../docs/VOICE_DRAFT_RECOVERY_20261030.md).
 - **문맥 힌트:** 서버 힌트 중 항목 이름·증상 용어만 브라우저 `SpeechRecognitionPhrase`에 넘긴다. ‘의식 명료’·‘구토 없음’·숫자처럼 값이 든 표현은 정상 소견 쪽으로 인식을 끌 수 있어 넘기지 않는다. 브라우저가 거부하면 한 번만 일반 인식으로 다시 시작한다. 힌트를 넘긴 것과 정확도 개선은 별개이며 측정하지 않았다.
 
 저장 응답을 잃어 결과가 불확실하면 새 입력을 막고 `재시도`를 제공한다. 재시도는 원래 요청 ID·본문·버전을 유지한다. 409에서는 최신 초안과 질문을 다시 불러오며 이전 본문을 자동 덮어쓰지 않는다.
 
-`새 기록 시작`은 새 화면 기록을 시작하며 이전 서버 기록을 삭제하지 않는다. 환자 본문을 전송할 때 새 초안을 만든다. 실제 환자 등록·병원 문의·전송 API는 호출하지 않는다. 작업 기록: [Claude 구급대원 화면 인계](../docs/VOICE_UI_CLAUDE_HANDOFF.md).
+`새 기록 시작`은 이 브라우저의 복구본과 현재 화면 기록을 지우고 새 작성자·기록을 준비한다. 이전 서버 기록은 삭제하지 않는다. 환자 본문을 전송할 때 새 초안을 만든다. 실제 환자 등록·병원 문의·전송 API는 호출하지 않는다. 작업 기록: [Claude 구급대원 화면 인계](../docs/VOICE_UI_CLAUDE_HANDOFF.md).
 
-이 화면은 **자유 발화 기능 확인**이며 정답 일치율이나 실제 음성 정확도를 계산하지 않는다. 관찰 항목과 R1에서 파생한 추가 제안을 구분해 표시한다. 서버에는 성공적으로 전송한 본문과 결과가 남으며, 음성 종료어를 포함한 확정 인식 원문·미반영 문장은 화면 세션 기록이다. 새로고침하면 이 화면 기록이 사라지고 초안도 자동 복원하지 않는다. 나중에 개발자가 서버 결과를 확인할 때는 `voice_sessions.actor_id`의 `QUICK-VOICE-` 접두사를 사용한다.
+이 화면은 **자유 발화 기능 확인**이며 정답 일치율이나 실제 음성 정확도를 계산하지 않는다. 관찰 항목과 R1에서 파생한 추가 제안을 구분해 표시한다. 서버에는 성공적으로 전송한 본문과 결과가 남는다. 같은 브라우저의 localStorage에는 초안 참조, 미반영 확정문·직접 입력, 원본 재시도 요청의 최소 데이터를 보관하며 원본 음성·임시 인식·전체 서버 임상 스냅샷은 넣지 않는다. 12시간은 자동 복원 유효기간이다. 공용 기기에서는 마친 뒤 새 기록 시작으로 복구본을 지운다. 브라우저 저장 공간 삭제·비공개 모드 종료·다른 브라우저나 서버 주소로의 이동은 복구 범위에서 제외된다.
 
 정답을 고정한 문장별 STT 결과 수집은 **http://127.0.0.1:8000/paramedic/evaluate.html** 에서 별도로 진행한다. [정답셋·평가 실행·현재 기준선](../docs/SPEECH_EVALUATION.md).
 
@@ -74,12 +75,12 @@ http://127.0.0.1:8000/paramedic/ 를 연다. 같은 서버의 API를 기본으�
 
 자동 문의·병원의 수용 응답·목적지 확정은 이 앱에서 자동 수행하지 않는다. 후보는 수용 확답이나 솔버의 확정 배정이 아니다. 현재 로컬 시연 DB는 가상 병원 10곳을 사용한다. 기존 공공 자료가 적재된 서버로 연결하면 그 서버의 병원 목록을 사용한다.
 
-환자정보·원문·오디오는 브라우저 저장소에 넣지 않는다. 탭을 새로고침할 때 같은 초안을 찾기 위해 작업자 ID·서버 주소·세션 ID만 `sessionStorage`에 남긴다. 작업자 ID는 시연용 구분이며 실제 사용자 인증을 대신하지 않는다.
+메인 화면은 작업자 ID·서버 주소·세션 ID를 `sessionStorage`에 남기고, 대화 화면에서 이어온 미반영 문장은 별도 10분 handoff로 전달한다. 대화형 quick 화면의 중간 저장은 초안 참조·미반영 원문·원래 재시도 요청을 `localStorage`에 보관하며 12시간 이내에 자동 복원한다. 원본 오디오는 브라우저 저장소에 넣지 않는다. 작업자 ID는 시연용 구분이며 실제 사용자 인증을 대신하지 않는다.
 
 ## 검증
 
 ```powershell
-node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs test_paramedic_draft_handoff.mjs test_paramedic_audio_input_profile.mjs test_paramedic_speech_test_context.mjs test_paramedic_evaluation_page.mjs test_paramedic_local_audio_page.mjs
+node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs test_paramedic_draft_handoff.mjs test_paramedic_draft_recovery.mjs test_paramedic_audio_input_profile.mjs test_paramedic_speech_test_context.mjs test_paramedic_evaluation_page.mjs test_paramedic_local_audio_page.mjs
 python -m unittest test_voice_api test_voice_input test_voice_terms test_voice_audio
 ```
 
@@ -89,6 +90,6 @@ Node가 설치되지 않은 PC에서는 VS Code에 들어 있는 Node로 같은 
 ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_paramedic_quick_session.mjs test_paramedic_speech.mjs test_paramedic_voice_client.mjs test_paramedic_recording_control.mjs
 ```
 
-토글·저장 확인·입력 프로필·소음 조건·로컬 WAV·중간 명령·동일 초안 복원의 Node 회귀는 359/359 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결한다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리한다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
+토글·저장 확인·입력 프로필·소음 조건·로컬 WAV·중간 명령·동일 초안 복원·중간 저장의 Node 회귀는 523/523 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결한다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리한다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
 
 API 계약·Speech 키 설정: [음성 입력 API](../docs/VOICE_INPUT_API.md). 실제 마이크로 녹음한 한국어의 인식 정확도와 현장 편의성은 별도 평가가 필요하다.

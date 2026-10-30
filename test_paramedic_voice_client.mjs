@@ -118,3 +118,41 @@ test('server address disallows embedded credentials and non HTTP schemes',()=>{
   assert.equal(normalizeServer('http://localhost:18031/'),'http://localhost:18031');
   for(const value of ['file:///tmp','https://user:pass@example.com','http://example.com/x','http://example.com/?x=1'])assert.throws(()=>normalizeServer(value));
 });
+
+test('beforeWrite checkpoints a cloned pending request synchronously before network dispatch',async()=>{
+  const events=[],snapshots=[];
+  const {client,calls}=setup(call=>{events.push('network');return response({session:session(2)});});
+  client.session=session(1);
+  client.beforeWrite=request=>{
+    events.push('checkpoint');snapshots.push(structuredClone(request));
+    assert.ok(client.pending);assert.equal(client.hasQueuedRequests,true);
+    request.body.text='a hook cannot mutate the actual request';
+  };
+  await client.write('transcripts',{text:'synthetic original',utterance_id:'synthetic-utterance',is_final:true,mode:'dictation'});
+  assert.deepEqual(events,['checkpoint','network']);
+  assert.equal(calls[0].body.text,'synthetic original');
+  assert.deepEqual(snapshots[0].body,calls[0].body);
+  assert.equal(client.pending,null);assert.equal(client.hasQueuedRequests,false);
+});
+
+test('a failed write-ahead checkpoint sends no API request and permits only an exact retry',async()=>{
+  let available=false;const checkpoints=[];
+  const {client,calls}=setup(()=>response({session:session(2)}));
+  client.session=session(1);
+  client.beforeWrite=request=>{checkpoints.push(request);if(!available)throw Error('synthetic storage quota failure');};
+  await assert.rejects(client.write('fields',{changes:{age:60}}),e=>e.code==='RECOVERY_CHECKPOINT_FAILED'&&e.uncertain);
+  const pending=structuredClone(client.pending);
+  assert.equal(calls.length,0);assert.equal(client.session.version,1);
+  await assert.rejects(client.write('fields',{changes:{age:61}}),e=>e.code==='PENDING_REQUEST');
+  available=true;await client.retry();
+  assert.equal(calls.length,1);assert.deepEqual(calls[0].body,pending.body);
+  assert.deepEqual(checkpoints[0],checkpoints[1]);assert.equal(client.pending,null);
+});
+
+test('an asynchronous beforeWrite hook fails closed instead of dispatching without a durable checkpoint',async()=>{
+  let calls=0;
+  const client=new VoiceClient({server:'http://127.0.0.1:8000',actorId:'crew-test',makeId:()=> 'checkpoint-id',
+    beforeWrite:()=>Promise.resolve(),fetchImpl:async()=>{calls++;return response({session:session(1)});}});
+  await assert.rejects(client.create(),e=>e.code==='RECOVERY_CHECKPOINT_FAILED'&&e.uncertain);
+  assert.equal(calls,0);assert.ok(client.pending);assert.equal(client.session,null);
+});
