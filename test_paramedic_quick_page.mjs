@@ -275,6 +275,49 @@ test('recognition failure after a final fragment preserves raw text and never ed
   assert.equal(el('quick-record').disabled,false);
 });
 
+test('a saved transcript with no extracted fields is shown as stored, with its actual server receipt',async()=>{
+  const {el,capture}=harness(call=>response({session:call.url.endsWith('/transcripts')?
+    draft(2,{}, {utterances:[{transcript:'잘 들리지 않은 설명',mode:'dictation'}]}):draft(1,{}, {utterances:[]})}));
+  assert.match(el('quick-storage-status').textContent,/아직 서버에 전송한 발화가 없습니다/);
+  await el('quick-record').onclick();capture.final('잘 들리지 않은 설명');capture.end();await flush();
+  assert.equal(el('quick-count').textContent,'원문 저장됨 · 항목 확인 필요');
+  assert.match(el('quick-storage-status').textContent,/저장 발화 1건/);
+  assert.match(el('quick-storage-status').textContent,/원문은 저장됐고/);
+  assert.equal(el('quick-storage-receipt').hidden,false);
+  assert.match(el('quick-storage-details').textContent,/서버: http:\/\/127\.0\.0\.1:8000/);
+  assert.match(el('quick-storage-details').textContent,/기록 ID: VS-PAGE/);
+  assert.match(el('quick-storage-details').textContent,/초안 버전: 2/);
+});
+
+test('a created draft and an uncertain transcript write do not claim that a transcript was saved',async()=>{
+  const {el,capture}=harness((call,n)=>{
+    if(n===1)return response({session:draft(1,{}, {utterances:[]})});
+    throw Error('response lost');
+  });
+  await el('quick-record').onclick();capture.final('47세 남성');capture.end();await flush();
+  assert.match(el('quick-storage-status').textContent,/저장 발화 0건/);
+  assert.match(el('quick-storage-status').textContent,/이번 입력의 저장 결과를 확인/);
+  assert.doesNotMatch(el('quick-storage-status').textContent,/원문은 저장됐고/);
+  assert.equal(el('quick-retry').hidden,false);
+});
+
+test('a successful retry updates the server receipt, and a new record clears only the displayed receipt',async()=>{
+  let writes=0;
+  const {el,capture}=harness(call=>{
+    if(call.url.endsWith('/sessions'))return response({session:draft(1,{}, {utterances:[]})});
+    if(++writes===1)throw Error('response lost');
+    return response({session:draft(2,{age:47}, {utterances:[{transcript:'47세 남성'}]})});
+  });
+  await el('quick-record').onclick();capture.final('47세 남성');capture.end();await flush();
+  await el('quick-retry').onclick();await flush();
+  assert.match(el('quick-storage-status').textContent,/저장 발화 1건/);
+  assert.doesNotMatch(el('quick-storage-status').textContent,/저장 결과를 확인/);
+  el('quick-new').onclick();
+  assert.equal(el('quick-storage-receipt').hidden,true);
+  assert.match(el('quick-storage-status').textContent,/아직 서버에 전송한 발화가 없습니다/);
+  assert.equal(writes,2);
+});
+
 test('cancel and pagehide never submit fragments or leave capture active',async()=>{
   for(const byPagehide of [false,true]){
     const {el,capture,calls,events}=harness();

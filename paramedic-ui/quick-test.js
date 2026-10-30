@@ -56,6 +56,7 @@ function pttControl(id,target,blocked,idle,holding) {
   button.setAttribute('aria-pressed',String(mine));
 }
 function controls() {
+  renderStorageReceipt();
   const active=capture.active, isLocked=locked(), q=currentQuestion(), caps=VoiceCapture.capabilities();
   const hasFields=Object.keys(client.session?.fields||{}).length>0, micBlocked=busy||stopping||!!flow.job||!caps.browser;
   // With a question showing, the big button answers it and general input moves to the side button.
@@ -123,6 +124,19 @@ function itemState(id,ctx) {
   return itemValue(id,ctx.fields)?'filled':'missing';
 }
 const STATE_ORDER = ['deferred','asking','unavailable','unclear','changed','new','filled','missing'];
+// Only the server's returned utterance list is a storage receipt. Empty extracted
+// fields do not mean the transcript was lost, and a created draft is not a saved utterance.
+function renderStorageReceipt() {
+  const s=client.session, count=Array.isArray(s?.utterances)?s.utterances.length:null;
+  const pending=Boolean(client.pending||flow.job||busy);
+  let text=!s?'아직 서버에 전송한 발화가 없습니다.':count===null?'초안 응답을 받았습니다. 저장 발화 수는 확인되지 않았습니다.':count===0?'초안 준비됨 · 서버에서 확인한 저장 발화 0건':`서버에서 확인한 저장 발화 ${count}건`;
+  if(s&&count>0&&!Object.keys(s.fields||{}).length)text+=' · 원문은 저장됐고, 구조화된 환자 항목은 확인이 필요합니다.';
+  if(pending)text+=' · 이번 입력의 저장 결과를 확인하고 있습니다.';
+  else if(capture.active)text+=' · 현재 말하는 내용은 종료 후 전송합니다.';
+  $('quick-storage-status').textContent=text;
+  $('quick-storage-receipt').hidden=!s;
+  $('quick-storage-details').textContent=s?`서버: ${client.server}\n기록 ID: ${s.id}\n초안 버전: ${s.version}\n서버 확인 발화: ${count===null?'확인되지 않음':count+'건'}`:'';
+}
 function summaryChip(ids,ctx) {
   const states=ids.map(id=>itemState(id,ctx)), chipState=STATE_ORDER.find(s=>states.includes(s));
   const single=ids.length===1, parts=ids.map((id,i)=>{
@@ -155,7 +169,7 @@ function render() {
   const ctx={fields,meta,unavailable:unavailableQuestions(),asking:currentQuestion()?.id};
   $('summary-chips').replaceChildren(...SUMMARY.map(ids=>summaryChip(ids,ctx)));
   const filled=SUMMARY.flat().filter(id=>itemValue(id,fields)).length;
-  $('quick-count').textContent=filled?`12개 중 ${filled}개`:'기록 대기';
+  $('quick-count').textContent=filled?`12개 중 ${filled}개`:s?.utterances?.length?'원문 저장됨 · 항목 확인 필요':'기록 대기';
   $('quick-session').textContent=s?`가상 환자 · 초안 ${String(s.id).slice(-6)} · 버전 ${s.version}`:'가상 환자 · 새 기록';
   renderFollowup();controls();
 }

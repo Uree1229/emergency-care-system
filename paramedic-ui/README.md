@@ -21,6 +21,7 @@
   - 서버가 답을 받지 않으면 같은 질문을 반복하지 않고 **보류**한 뒤 다음 질문으로 넘어간다. 보류한 질문은 들린 말과 함께 검토 목록에 남긴다.
   - 값 판정 자체(‘분당 20회’, ‘혈압 120 80’ 등)는 서버 담당이며, 완화안을 [작업 기록](../docs/VOICE_UI_CLAUDE_HANDOFF.md) 5.5절에 넘겼다.
 - **서버 확인:** 시작할 때 `voice_revision`이 `voice-v2-20261030`인지 확인하고, 다르면 화면 아래에 경고한다. 서버가 `auto`를 지원하지 않으면 `환자 상태만`으로 바꾼다.
+- **저장 확인:** 서버 응답으로 확인한 저장 발화 수를 표시한다. `저장된 기록 확인`에서 서버 주소·전체 기록 ID·버전을 볼 수 있다. 원문이 저장돼도 환자 항목이 추출되지 않을 수 있어 두 상태를 구분한다. 응답이 불확실하면 이번 입력은 확인 중으로 표시한다. [실행 중인 서버의 DB 점검 방법](../docs/VOICE_STORAGE_CHECK.md).
 - **문맥 힌트:** 서버 힌트 중 항목 이름·증상 용어만 브라우저 `SpeechRecognitionPhrase`에 넘긴다. ‘의식 명료’·‘구토 없음’·숫자처럼 값이 든 표현은 정상 소견 쪽으로 인식을 끌 수 있어 넘기지 않는다. 브라우저가 거부하면 한 번만 일반 인식으로 다시 시작한다. 힌트를 넘긴 것과 정확도 개선은 별개이며 측정하지 않았다.
 
 저장 응답을 잃어 결과가 불확실하면 새 입력을 막고 `재시도`를 제공한다. 재시도는 원래 요청 ID·본문·버전을 유지한다. 409에서는 최신 초안과 질문을 다시 불러오며 이전 본문을 자동 덮어쓰지 않는다.
@@ -85,6 +86,6 @@ Node가 설치되지 않은 PC에서는 VS Code에 들어 있는 Node로 같은 
 ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_paramedic_quick_session.mjs test_paramedic_speech.mjs test_paramedic_voice_client.mjs test_paramedic_recording_control.mjs
 ```
 
-이번 토글 변경의 Node 회귀는 128/128 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결해 6개 시나리오·34개 확인을 통과했다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리했다. 두 결과 모두 실제 브라우저·마이크·STT 정확도 측정이 아니다.
+토글·저장 확인 표시의 Node 회귀는 131/131 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결해 토글 6개 시나리오·34개 확인, 저장 확인 표시 3개 시나리오·42개 확인을 통과했다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리했다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
 
 API 계약·Speech 키 설정: [음성 입력 API](../docs/VOICE_INPUT_API.md). 실제 마이크로 녹음한 한국어의 인식 정확도와 현장 편의성은 별도 평가가 필요하다.

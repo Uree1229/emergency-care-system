@@ -126,6 +126,8 @@ python -m server.app --db data/voice-tryout.db --port 8000 --no-planner --no-inq
 
 ## 7 문제 해결
 
+저장 여부는 요약 항목 수와 별도로 표시한다. 원문만 저장된 경우에는 `원문 저장됨 · 항목 확인 필요`, 저장 응답을 잃은 경우에는 이번 입력이 확인 중임을 보여 준다. `저장된 기록 확인`을 펼쳐 서버 주소·기록 ID·버전을 확인한다. 개발자는 예전 실행 기록이 아닌 현재 서버를 기준으로 [저장 점검](VOICE_STORAGE_CHECK.md)을 실행한다.
+
 | 증상 | 확인할 것 |
 |---|---|
 | `지원 브라우저 필요` | 해당 환경에서 브라우저 음성 인식 기능이 제공되는지 확인한다. 이용할 수 없으면 설정의 직접 입력 시험을 쓴다. |
@@ -151,7 +153,7 @@ node --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_p
 
 Node가 없으면 [화면 README](../paramedic-ui/README.md)의 검증 절(VS Code 내장 Node 사용)을 본다.
 
-토글 변경의 자동 Node 회귀는 **128/128** 통과했다. 별도 실제 UI 모듈·클라이언트·HTTP 서버·빈 SQLite DB 연결 시험도 **6개 시나리오·34개 확인**을 통과했다. 이때 DOM과 `SpeechRecognition`은 모의 처리했다. 실제 브라우저·마이크·STT 정확도나 임상 정확도를 검증한 결과는 아니다.
+토글·저장 확인 표시의 자동 Node 회귀는 **131/131** 통과했다. 별도 실제 UI 모듈·클라이언트·HTTP 서버·빈 SQLite DB 연결 시험은 토글 **6개 시나리오·34개 확인**, 저장 확인 표시 **3개 시나리오·42개 확인**을 통과했다. 이때 DOM과 `SpeechRecognition`은 모의 처리했다. 실제 브라우저·마이크·STT 정확도나 임상 정확도를 검증한 결과는 아니다.
 
 관련 문서:
 

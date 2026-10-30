@@ -47,6 +47,8 @@
   <section class="qv-summary" aria-labelledby="summary-title">
     <div class="qv-summary-head"><h2 id="summary-title">환자 요약 <span id="quick-count" class="qv-count">기록 대기</span></h2><button type="button" id="summary-toggle" class="qv-link" aria-expanded="false" aria-controls="summary-detail">전체 보기 ›</button></div>
     <div id="summary-chips" class="qv-sum-chips"></div>
+    <p id="quick-storage-status" class="qv-storage" role="status">아직 서버에 전송한 발화가 없습니다.</p>
+    <details id="quick-storage-receipt" class="qv-source" hidden><summary>저장된 기록 확인</summary><p id="quick-storage-details"></p></details>
     <div id="summary-detail" class="qv-detail" hidden>
       <section id="quick-changes" class="qv-changes" aria-labelledby="changes-title" hidden><h3 id="changes-title">방금 바뀐 내용 <span id="changes-kind"></span></h3><ul id="change-items"></ul></section>
       <div id="quick-fields" class="quick-fields"></div>
