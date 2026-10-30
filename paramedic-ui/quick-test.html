@@ -18,7 +18,7 @@
   </header>
 
   <section id="settings" class="qv-sheet" aria-labelledby="settings-title" hidden>
-    <div class="qv-sheet-head"><h2 id="settings-title">설정</h2><button type="button" id="quick-new" class="qv-pill">새 기록 시작</button></div>
+    <div class="qv-sheet-head"><h2 id="settings-title">설정</h2><button type="button" id="quick-new" class="qv-pill">새 환자 시작</button></div>
     <p class="qv-label">마이크 조작</p>
     <div class="qv-seg qv-seg-two" role="group" aria-label="마이크 조작"><button type="button" id="recording-toggle" aria-pressed="true">한 번 눌러 시작 · 종료</button><button type="button" id="recording-hold" aria-pressed="false">누르는 동안 말하기</button></div>
     <p class="qv-help">한 번 눌러 시작·종료합니다(최대 180초). 두 조작 방식 모두 확정 인식문의 “중단”·“종료”·“그만”은 앞 내용을 저장하고 마칩니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다. 누르는 동안 말하기는 최대 30초입니다.</p>
@@ -46,6 +46,14 @@
     </ul>
   </section>
 
+  <section class="qv-patients" aria-label="환자별 기록 전환">
+    <strong id="patient-current">현재 환자 01 · 음성 초안</strong>
+    <div class="qv-patient-actions"><label for="patient-select" class="sr-only">환자 기록 선택</label><select id="patient-select"></select><button id="patient-switch" class="qv-chip-btn" type="button">선택 환자 열기</button></div>
+    <div class="qv-patient-actions"><button id="patient-new" class="qv-chip-btn" type="button">새 환자 시작</button><button id="patient-previous" class="qv-chip-btn" type="button">이전 환자로</button></div>
+    <p id="patient-status" class="qv-help" role="status">입력 전에 현재 환자를 확인하세요. 전환 전 미반영 내용을 보관합니다.</p>
+    <details class="qv-source"><summary>환자별 보관·정리</summary><p>최대 20개 초안을 이 브라우저에 나눠 보관합니다. 새 환자는 이전 기록을 지우지 않습니다. 12시간은 자동 복원 가능 기간이며 자동 삭제 시간이 아닙니다. 현재 환자 복구본 제거는 이 브라우저의 미반영 내용까지 지우며 서버 원기록은 유지합니다.</p><button id="patient-remove" class="qv-chip-btn" type="button">현재 환자 복구본 제거</button></details>
+    <button id="patient-reset-invalid" class="qv-chip-btn" type="button" hidden>읽을 수 없는 브라우저 기록 목록 초기화 · 로컬 미반영 내용 삭제</button>
+  </section>
   <section class="qv-summary" aria-labelledby="summary-title">
     <div class="qv-summary-head"><h2 id="summary-title">환자 요약 <span id="quick-count" class="qv-count">기록 대기</span></h2><button type="button" id="summary-toggle" class="qv-link" aria-expanded="false" aria-controls="summary-detail">전체 보기 ›</button></div>
     <div id="summary-chips" class="qv-sum-chips"></div>
@@ -66,7 +74,7 @@
   <section class="qv-recovery" aria-label="중간 저장·복구">
     <p id="recovery-status" class="qv-help" role="status">이 브라우저의 복구 기록을 확인하고 있습니다.</p>
     <button id="recovery-retry" type="button" class="qv-chip-btn" hidden>저장된 기록 다시 복원</button>
-    <details class="qv-source"><summary>브라우저 임시 보관 안내</summary><p>확정 인식문·직접 입력·저장 확인 대기 요청을 이 브라우저에 임시 보관합니다. 마지막 저장 후 12시간 이내에 새로고침·재접속하면 같은 초안을 복원하며 자동 전송하지 않습니다. 원본 음성과 임시 인식문은 보관하지 않습니다. 공용 기기에서는 마친 뒤 설정의 새 기록 시작으로 브라우저 복구본을 지우세요. 서버 원기록은 유지됩니다.</p></details>
+    <details class="qv-source"><summary>브라우저 임시 보관 안내</summary><p>확정 인식문·직접 입력·저장 확인 대기 요청을 환자별로 보관합니다. 마지막 저장 후 12시간 이내에 새로고침·재접속하면 같은 초안을 복원하며 자동 전송하지 않습니다. 원본 음성과 임시 인식문은 보관하지 않습니다. 공용 기기에서는 작업 후 환자별 보관·정리의 복구본 제거로 정리하세요. 새 환자 시작은 이전 기록을 지우지 않습니다.</p></details>
   </section>
   <section id="recommendation-prep" class="qv-sheet" aria-labelledby="recommendation-title" hidden>
     <h2 id="recommendation-title">병원 추천 준비</h2>

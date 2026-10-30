@@ -1,5 +1,7 @@
 # 이송 노트 — 별도 구급대원 웹 앱
 
+최신 메인 연결: [음성·이송·치료조건 검토·추천·알림 연결](../docs/MAIN_UI_INTEGRATION_20261030.md). 메인 확인 질문·보류·미측정·변경 전후, 같은 환자 진행 링크와 WAITING 명시 치료조건 적용을 추가했다. 확정·이송 중에는 같은 환자의 별도 병원 검토 화면으로 연결한다. 아래 최초 작성 기록과 최신 상태를 구분한다.
+
 2026-10-30. 팀원 앱과 별개로 새로 작성한 웹 앱이다. 기존 `patient-ui`, `emergency-app`, `hospital-ui`를 수정하거나 가져오지 않았다. 공통 서버의 음성 초안 API와 환자·병원 후보 API를 사용한다.
 
 메인 이송 노트: **http://127.0.0.1:8000/paramedic/**
@@ -24,14 +26,15 @@
 - **서버 확인:** 시작할 때 `voice_revision`이 `voice-v2-20261030`인지 확인하고, 다르면 화면 아래에 경고한다. 서버가 `auto`를 지원하지 않으면 `환자 상태만`으로 바꾼다.
 - **저장 확인:** 서버 응답으로 확인한 저장 발화 수를 표시한다. `저장된 기록 확인`에서 서버 주소·전체 기록 ID·버전을 볼 수 있다. 원문이 저장돼도 환자 항목이 추출되지 않을 수 있어 두 상태를 구분한다. 응답이 불확실하면 이번 입력은 확인 중으로 표시한다. [실행 중인 서버의 DB 점검 방법](../docs/VOICE_STORAGE_CHECK.md).
 - **중간 저장·복구:** 같은 브라우저·서버 주소에서 마지막 임시 저장 후 12시간 이내에 다시 열면 같은 작성자·초안을 GET으로 복원한다. 아직 전송하지 않은 확정 인식문과 직접 입력은 미반영 검토용으로, 저장 여부가 불확실한 요청은 원래 요청 번호·본문·버전을 유지한 재시도 대상으로 복원한다. 마이크·음성 명령·환자 등록·병원 문의는 복원만으로 실행하지 않는다. [저장 범위와 검증](../docs/VOICE_DRAFT_RECOVERY_20261030.md).
+- **환자별 기록 전환:** 현재 환자 번호를 상단에 표시하고 목록 선택·새 환자·직전 환자 전환을 지원한다. 음성 “새 환자 시작”·“이전 환자로 돌아가”는 앞 내용을 현재 환자에 저장한 뒤 전환한다. 명령 뒤 문장은 원환자에 미반영으로 남긴다. 환자별 작성자·초안·미반영 내용·수정안을 분리하며 전환 시 복창 확인은 다시 시작한다. 저장 확인 대기 중에는 전환을 막는다. [분리·이전 복구본 이관·정리](../docs/VOICE_PATIENT_SWITCH_20261030.md).
 - **중요 항목 복창 확인:** 저장된 혈압·맥박·산소포화도·체온·호흡수·혈당·의식·호흡·증상 분류를 먼저 읽는다. 없음·미확인·누락·이전 관찰값을 구분한다. 항목의 맞아요 또는 말로 확인 버튼으로 현재 표시 내용을 확인하며, 최신 초안 GET 뒤 같은 버전·값일 때만 이 화면의 확인 상태를 바꾼다. 잘못된 항목은 그 항목의 수정칸에서만 PATCH로 고치고 다시 확인한다. 추천 준비의 계속 버튼은 복창 확인이 끝난 뒤 사용할 수 있다. [확인·수정·재시도 계약](../docs/VOICE_CRITICAL_REVIEW_20261030.md).
 - **문맥 힌트:** 서버 힌트 중 항목 이름·증상 용어만 브라우저 `SpeechRecognitionPhrase`에 넘긴다. ‘의식 명료’·‘구토 없음’·숫자처럼 값이 든 표현은 정상 소견 쪽으로 인식을 끌 수 있어 넘기지 않는다. 브라우저가 거부하면 한 번만 일반 인식으로 다시 시작한다. 힌트를 넘긴 것과 정확도 개선은 별개이며 측정하지 않았다.
 
 저장 응답을 잃어 결과가 불확실하면 새 입력을 막고 `재시도`를 제공한다. 재시도는 원래 요청 ID·본문·버전을 유지한다. 409에서는 최신 초안과 질문을 다시 불러오며 이전 본문을 자동 덮어쓰지 않는다.
 
-`새 기록 시작`은 이 브라우저의 복구본과 현재 화면 기록을 지우고 새 작성자·기록을 준비한다. 이전 서버 기록은 삭제하지 않는다. 환자 본문을 전송할 때 새 초안을 만든다. 실제 환자 등록·병원 문의·전송 API는 호출하지 않는다. 작업 기록: [Claude 구급대원 화면 인계](../docs/VOICE_UI_CLAUDE_HANDOFF.md).
+`새 환자 시작`은 현재 기록을 보관한 뒤 새 작성자·환자 번호를 준비하며 이전 기록을 지우지 않는다. `현재 환자 복구본 제거`는 해당 환자의 브라우저 임시본만 지우고 서버 원기록·다른 환자는 보존한다. 환자 본문을 처음 전송할 때 서버 초안을 만든다. 전환 자체는 실제 환자 등록·병원 문의·전송 API를 호출하지 않는다. 작업 기록: [Claude 구급대원 화면 인계](../docs/VOICE_UI_CLAUDE_HANDOFF.md).
 
-이 화면은 **자유 발화 기능 확인**이며 정답 일치율이나 실제 음성 정확도를 계산하지 않는다. 관찰 항목과 R1에서 파생한 추가 제안을 구분해 표시한다. 서버에는 성공적으로 전송한 본문과 결과가 남는다. 같은 브라우저의 localStorage에는 초안 참조, 미반영 확정문·직접 입력, 원본 재시도 요청의 최소 데이터를 보관하며 원본 음성·임시 인식·전체 서버 임상 스냅샷은 넣지 않는다. 12시간은 자동 복원 유효기간이다. 공용 기기에서는 마친 뒤 새 기록 시작으로 복구본을 지운다. 브라우저 저장 공간 삭제·비공개 모드 종료·다른 브라우저나 서버 주소로의 이동은 복구 범위에서 제외된다.
+이 화면은 **자유 발화 기능 확인**이며 정답 일치율이나 실제 음성 정확도를 계산하지 않는다. 관찰 항목과 R1에서 파생한 추가 제안을 구분해 표시한다. 서버에는 성공적으로 전송한 본문과 결과가 남는다. 같은 브라우저의 localStorage에는 환자별 초안 참조, 미반영 확정문·직접 입력, 원본 재시도 요청의 최소 데이터를 보관하며 원본 음성·임시 인식·전체 서버 임상 스냅샷은 넣지 않는다. 12시간은 자동 복원 유효기간이다. 공용 기기에서는 작업 후 환자별 복구본 제거로 정리한다. 브라우저 저장 공간 삭제·비공개 모드 종료·다른 브라우저나 서버 주소로의 이동은 복구 범위에서 제외된다.
 
 정답을 고정한 문장별 STT 결과 수집은 **http://127.0.0.1:8000/paramedic/evaluate.html** 에서 별도로 진행한다. [정답셋·평가 실행·현재 기준선](../docs/SPEECH_EVALUATION.md).
 
@@ -81,7 +84,7 @@ http://127.0.0.1:8000/paramedic/ 를 연다. 같은 서버의 API를 기본으�
 ## 검증
 
 ```powershell
-node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_critical_review.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs test_paramedic_draft_handoff.mjs test_paramedic_draft_recovery.mjs test_paramedic_audio_input_profile.mjs test_paramedic_speech_test_context.mjs test_paramedic_evaluation_page.mjs test_paramedic_local_audio_page.mjs
+node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_patient_records.mjs test_paramedic_critical_review.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs test_paramedic_draft_handoff.mjs test_paramedic_draft_recovery.mjs test_paramedic_audio_input_profile.mjs test_paramedic_speech_test_context.mjs test_paramedic_evaluation_page.mjs test_paramedic_local_audio_page.mjs
 python -m unittest test_voice_api test_voice_input test_voice_terms test_voice_audio
 ```
 
@@ -91,6 +94,6 @@ Node가 설치되지 않은 PC에서는 VS Code에 들어 있는 Node로 같은 
 ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_paramedic_quick_session.mjs test_paramedic_speech.mjs test_paramedic_voice_client.mjs test_paramedic_recording_control.mjs
 ```
 
-토글·저장 확인·입력 프로필·소음 조건·로컬 WAV·중간 명령·동일 초안 복원·중간 저장·복창 확인의 배포본 Node 회귀는 780/780 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결한다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리한다. 실제 브라우저·마이크·STT 정확도 측정이 아니다.
+토글·저장 확인·입력 프로필·소음 조건·로컬 WAV·중간 명령·동일 초안 복원·중간 저장·복창 확인·환자별 전환의 배포본 Node 회귀는 977/977 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 환자별 전환 HTTP 통합은 실제 handler·분리한 새 SQLite로 18개 시나리오·134개 확인을 통과했다. DOM과 `SpeechRecognition`은 모의 처리하므로 실제 브라우저·마이크·STT 정확도 측정과 구분한다.
 
 API 계약·Speech 키 설정: [음성 입력 API](../docs/VOICE_INPUT_API.md). 실제 마이크로 녹음한 한국어의 인식 정확도와 현장 편의성은 별도 평가가 필요하다.

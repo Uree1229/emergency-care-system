@@ -137,3 +137,75 @@ test('the terminal compatibility helper never consumes a middle command or recom
     prefix:'혈압 120',command:'중단',index:7,end:9,
   });
 });
+
+// Patient commands are explicit UI controls, never inferred from a patient
+// description. Expectations are authored before extending the parser grammar.
+const PATIENT_TRIGGER_CASES = [
+  ['새 환자 시작','new_patient','','새 환자 시작',''],
+  ['새환자시작','new_patient','','새환자시작',''],
+  ['다음 환자 시작','new_patient','','다음 환자 시작',''],
+  ['다음환자시작','new_patient','','다음환자시작',''],
+  ['새 환자 시작해줘','new_patient','','새 환자 시작해줘',''],
+  ['새 환자 시작해주세요','new_patient','','새 환자 시작해주세요',''],
+  ['다음 환자 시작해 주세요','new_patient','','다음 환자 시작해 주세요',''],
+  ['새환자 시작해 줘요','new_patient','','새환자 시작해 줘요',''],
+  ['새 환자 시작하겠습니다','new_patient','','새 환자 시작하겠습니다',''],
+  ['다음 환자 시작합니다','new_patient','','다음 환자 시작합니다',''],
+  ['혈압 120에 80 새 환자 시작 맥박 92','new_patient','혈압 120에 80','새 환자 시작','맥박 92'],
+  ['흉통 없음. 다음 환자 시작! 혈압 90에 60.','new_patient','흉통 없음.','다음 환자 시작','! 혈압 90에 60.'],
+  ['이전 환자로 돌아가','previous_patient','','이전 환자로 돌아가',''],
+  ['이전환자로돌아가','previous_patient','','이전환자로돌아가',''],
+  ['이전 환자로 돌아가주세요','previous_patient','','이전 환자로 돌아가주세요',''],
+  ['이전 환자로 돌아가 주세요','previous_patient','','이전 환자로 돌아가 주세요',''],
+  ['이전환자로 돌아가줘','previous_patient','','이전환자로 돌아가줘',''],
+  ['이전 환자 기록으로 돌아가','previous_patient','','이전 환자 기록으로 돌아가',''],
+  ['이전환자기록으로돌아가주세요','previous_patient','','이전환자기록으로돌아가주세요',''],
+  ['이전 환자 기록으로 돌아가 줘요','previous_patient','','이전 환자 기록으로 돌아가 줘요',''],
+  ['47세 남성. 이전 환자로 돌아가 맥박 90','previous_patient','47세 남성.','이전 환자로 돌아가','맥박 90'],
+  ['새 환자 시작 병원 추천해줘','new_patient','','새 환자 시작','병원 추천해줘'],
+  ['이전 환자로 돌아가 새 환자 시작','previous_patient','','이전 환자로 돌아가','새 환자 시작'],
+  ['종료 새 환자 시작','stop','','종료','새 환자 시작'],
+  ['병원 추천해줘 다음 환자 시작','recommend','','병원 추천해줘','다음 환자 시작'],
+  ['새 환자 시작하지 마. 이전 환자로 돌아가','previous_patient','새 환자 시작하지 마.','이전 환자로 돌아가',''],
+  ['환자가 “새 환자 시작”이라고 말함. 다음 환자 시작','new_patient','환자가 “새 환자 시작”이라고 말함.','다음 환자 시작',''],
+];
+for(const [raw,action,prefix,command,suffix] of PATIENT_TRIGGER_CASES)test(`explicit patient action preserves old-patient speech: ${raw}`,()=>{
+  const result=findVoiceTrigger(raw);assert.ok(result);
+  assert.equal(result.action,action);assert.equal(result.prefix,prefix);assert.equal(result.command,command);assert.equal(result.suffix,suffix);
+  assert.equal(raw.slice(result.index,result.end),command);
+  assert.equal(findVoiceTrigger(raw,{isFinal:false}),null);
+});
+
+const PATIENT_NON_TRIGGER_CASES = [
+  '새 환자 시작하지마','새 환자 시작 하지 마','새 환자 시작해 주지 마','새 환자 시작 해달라',
+  '새 환자 시작 말고 기존 기록 유지','새 환자 시작 안돼','아직 새 환자 시작','절대 다음 환자 시작',
+  '환자가 새 환자 시작','보호자가 다음 환자 시작','환자분께서 새 환자 시작',
+  '환자가 새 환자 시작이라고 했습니다','다음 환자 시작해달라고 했습니다',
+  '명령어 새 환자 시작','트리거 다음 환자 시작','“새 환자 시작”','‘다음 환자 시작’',
+  '「새 환자 시작」','『이전 환자로 돌아가』','"이전 환자 기록으로 돌아가"',
+  '새 환자 처치 시작','새 환자의 이송 시작','다음 환자 진료 시작','새 환자 시작시각 14시',
+  '새 환자 시작 시간은 14시','새 환자 시작 예정입니다','새 환자 시작 여부 확인','새 환자 시작했습니다',
+  '새 환자 시작이 필요합니다','다음 환자','이전 환자로 돌아가지 마','이전 환자로 돌아가 지 마',
+  '이전 환자로 돌아가 주지 마','이전 환자로 돌아가면 안 됩니다','이전 환자로 돌아가기',
+  '이전 환자로 돌아가 라고 보호자가 말함','이전 환자로 돌아가 안돼','환자가 이전 환자로 돌아가',
+  '명령어 이전 환자 기록으로 돌아가','이전 환자로 돌아가 버튼','이전 환자 기록을 보여줘',
+];
+for(const raw of PATIENT_NON_TRIGGER_CASES)test(`patient description, report, negation or quote is not a switch: ${raw}`,()=>{
+  assert.equal(findVoiceTrigger(raw),null);
+});
+
+test('split final patient commands work only when complete and preserve earlier source',()=>{
+  for(const [parts,action,command] of [
+    [['혈압 120에 80','새','환자','시작','맥박 92'],'new_patient','새 환자 시작'],
+    [['호흡 정상','이전 환자','기록으로','돌아가주세요','혈당 105'],'previous_patient','이전 환자 기록으로 돌아가주세요'],
+  ]){
+    const result=findVoiceTrigger(parts.join(' '));assert.equal(result.action,action);assert.equal(result.command,command);
+    assert.equal(result.prefix,parts[0]);assert.equal(result.suffix,parts.at(-1));
+  }
+  assert.equal(findVoiceTrigger('새 환자'),null);assert.equal(findVoiceTrigger('이전 환자 기록으로'),null);
+});
+
+test('new patient actions never change the terminal stop compatibility return shape',()=>{
+  for(const raw of ['새 환자 시작','다음 환자 시작','이전 환자로 돌아가','이전 환자 기록으로 돌아가주세요'])assert.equal(splitStopCommand(raw),null);
+  assert.deepEqual(splitStopCommand('혈압 120 종료.'),{prefix:'혈압 120',command:'종료',index:7,end:9});
+});

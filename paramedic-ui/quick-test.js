@@ -6,6 +6,7 @@ import {RECORDING_LIMITS, findVoiceTrigger} from './recording-control.mjs';
 import {writeDraftHandoff} from './draft-handoff.mjs';
 import {RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery} from './draft-recovery.mjs';
 import {buildCriticalReview,planCriticalCorrection,classifyCriticalReply} from './critical-review.mjs';
+import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord} from './patient-records.mjs';
 
 const $ = id => document.getElementById(id);
 const VOICE_REVISION = 'voice-v2-20261030', HOLD_MS = 400;
@@ -18,7 +19,7 @@ const reasons = {missing:'누락',needs_clarification:'재확인 필요',uncerta
 const directions = {increased:'▲ 증가',decreased:'▼ 감소',unchanged:'= 같음'};
 const actions = {review:'읽어주기',missing:'빠진 항목 안내',undo:'되돌리기',edit:'수정',add:'추가',confirm:'확인(화면에서 누르기)',submit:'전송 요청(실행 안 함)',observe:'상태 변화 관찰'};
 const modeHints = {auto:'상태 설명은 초안에 더하고, “방금 거 취소”·“정리해줘”·“혈압 110에 70으로 수정” 같은 말은 명령으로 처리합니다.',dictation:'설명한 내용을 같은 초안에 추가합니다. 명령으로 해석하지 않습니다.',command:'“혈압 110에 70으로 수정해”, “정리해줘”, “마지막 입력 취소”처럼 말하세요.'};
-const idleHint = () => '“중단”·“녹음 종료”는 앞 내용을 저장하고 마칩니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다.';
+const idleHint = () => '“새 환자 시작”·“이전 환자로 돌아가”는 현재 내용을 보관한 뒤 전환합니다. “중단”은 앞 내용을 저장합니다.';
 // Hints that carry a finding value (normal status, negation, numbers) could pull unclear speech
 // toward that value, so only vocabulary hints reach the recognizer.
 const VALUE_HINT = /[0-9]|[십백]|명료|정상|저하|없음|있음/;
@@ -28,7 +29,7 @@ const SHORT = {age:'나이',sex:'성별',symptoms:'증상',onset_at:'발생',con
 const ITEM_KEYS = {age:['age','age_group'],symptoms:['symptoms','denied_symptoms','uncertain_symptoms'],blood_pressure:['systolic_bp','diastolic_bp']};
 const OPTIONS = {consciousness:['명료','저하','반응 없음'],breathing:['정상','비정상','없음'],sex:['남성','여성']};
 let actor = 'QUICK-VOICE-' + requestId();
-const makeClient = () => new VoiceClient({server:location.origin,actorId:actor,beforeWrite:()=>persistRecovery(true)});
+const makeClient = (owner=actor) => new VoiceClient({server:location.origin,actorId:owner,beforeWrite:()=>persistRecovery(true)});
 let client = makeClient();
 let flow = new QuickSession(client), mode = 'auto', attempt = null, busy = false, stopping = false, ticker, historyCount = 0;
 let autoAvailable = true, recordingMode = 'toggle', press = null, lastSpoken = '', hintPlan = {applied: [], excluded: []}, phraseCount = 0;
@@ -41,11 +42,138 @@ let manualAppliedText = '', manualCopiedSource = '';
 let unappliedText = '', recommendationReady = false;
 let recovering=true,recoveryBlocked=false,recoveryConflict=false,recoveryRaw,unsentVoice='';
 let criticalAcknowledged=new Map(),criticalEditor=null,lastCriticalSpoken='';
+let patientBook=null,patientBookRaw=null,patientEpoch=0,patientStoreInvalid=false,legacyRecoveryRaw=null;
+const activePatient=()=>patientBook?.records.find(record=>record.id===patientBook.activeId)||null;
+const patientLabel=record=>`환자 ${String(record?.number??patientBook?.nextNumber??1).padStart(2,'0')}`;
+function physicalStorage(){try{return localStorage;}catch{return null;}}
+function assertPatientStore(){
+  const storage=physicalStorage();if(!storage)throw Error('브라우저 저장 공간을 사용할 수 없습니다.');
+  if(storage.getItem(PATIENT_RECORDS_KEY)!==patientBookRaw){recoveryConflict=true;recoveryBlocked=true;throw Error('다른 탭에서 환자 기록 목록이 변경됐습니다.');}
+  return storage;
+}
+function commitPatientBook(next){const storage=assertPatientStore(),result=writePatientRecords(storage,next,{expectedRaw:patientBookRaw});
+  if(storage.getItem(PATIENT_RECORDS_KEY)!==result.raw)throw Error('환자 기록을 저장한 결과를 확인하지 못했습니다. 현재 화면을 유지하세요.');
+  patientBook=result.book;patientBookRaw=result.raw;return result;}
+function ensureActivePatient(){
+  if(!patientBook)throw Error('환자 기록 목록을 먼저 확인하세요.');
+  if(!patientBook.activeId){if(patientBook.records.length)throw Error('먼저 환자를 선택하거나 새 환자 시작을 누르세요.');
+    patientBook=createPatientRecord(patientBook,'NOTE-'+requestId());}
+  return activePatient();
+}
+function renderPatients(){
+  $('patient-current').textContent=patientBook&&!patientBook.activeId&&patientBook.records.length?'현재 환자 선택 필요':`현재 ${patientLabel(activePatient())} · 음성 초안`;
+  const selected=$('patient-select').value;$('patient-select').replaceChildren();
+  const placeholder=node('option',patientBook?.records.length?'환자 기록 선택':'아직 보관한 기록 없음');placeholder.value='';$('patient-select').append(placeholder);
+  for(const record of patientBook?.records||[]){const option=node('option',patientLabel(record)+(record.checkpoint?' · 보관됨':' · 새 기록'));option.value=record.id;$('patient-select').append(option);}
+  $('patient-select').value=patientBook?.records.some(record=>record.id===selected)?selected:patientBook?.activeId||'';
+  const blocked=busy||stopping||capture.active||!!flow.job||!!client.pending||recovering||recoveryConflict;
+  $('patient-new').disabled=blocked||patientStoreInvalid;
+  $('patient-switch').disabled=blocked||patientStoreInvalid||!patientBook?.records.length;
+  $('patient-select').disabled=blocked||patientStoreInvalid;
+  $('patient-previous').disabled=blocked||patientStoreInvalid||!patientBook?.previousId;
+  $('patient-remove').disabled=blocked||patientStoreInvalid||!activePatient();
+  $('patient-reset-invalid').hidden=!patientStoreInvalid;$('patient-reset-invalid').disabled=busy||stopping||capture.active||recovering||recoveryConflict;
+}
+function resetPatientUI(){
+  patientEpoch++;capture.stopSpeaking();clearInterval(ticker);attempt=null;historyCount=0;press=null;lastSpoken='';deferred=new Map();recent=null;
+  unsentVoice='';unappliedText='';manualAppliedText='';manualCopiedSource='';recommendationReady=false;criticalAcknowledged=new Map();criticalEditor=null;lastCriticalSpoken='';
+  error('');heard('');$('quick-history').replaceChildren();$('quick-history-count').textContent='0회';$('quick-time').textContent='00:00';
+  $('recording-ended').hidden=true;$('recording-excluded').hidden=true;$('recording-excluded-text').textContent='';$('recording-review').value='';
+  $('quick-feedback').hidden=true;$('recommendation-prep').hidden=true;$('critical-status').textContent='항목별 복창 확인을 진행하세요.';
+  $('recording-review-status').textContent='검토한 뒤 반영 버튼을 눌러야 이 환자의 초안에 반영됩니다.';
+}
+function bootPatientRecords(){
+  const storage=physicalStorage(),result=readPatientRecords(storage,location.origin);patientBookRaw=result.raw;patientStoreInvalid=false;legacyRecoveryRaw=storage?.getItem(RECOVERY_KEY)??null;
+  if(result.status==='invalid'){patientStoreInvalid=true;throw Error('환자 기록 목록을 읽지 못했습니다. 원본을 덮어쓰지 않았습니다.');}
+  if(result.status==='valid'){patientBook=result.book;return;}
+  patientBook=emptyBook(location.origin);legacyRecoveryRaw=storage?.getItem(RECOVERY_KEY)??null;
+  if(legacyRecoveryRaw!==null){
+    let now=Date.now();try{const saved=JSON.parse(legacyRecoveryRaw);if(Number.isSafeInteger(saved.createdAt)&&saved.createdAt<=now)now=Math.min(now,saved.createdAt+12*60*60*1000-1);}catch{}
+    if(readDraftRecovery(storage,location.origin,{now}).status!=='valid'){patientStoreInvalid=true;throw Error('기존 단일 복구본을 확인하지 못해 보존했습니다.');}
+    const migrated=createPatientRecord(patientBook,'NOTE-'+requestId());
+    try{commitPatientBook(updatePatientCheckpoint(migrated,migrated.activeId,legacyRecoveryRaw));}catch(err){patientStoreInvalid=true;throw err;}
+    // Retire only the exact legacy value after its durable replacement exists.
+    try{if(storage.getItem(PATIENT_RECORDS_KEY)===patientBookRaw&&storage.getItem(RECOVERY_KEY)===legacyRecoveryRaw)storage.removeItem(RECOVERY_KEY);}catch{}
+  }
+}
+function blankPatientState(){const owner='QUICK-VOICE-'+requestId(),next=makeClient(owner);return {owner,client:next,flow:new QuickSession(next),payload:null};}
+async function loadPatientState(record){
+  if(!record.checkpoint)return blankPatientState();
+  const result=readDraftRecovery({getItem:()=>record.checkpoint},location.origin);
+  if(result.status!=='valid')throw Error(result.status==='expired'?'이 환자의 자동 복원 유효기간 12시간이 지났습니다. 기존 기록을 새 초안으로 바꾸지 않았습니다.':'환자 복구본을 확인할 수 없습니다.');
+  const p=result.payload,next=makeClient(p.actorId);
+  if(p.sessionId){await next.sync(p.sessionId);
+    if(next.session?.id!==p.sessionId||next.session.state!=='DRAFT'||next.session.patient_id||!Number.isSafeInteger(next.session.version)||next.session.version<p.version||(next.session.actor_id!==undefined&&next.session.actor_id!==p.actorId))throw Error('대상 초안의 상태·작성자·버전이 환자 기록과 일치하지 않습니다.');}
+  const nextFlow=new QuickSession(next);if(p.pending)nextFlow.restoreRecovery({pending:p.pending.request,job:p.pending.job});
+  return {owner:p.actorId,client:next,flow:nextFlow,payload:p};
+}
+function applyPatientState(loaded){
+  resetPatientUI();actor=loaded.owner;client=loaded.client;flow=loaded.flow;const p=loaded.payload;
+  mode=p?.mode||(autoAvailable?'auto':'dictation');recordingMode=p?.recordingMode||'toggle';
+  recoveryRaw=activePatient()?.checkpoint??null;recoveryBlocked=false;$('patient-select').value=patientBook?.activeId||'';
+  if(p){unappliedText=p.recoveryText;$('recording-excluded-text').textContent=unappliedText;$('recording-excluded').hidden=!unappliedText;$('recording-review').value=p.manualText;
+    for(const u of client.session?.utterances||[]){const item=node('article',undefined,'qv-msg is-user');item.append(node('p',u.transcript,'qv-bubble'),node('div','이 환자의 서버 저장 원문','qv-meta'));$('quick-history').append(item);historyCount++;}
+    $('quick-history-count').textContent=`${historyCount}회`;
+    if(p.pending){attempt=recoveredAttempt(p.pending.attempt);attempt.patientEpoch=patientEpoch;heard(attempt.sourceFinals.join(' '));}
+    if(p.manualText){$('settings').hidden=false;$('recording-manual').open=true;$('settings-toggle').setAttribute('aria-expanded','true');}}
+  $('mode-hint').textContent=modeHints[mode];$('quick-interim').textContent=idleHint();
+  recoveryMessage(p?.pending?'이 환자의 저장 확인 대기 요청을 복원했습니다. 같은 요청으로 재시도하세요.':'환자별 미반영 내용은 따로 보관합니다. 전환만으로 입력·마이크·병원 문의를 실행하지 않습니다.');
+  $('patient-status').textContent=`${patientLabel(activePatient())} 기록입니다. 입력 전에 현재 환자를 확인하세요.`;
+  render();renderChanges();state(p?.pending?'저장 확인 대기':p?'복원 완료':'새 환자 기록');
+}
+function canLeavePatient(){return !busy&&!stopping&&!capture.active&&!flow.job&&!client.pending&&!recovering&&!recoveryConflict&&!patientStoreInvalid;}
+function preservePatientBeforeSwitch(){
+  if(!recoveryBlocked)return persistRecovery(true);
+  if(unsentVoice||unappliedText||$('recording-review').value.trim()||criticalEditor)throw Error('현재 미반영 내용을 먼저 보관하세요.');
+  assertPatientStore();return true;
+}
+async function switchPatient(id,{initial=false}={}){
+  if(!initial&&!canLeavePatient())return false;
+  try{
+    if(!initial)preservePatientBeforeSwitch();
+    const record=patientBook?.records.find(row=>row.id===id);if(!record)throw Error('선택한 환자 기록이 없습니다.');
+    if(!initial&&id===patientBook.activeId)return true;
+    recovering=true;controls();const loaded=await loadPatientState(record);assertPatientStore();
+    if(!initial)commitPatientBook(selectPatientRecord(patientBook,id));
+    applyPatientState(loaded);return true;
+  }catch(err){if(initial)recoveryBlocked=true;$('patient-select').value=patientBook?.activeId||'';error('환자를 전환하지 않았습니다. '+err.message);$('patient-status').textContent=err.message;return false;}
+  finally{recovering=false;controls();}
+}
+async function newPatient(){
+  if(!canLeavePatient())return false;
+  try{preservePatientBeforeSwitch();recovering=true;controls();const next=createPatientRecord(patientBook,'NOTE-'+requestId());commitPatientBook(next);
+    applyPatientState(blankPatientState());return true;
+  }catch(err){$('patient-select').value=patientBook?.activeId||'';error('새 환자를 시작하지 못했습니다. 현재 기록은 유지했습니다. '+err.message);return false;}
+  finally{recovering=false;controls();}
+}
+async function previousPatient(){
+  if(!patientBook?.previousId){error('이전에 열었던 환자 기록이 없습니다. 현재 환자는 유지합니다.');return false;}
+  return switchPatient(patientBook.previousId);
+}
+function removeCurrentPatient(){
+  if(!canLeavePatient()||!activePatient())return;
+  try{commitPatientBook(removePatientRecord(patientBook,patientBook.activeId));resetPatientUI();actor='QUICK-VOICE-'+requestId();client=makeClient();flow=new QuickSession(client);recoveryRaw=null;
+    recoveryBlocked=patientBook.records.length>0;recoveryMessage('현재 환자의 브라우저 복구본만 지웠습니다. 서버 원기록과 다른 환자 기록은 유지됩니다.');render();renderChanges();
+  }catch(err){error(err.message);}finally{controls();}
+}
+function resetInvalidPatientStore(){
+  if(!patientStoreInvalid||busy||stopping||capture.active||recovering||recoveryConflict)return;
+  try{const storage=assertPatientStore();if(storage.getItem(RECOVERY_KEY)!==legacyRecoveryRaw)throw Error('기존 복구본이 다른 탭에서 바뀌었습니다.');
+    storage.removeItem(PATIENT_RECORDS_KEY);if(legacyRecoveryRaw!==null)storage.removeItem(RECOVERY_KEY);
+    patientBook=emptyBook(location.origin);patientBookRaw=null;legacyRecoveryRaw=null;patientStoreInvalid=false;recoveryBlocked=false;recoveryRaw=null;
+    resetPatientUI();actor='QUICK-VOICE-'+requestId();client=makeClient();flow=new QuickSession(client);render();renderChanges();
+    recoveryMessage('이 브라우저의 읽을 수 없던 환자 기록 목록을 초기화했습니다. 서버 원기록은 지우지 않았습니다.');
+  }catch(err){error(err.message);}finally{controls();}
+}
+async function performPatientAction(a){
+  if(!a?.patientAction||a.patientActionHandled)return;a.patientActionHandled=true;
+  if(a.patientAction==='new_patient')await newPatient();else await previousPatient();
+}
 const criticalItems=()=>buildCriticalReview(client.session);
 const criticalKey=item=>(client.session?.id||'')+'|'+item.id;
 const criticalPending=()=>criticalItems().filter(item=>criticalAcknowledged.get(criticalKey(item))!==item.signature);
-function criticalSnapshot(items){return {sessionId:client.session?.id,version:client.session?.version,items:items.map(item=>({id:item.id,signature:item.signature}))};}
-function matchesCritical(snapshot){return client.session?.id===snapshot.sessionId&&client.session?.version===snapshot.version&&snapshot.items.every(old=>criticalItems().some(item=>item.id===old.id&&item.signature===old.signature));}
+function criticalSnapshot(items){return {patientEpoch,sessionId:client.session?.id,version:client.session?.version,items:items.map(item=>({id:item.id,signature:item.signature}))};}
+function matchesCritical(snapshot){return snapshot.patientEpoch===patientEpoch&&client.session?.id===snapshot.sessionId&&client.session?.version===snapshot.version&&snapshot.items.every(old=>criticalItems().some(item=>item.id===old.id&&item.signature===old.signature));}
 function criticalEditorText(){
   if(!criticalEditor?.dirty)return '';
   return '아직 반영하지 않은 항목 수정안입니다.\n'+Object.entries(criticalEditor.inputs).map(([field,input])=>`${labels[field]||field}: ${input.value||'입력 비움(값 없음)'}`).join('\n');
@@ -64,15 +192,17 @@ function renderCritical(){
   $('critical-read').disabled=lockedNow||!VoiceCapture.capabilities().tts||!items.length;
   const shot=criticalSnapshot(pending);$('critical-all').onclick=()=>acknowledgeCritical(shot);
   $('critical-items').replaceChildren(...items.map(item=>{
+    const ownerEpoch=patientEpoch,ownerShot=criticalSnapshot([item]);
     const confirmed=criticalAcknowledged.get(criticalKey(item))===item.signature;
     const card=node('article',undefined,'qv-critical-item'+(confirmed?' is-confirmed':''));card.setAttribute('data-critical-id',item.id);
     card.append(node('h3',item.label),node('p',item.text),node('small',confirmed?'입력 내용 확인됨':item.confirmable?'복창 확인 대기':'값 재확인·수정 필요'));
     const row=node('div',undefined,'qv-critical-actions');
     for(const [name,label,handler,disabled]of [
-      ['confirm','맞아요',()=>acknowledgeCritical(criticalSnapshot([item])),lockedNow||!!criticalEditor||!item.confirmable||confirmed],
-      ['edit','이 항목 수정',()=>openCriticalEditor(item),lockedNow||!!criticalEditor],
-      ['read','다시 듣기',()=>readCritical([item]),lockedNow||!VoiceCapture.capabilities().tts],
+      ['confirm','맞아요',()=>acknowledgeCritical(ownerShot),lockedNow||!!criticalEditor||!item.confirmable||confirmed],
+      ['edit','이 항목 수정',()=>{if(ownerEpoch===patientEpoch&&matchesCritical(ownerShot))openCriticalEditor(item);},lockedNow||!!criticalEditor],
+      ['read','다시 듣기',()=>{if(ownerEpoch===patientEpoch&&matchesCritical(ownerShot))readCritical([item]);},lockedNow||!VoiceCapture.capabilities().tts],
       ['voice',activeVerification&&attempt.verification.items[0].id===item.id?'말하기 마치기':'말로 확인',()=>{
+        if(ownerEpoch!==patientEpoch||!matchesCritical(ownerShot))return;
         if(capture.active&&attempt?.target==='verification'&&attempt.verification.items[0].id===item.id)return finish();
         if(locked()||criticalEditor||!item.confirmable)return;return record('verification',false,criticalSnapshot([item]));
       },(!activeVerification&&lockedNow)||!!criticalEditor||!item.confirmable||(capture.active&&(!activeVerification||attempt.verification.items[0].id!==item.id))]
@@ -128,16 +258,13 @@ async function saveCriticalEditor(){
     attempt=a;capture.stopSpeaking();await send(a,()=>flow.correct(patch));
   }catch(err){error(err.message);controls();}
 }
-function recoveryStorage(){try{return localStorage;}catch{return null;}}
+function recoveryStorage(){return {getItem(key){assertPatientStore();return key===RECOVERY_KEY?(activePatient()?.checkpoint??null):null;}};}
 function recoveryMessage(text){$('recovery-status').textContent=text;}
 const guardedRecoveryStorage={
-  getItem(key){const storage=recoveryStorage();if(!storage)throw Error('브라우저 저장 공간을 사용할 수 없습니다.');return storage.getItem(key);},
-  setItem(key,value){const storage=recoveryStorage();if(!storage)throw Error('브라우저 저장 공간을 사용할 수 없습니다.');
-    if(storage.getItem(key)!==recoveryRaw){recoveryConflict=true;recoveryBlocked=true;throw Error('다른 탭에서 복구 기록이 변경됐습니다.');}
-    storage.setItem(key,value);recoveryRaw=value;},
-  removeItem(key){const storage=recoveryStorage();if(!storage)throw Error('브라우저 저장 공간을 사용할 수 없습니다.');
-    if(storage.getItem(key)!==recoveryRaw){recoveryConflict=true;recoveryBlocked=true;throw Error('다른 탭의 복구 기록을 지우지 않았습니다.');}
-    storage.removeItem(key);recoveryRaw=null;}
+  getItem(key){return recoveryStorage().getItem(key);},
+  setItem(key,value){if(key!==RECOVERY_KEY)throw Error('잘못된 환자 복구 키입니다.');assertPatientStore();const current=ensureActivePatient();
+    commitPatientBook(updatePatientCheckpoint(patientBook,current.id,value));recoveryRaw=value;},
+  removeItem(key){if(key!==RECOVERY_KEY)throw Error('잘못된 환자 복구 키입니다.');if(activePatient())commitPatientBook(removePatientRecord(patientBook,patientBook.activeId));recoveryRaw=null;}
 };
 function attemptRecovery(a){
   return {target:a.target,mode:a.mode||mode,questionId:a.question?.id||null,questionText:a.question?.question||'',
@@ -166,27 +293,9 @@ async function resumeRecovery(){
   if(busy||capture.active||stopping||recoveryConflict)return;
   recovering=true;recoveryBlocked=false;controls();
   try{
-    const storage=recoveryStorage();recoveryRaw=storage?.getItem(RECOVERY_KEY);
-    const result=readDraftRecovery(storage,location.origin);
-    if(result.status==='absent'){recoveryMessage('이 브라우저에 임시 저장하고, 마지막 저장 후 12시간 이내의 기록을 복원합니다.');return;}
-    if(result.status!=='valid')throw Error(result.status==='expired'?'복구본 보관 기간 12시간이 지났습니다. 새 기록 시작을 명시적으로 선택하세요.':'복구본을 확인할 수 없습니다. 새 기록을 자동 생성하지 않았습니다.');
-    const p=result.payload;actor=p.actorId;client=makeClient();flow=new QuickSession(client);
-    if(p.sessionId){await client.sync(p.sessionId);
-      if(client.session?.id!==p.sessionId||client.session.state!=='DRAFT'||client.session.patient_id||!Number.isSafeInteger(client.session.version)||client.session.version<p.version||
-        (client.session.actor_id!==undefined&&client.session.actor_id!==actor))throw Error('서버의 초안 상태·작성자·버전이 복구본과 일치하지 않습니다.');}
-    if(storage.getItem(RECOVERY_KEY)!==recoveryRaw){recoveryConflict=true;throw Error('복원 중 다른 탭에서 기록이 변경됐습니다.');}
-    mode=p.mode;recordingMode=p.recordingMode;unappliedText=p.recoveryText;unsentVoice='';criticalAcknowledged=new Map();criticalEditor=null;lastCriticalSpoken='';
-    $('recording-excluded-text').textContent=unappliedText;$('recording-excluded').hidden=!unappliedText;
-    $('recording-review').value=p.manualText;manualAppliedText='';manualCopiedSource='';recent=null;deferred=new Map();recommendationReady=false;
-    $('quick-history').replaceChildren();historyCount=0;
-    for(const u of client.session?.utterances||[]){const item=node('article',undefined,'qv-msg is-user');
-      item.append(node('p',u.transcript,'qv-bubble'),node('div','서버에서 복원한 저장 원문','qv-meta'));$('quick-history').append(item);historyCount++;}
-    $('quick-history-count').textContent=`${historyCount}회`;
-    if(p.pending){flow.restoreRecovery({pending:p.pending.request,job:p.pending.job});attempt=recoveredAttempt(p.pending.attempt);
-      heard(attempt.sourceFinals.join(' '));recoveryMessage('저장 확인 대기 요청을 복원했습니다. 같은 요청 재시도로 결과를 확인하세요.');}
-    else{attempt=null;recoveryMessage('같은 초안을 복원했습니다. 미반영 문장은 검토 후 반영하세요. 마이크는 자동으로 켜지지 않습니다.');}
-    if(p.manualText){$('settings').hidden=false;$('recording-manual').open=true;$('settings-toggle').setAttribute('aria-expanded','true');}
-    $('mode-hint').textContent=modeHints[mode];render();renderChanges();state(p.pending?'저장 확인 대기':'복원 완료');
+    bootPatientRecords();
+    if(!patientBook.activeId){recoveryBlocked=patientBook.records.length>0;recoveryMessage(recoveryBlocked?'환자를 선택하거나 새 환자 시작을 누르세요.':'환자별로 임시 저장하고 마지막 저장 후 12시간 이내의 기록을 복원합니다.');return;}
+    const loaded=await loadPatientState(activePatient());assertPatientStore();applyPatientState(loaded);
   }catch(err){recoveryBlocked=true;recoveryMessage('복구 확인 필요 · '+err.message);error(err.message);}
   finally{recovering=false;controls();}
 }
@@ -216,6 +325,7 @@ function afterTrigger(a) {
   if(!a.trigger||a.actionHandled)return;
   a.actionHandled=true;
   capture.stopSpeaking();
+  if(['new_patient','previous_patient'].includes(a.trigger.action)){a.patientAction=a.trigger.action;return;}
   if(a.trigger.action==='stop'){
     state('저장 후 중단');$('quick-status').textContent='명령 앞의 내용을 저장하고 말하기를 마쳤습니다. 이어서 말하면 같은 초안에 추가됩니다.';
     return;
@@ -257,6 +367,7 @@ function pttControl(id,target,blocked,idle,holding) {
 }
 function controls() {
   renderStorageReceipt();
+  renderPatients();
   const active=capture.active, isLocked=locked()||!!criticalEditor, q=currentQuestion(), caps=VoiceCapture.capabilities();
   const hasFields=Object.keys(client.session?.fields||{}).length>0, micBlocked=busy||stopping||!!flow.job||recovering||recoveryBlocked||!!criticalEditor||!caps.browser;
   // With a question showing, the big button answers it and general input moves to the side button.
@@ -274,7 +385,7 @@ function controls() {
   $('followup-unavailable').disabled=isLocked||!q;
   for(const option of $('followup-options').children)option.disabled=isLocked;
   $('followup-speak').disabled=isLocked||!q||!caps.tts;
-  $('quick-new').disabled=busy||stopping||active||!!flow.job||recovering||recoveryConflict||!!criticalEditor;
+  $('quick-new').disabled=busy||stopping||active||!!flow.job||recovering||recoveryConflict||patientStoreInvalid;
   $('quick-readback').disabled=isLocked||!hasFields||!caps.tts;
   $('quick-retry').hidden=!client.pending||busy||stopping;
   $('quick-retry').disabled=busy||stopping||active||recovering||recoveryBlocked;
@@ -373,7 +484,8 @@ function render() {
   $('summary-chips').replaceChildren(...SUMMARY.map(ids=>summaryChip(ids,ctx)));
   const filled=SUMMARY.flat().filter(id=>itemValue(id,fields)).length;
   $('quick-count').textContent=filled?`12개 중 ${filled}개`:s?.utterances?.length?'원문 저장됨 · 항목 확인 필요':'기록 대기';
-  $('quick-session').textContent=s?`가상 환자 · 초안 ${String(s.id).slice(-6)} · 버전 ${s.version}`:'가상 환자 · 새 기록';
+  const ownerLabel=patientBook?.records.length&&!activePatient()?'환자 선택 필요':patientLabel(activePatient());
+  $('quick-session').textContent=s?`${ownerLabel} · 초안 ${String(s.id).slice(-6)} · 버전 ${s.version}`:`${ownerLabel} · 새 기록`;
   renderFollowup();controls();
 }
 function answerOptions(q) {return q.id==='symptoms'?(q.uncertain_items?.length===1?['있음','없음']:[]):OPTIONS[q.id]||[];}
@@ -388,7 +500,8 @@ function renderFollowup() {
     $('followup-progress').textContent=Number.isInteger(plan.unanswered_count)?`남은 ${Math.max(0,plan.unanswered_count-deferred.size)}${deferred.size?` · 보류 ${deferred.size}`:''}`:'';
   }
   const options=q?answerOptions(q):[];
-  $('followup-options').replaceChildren(...options.map(text=>{const button=node('button',text,'qv-chip-btn');button.type='button';button.onclick=()=>tapAnswer(text);return button;}));
+  const offeredEpoch=patientEpoch,offeredVersion=client.session?.version;
+  $('followup-options').replaceChildren(...options.map(text=>{const button=node('button',text,'qv-chip-btn');button.type='button';button.onclick=()=>{if(offeredEpoch===patientEpoch&&offeredVersion===client.session?.version)return tapAnswer(text);};return button;}));
   $('followup-options').hidden=!options.length;
   $('followup-deferred').hidden=!deferred.size;
   $('followup-deferred-text').textContent=deferred.size?`검토 때 확인 ${deferred.size}개 · ${[...deferred].map(([id,heardText])=>`${questionLabel(items.find(item=>item.id===id))} “${heardText}”`).join(', ')}`:'';
@@ -570,10 +683,12 @@ async function send(a,request) {
   $('quick-status').textContent=a.target==='answer'?'질문에 대한 답을 서버에서 확인하고 있습니다.':'긴 문장을 서버에서 한 번에 처리하고 있습니다.';controls();
   try{settle(a,await request());}catch(err){await failure(err);}
   finally{busy=false;controls();}
+  await performPatientAction(a);
 }
 async function finalize(a) {
   if(attempt!==a||a.cancelled||a.finished||a.failed||capture.active)return;
-  if(a.target==='verification'&&stopping)return;
+  if(a.patientEpoch!==undefined&&a.patientEpoch!==patientEpoch)return;
+  if(stopping&&(a.target==='verification'||['new_patient','previous_patient'].includes(a.trigger?.action)))return;
   a.finished=true;clearInterval(ticker);markEnd(a,'recognizer');
   if(a.target==='verification'){
     const text=a.fragments.join(' '),reply=classifyCriticalReply(text);heard('');
@@ -607,8 +722,8 @@ async function finalize(a) {
   a.apiText=text;
   $('quick-interim').textContent=a.limited?`${a.maxSeconds}초가 지나 자동으로 마쳤습니다. 이어서 말하려면 다시 누르세요.`:a.stopCommand?'명령을 제외하고 앞의 내용만 정리합니다.':'말하기를 마쳤습니다. 이어서 말하려면 다시 누르세요.';
   if(text.length>RECORDING_LIMITS.text){pauseRecommendation(a);unsentVoice=a.unsentRecovered?'':text;persistRecovery();a.apiText='';addUnsentHistory(a,'4000자를 넘어 전송하지 않았습니다. 원문을 복사해 나누어 입력하세요.');heard('');state('4000자 초과 · 전송 안 함');error('최종 본문은 4000자까지입니다. 인식 원문을 기록에 남겼습니다. 내용을 나누어 다시 말하세요.');controls();return;}
-  if(!text.trim()&&a.trigger){a.apiText='';addUnsentHistory(a,a.trigger.action==='stop'?'종료 명령만 있어 API에 보내지 않았습니다.':'추천 명령만 있어 새 본문을 API에 보내지 않았습니다.');heard('');state('말하기 종료');$('quick-interim').textContent='명령만 인식했습니다. 환자 본문과 새 초안을 만들지 않았습니다.';
-    unsentVoice='';if(a.trigger.action==='recommend')afterTrigger(a);persistRecovery();controls();return;}
+  if(!text.trim()&&a.trigger){a.apiText='';addUnsentHistory(a,a.trigger.action==='stop'?'종료 명령만 있어 API에 보내지 않았습니다.':a.trigger.action==='recommend'?'추천 명령만 있어 새 본문을 API에 보내지 않았습니다.':'환자 전환 명령만 있어 본문을 API에 보내지 않았습니다.');heard('');state('말하기 종료');$('quick-interim').textContent='명령만 인식했습니다. 환자 본문과 새 초안을 만들지 않았습니다.';
+    unsentVoice='';if(a.trigger.action!=='stop')afterTrigger(a);persistRecovery();controls();await performPatientAction(a);return;}
   if(!text.trim()){heard('');state('인식문 없음');error('최종 인식문이 없습니다. 마이크와 브라우저 음성 인식 연결을 확인한 뒤 다시 말해 주세요.');controls();return;}
   if(a.target!=='answer'){await send(a,()=>flow.apply(text,a.mode));return;}
   // A one-breath answer may use a lower-ranked recognizer hypothesis that fits the question.
@@ -658,9 +773,10 @@ async function record(target='transcript',held=false,verification=null) {
   if(busy||stopping||flow.job||capture.active||recovering||recoveryBlocked||criticalEditor)return;
   const question=target==='answer'?currentQuestion():null;
   if(target==='answer'&&!question)return;
+  try{ensureActivePatient();}catch(err){error(err.message);return;}
   error('');capture.stopSpeaking();
   if(unsentVoice){keepUnapplied(unsentVoice);unsentVoice='';}
-  const a={target,mode,question,verification,held,maxSeconds:target==='verification'?10:RECORDING_LIMITS[recordingMode],fragments:[],sourceFinals:[],excludedFinals:[],unappliedBefore:unappliedText,alternatives:[],started:performance.now(),listening:false};attempt=a;
+  const a={target,mode,question,verification,patientEpoch,held,maxSeconds:target==='verification'?10:RECORDING_LIMITS[recordingMode],fragments:[],sourceFinals:[],excludedFinals:[],unappliedBefore:unappliedText,alternatives:[],started:performance.now(),listening:false};attempt=a;
   $('recording-ended').hidden=true;
   // Unapplied text survives subsequent recordings until explicitly reviewed.
   heard('');$('quick-interim').textContent='마이크 연결을 기다리고 있습니다…';$('quick-time').textContent='00:00';state('마이크 준비 중');
@@ -781,24 +897,19 @@ $('quick-cancel').onclick=()=>cancel();
 $('settings-toggle').onclick=()=>togglePanel('settings-toggle','settings');
 $('summary-toggle').onclick=()=>togglePanel('summary-toggle','summary-detail','접기','전체 보기 ›');
 for(const next of ['auto','dictation','command'])$('mode-'+next).onclick=()=>{if(locked()||(next==='auto'&&!autoAvailable))return;mode=next;$('mode-hint').textContent=modeHints[next];controls();};
-$('quick-new').onclick=()=>{
-  if(busy||stopping||capture.active||flow.job||recovering||recoveryConflict||criticalEditor)return;
-  if(!clearDraftRecovery(guardedRecoveryStorage)){recoveryMessage('복구본을 지우지 못했습니다. 다른 탭의 기록이나 브라우저 저장 상태를 확인하세요.');controls();return;}
-  recoveryBlocked=false;unsentVoice='';actor='QUICK-VOICE-'+requestId();criticalAcknowledged=new Map();criticalEditor=null;lastCriticalSpoken='';
-  capture.stopSpeaking();client=makeClient();flow=new QuickSession(client);
-  mode=autoAvailable?'auto':'dictation';attempt=null;historyCount=0;lastSpoken='';deferred=new Map();recent=null;manualAppliedText='';manualCopiedSource='';unappliedText='';recommendationReady=false;$('recommendation-prep').hidden=true;
-  error('');heard('');$('quick-interim').textContent=idleHint();$('quick-status').textContent='새 기록을 준비했습니다.';$('quick-feedback').hidden=true;
-  $('quick-history').replaceChildren();$('quick-history-count').textContent='0회';$('quick-time').textContent='00:00';
-  $('recording-ended').hidden=true;$('recording-excluded').hidden=true;$('recording-review').value='';$('recording-review-status').textContent='자동 전송하지 않습니다. 검토한 뒤 반영 버튼을 누르세요.';
-  $('mode-hint').textContent=modeHints[mode];state('준비됨');recoveryMessage('이 브라우저의 이전 복구본을 지웠습니다. 서버에 저장된 원기록은 유지됩니다.');render();renderChanges();
-};
+$('quick-new').onclick=()=>newPatient();
+$('patient-new').onclick=()=>newPatient();
+$('patient-previous').onclick=()=>previousPatient();
+$('patient-switch').onclick=()=>switchPatient($('patient-select').value);
+$('patient-remove').onclick=()=>removeCurrentPatient();
+$('patient-reset-invalid').onclick=()=>resetInvalidPatientStore();
 $('quick-readback').onclick=()=>say(client.session?.speak_text);
 $('followup-speak').onclick=()=>{const q=currentQuestion();if(!q||locked())return;lastSpoken=q.id+'|'+q.question;say(q.question);};
 $('followup-deferred-retry').onclick=()=>{if(locked()||!deferred.size)return;deferred.clear();render();const q=currentQuestion();if(q&&$('followup-autoread').checked){lastSpoken=q.id+'|'+q.question;say(q.question);}};
 $('followup-unavailable').onclick=()=>tapAnswer('미측정',{unavailable:true});
-$('quick-retry').onclick=async()=>{if(busy||stopping||capture.active)return;const a=attempt;busy=true;error('');controls();try{const result=await flow.retry();if(a)settle(a,result);else render();$('quick-status').textContent='같은 요청으로 저장 결과를 확인했습니다.';}catch(err){await failure(err);}finally{busy=false;controls();}};
+$('quick-retry').onclick=async()=>{if(busy||stopping||capture.active)return;const a=attempt;busy=true;error('');controls();try{const result=await flow.retry();if(a)settle(a,result);else render();$('quick-status').textContent='같은 요청으로 저장 결과를 확인했습니다.';}catch(err){await failure(err);}finally{busy=false;controls();}await performPatientAction(a);};
 window.addEventListener('pagehide',()=>{persistRecovery();press=null;if(attempt)attempt.cancelled=true;releaseCapture();capture.stopSpeaking();clearInterval(ticker);});
-window.addEventListener('storage',event=>{if(event.key!==RECOVERY_KEY||event.newValue===recoveryRaw)return;
+window.addEventListener('storage',event=>{if(event.key!==PATIENT_RECORDS_KEY||event.newValue===patientBookRaw)return;
   recoveryBlocked=true;recoveryConflict=true;if(attempt)attempt.failed=true;releaseCapture();
   recoveryMessage('다른 탭에서 복구 기록이 변경되어 이 탭의 저장을 멈췄습니다. 현재 원문을 복사하거나 최신 탭에서 계속하세요.');controls();});
 function hintStatus() {

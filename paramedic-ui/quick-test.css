@@ -38,6 +38,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 .qv-app{max-width:560px;height:100vh;height:100dvh;margin:0 auto;display:flex;flex-direction:column}
 .qv-recovery{margin:2px 12px 6px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);flex:none;max-height:24vh;overflow:auto}
 .qv-recovery p{margin:0}
+.qv-patients{margin:4px 12px;padding:10px 12px;background:var(--card);border:2px solid var(--teal);border-radius:12px;flex:none;max-height:28vh;overflow:auto}
+.qv-patients>strong{display:block;color:var(--teal-ink);font-size:15px}
+.qv-patient-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.qv-patient-actions select{min-width:0;flex:1;padding:8px;border:1px solid var(--line-strong);border-radius:8px;color:var(--text);background:var(--card);font:inherit}
 .qv-critical{margin:10px 0;padding:12px;background:var(--card);border:1px solid var(--line-strong);border-radius:14px}
 .qv-critical>summary{font-weight:700;cursor:pointer}
 .qv-critical-item{padding:12px 0;border-top:1px solid var(--line)}

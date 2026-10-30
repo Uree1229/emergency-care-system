@@ -217,3 +217,35 @@ for(const [name,mutate] of [
   ['copied source',v=>{v.pending.attempt.copiedFrom='not a recording';}],['trigger action',v=>{v.pending.attempt.trigger={action:'recommend',command:'synthetic'};}],
   ['utterance ID',v=>{v.pending.request.body.utterance_id='not allowed';}],['patient submit context',v=>{v.pending.request.body.context={consent:true};}],
 ])test(`correction recovery rejects ${name} without erasing the previous snapshot`,()=>{const input=correction();mutate(input);assertRejected(input);});
+
+for(const [action,command] of [['new_patient','새 환자 시작'],['new_patient','다음 환자 시작해 주세요'],
+  ['previous_patient','이전 환자로 돌아가'],['previous_patient','이전 환자 기록으로 돌아가주세요']]){
+  for(const make of [transcript,answer])test(`pending ${make.name} preserves ${action} metadata and the unchanged old-patient request`,()=>{
+    const input=make(),original=JSON.stringify(input.pending.request),storage=memory();
+    input.pending.attempt.trigger={action,command};input.pending.attempt.excludedText='synthetic old-patient trailing line';
+    writeDraftRecovery(storage,input,{now:NOW});const result=readDraftRecovery(storage,ORIGIN,{now:NOW});
+    assert.equal(result.status,'valid');assert.deepEqual(result.payload.pending.attempt.trigger,{action,command});
+    assert.equal(JSON.stringify(result.payload.pending.request),original);
+    assert.equal(result.payload.pending.attempt.excludedText,'synthetic old-patient trailing line');
+    assert.equal(result.payload.actorId,input.actorId);assert.equal(result.payload.sessionId,input.sessionId);
+  });
+}
+
+for(const [name,trigger] of [
+  ['unknown switch',{action:'switch_patient',command:'새 환자 시작'}],
+  ['close patient',{action:'close_patient',command:'새 환자 시작'}],
+  ['automatically submit',{action:'submit',command:'새 환자 시작'}],
+  ['wrong action type',{action:7,command:'이전 환자로 돌아가'}],
+  ['missing command',{action:'new_patient'}],
+  ['empty command',{action:'previous_patient',command:''}],
+  ['oversized command',{action:'new_patient',command:'x'.repeat(101)}],
+  ['hidden target session',{action:'previous_patient',command:'이전 환자로 돌아가',sessionId:'VS-OTHER'}],
+])test(`patient-switch recovery rejects ${name} without modifying the old recovery`,()=>{
+  const input=transcript();input.pending.attempt.trigger=trigger;assertRejected(input);
+});
+
+test('patient-switch actions remain disallowed for structured correction attempts',()=>{
+  for(const action of ['new_patient','previous_patient']){
+    const input=correction();input.pending.attempt.trigger={action,command:'synthetic patient action'};assertRejected(input);
+  }
+});

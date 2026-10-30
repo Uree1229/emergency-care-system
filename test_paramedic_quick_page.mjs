@@ -10,6 +10,7 @@ import {RECORDING_LIMITS, findVoiceTrigger} from './paramedic-ui/recording-contr
 import {writeDraftHandoff,readDraftHandoff,DRAFT_HANDOFF_KEY} from './paramedic-ui/draft-handoff.mjs';
 import {RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery} from './paramedic-ui/draft-recovery.mjs';
 import {buildCriticalReview,planCriticalCorrection,classifyCriticalReply} from './paramedic-ui/critical-review.mjs';
+import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord} from './paramedic-ui/patient-records.mjs';
 
 // Event-lifecycle unit harness with a FAKE capture object and a fake server.
 // It is NOT a browser/STT accuracy test and NOT an actual microphone test.
@@ -41,25 +42,30 @@ class Element {
   replaceChildren(...children){this.children=[...children];}
   setAttribute(key,value){this.attributes[key]=value;}
 }
+let harnessSequence=0;
 
 function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},storageError=false,recoveryStore=new Map(),recoveryWriteError=false,criticalAutoread=false}={}) {
+  const instance=++harnessSequence;
   const elements=Object.fromEntries(ids.map(id=>[id,new Element()])), calls=[], meta=[], captures=[], intervals=[], clock={now:1234};
   elements['followup-autoread'].checked=true;
   // Legacy flow cases isolate followup TTS; dedicated tests enable the new
   // critical-first default explicitly (the real checkbox is checked in HTML).
   elements['critical-autoread'].checked=criticalAutoread;
   for(const id of startsHidden)elements[id].hidden=true;
-  let requestSequence=0;
+  let requestSequence=0,defaultCreates=0;
   const fakeFetch=async(url,options)=>{
     // Read-only server checks at page load are tracked apart from draft requests.
     if(url.endsWith('/api/voice/capabilities')){meta.push(url);return response(capabilities);}
     if(url.endsWith('/api/voice/terms')){meta.push(url);return response(terms);}
     const call={url,method:options.method,body:options.body?JSON.parse(options.body):null};calls.push(call);
     if(handler)return handler(call,calls.length);
-    return response({session:call.url.endsWith('/transcripts')?draft(2,{age:47,sex:'male'}):draft()});
+    const sid=/\/api\/voice\/sessions\/([^/?]+)/.exec(url)?.[1];
+    if(call.method==='POST'&&url.endsWith('/api/voice/sessions'))defaultCreates++;
+    const id=sid||('VS-PAGE'+(defaultCreates>1?'-'+defaultCreates:''));
+    return response({session:call.url.endsWith('/transcripts')?draft(2,{age:47,sex:'male'},{id}):draft(1,{},{id})});
   };
   class TestClient extends VoiceClient {
-    constructor(options){super({...options,fetchImpl:fakeFetch,makeId:()=>`request-${++requestSequence}`});}
+    constructor(options){super({...options,fetchImpl:fakeFetch,makeId:()=>`request-${instance}-${++requestSequence}`});}
   }
   // VM literals have a different Object.prototype from imported modules. Real
   // browser modules share a realm; round-trip this JSON-only boundary here.
@@ -81,10 +87,12 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
   const events={},stored=new Map(),navigations=[];
   const sessionStorage={getItem:k=>stored.get(k)??null,setItem(k,v){if(storageError)throw Error('storage unavailable');stored.set(k,v);},removeItem:k=>stored.delete(k)};
   const localStorage={getItem:k=>recoveryStore.get(k)??null,setItem(k,v){if(recoveryWriteError)throw Error('local storage quota');recoveryStore.set(k,v);},removeItem:k=>recoveryStore.delete(k)};
+  const checkpointStorage={getItem:()=>{const raw=recoveryStore.get(PATIENT_RECORDS_KEY);if(!raw)return recoveryStore.get(RECOVERY_KEY)??null;const book=JSON.parse(raw);return book.records.find(record=>record.id===book.activeId)?.checkpoint??null;}};
   const context=vm.createContext({VoiceCapture:FakeCapture,VoiceClient:TestClient,QuickSession:TestQuickSession,chooseAnswer,answerVocabulary,RECORDING_LIMITS,findVoiceTrigger,writeDraftHandoff,sessionStorage,
     RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery,localStorage,
     buildCriticalReview,planCriticalCorrection,classifyCriticalReply,
-    requestId:()=>`page-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',assign:url=>navigations.push(url)},
+    PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord,
+    requestId:()=>`page-${instance}-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',assign:url=>navigations.push(url)},
     document:{getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
       querySelector:()=>new Element(),createElement:tag=>new Element(tag)},
     window:{addEventListener:(name,callback)=>{events[name]=callback;}},
@@ -101,8 +109,174 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     await el(id).onpointerup({pointerId:1});await flush();
   };
   const tick=()=>{for(const callback of intervals)callback?.();};
-  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage};
+  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage,checkpointStorage};
 }
+
+function patientServer({before,after,followup}={}){
+  const sessions=new Map(),cached=new Map();let sequence=0;
+  const copy=value=>JSON.parse(JSON.stringify(value));
+  const handler=async call=>{
+    const early=before?await before(call):undefined;if(early!==undefined)return early;
+    const key=call.body?call.body.actor_id+'|'+call.body.client_request_id:null;
+    if(key&&cached.has(key))return response({...copy(cached.get(key)),duplicate:true});
+    const sid=/\/api\/voice\/sessions\/([^/?]+)/.exec(call.url)?.[1];let session;
+    if(call.method==='GET'){session=sessions.get(sid);if(!session)return response({error:'not found'},404);return response({session:copy(session)});}
+    if(call.url.endsWith('/api/voice/sessions')){session=draft(1,{},{id:'VS-PATIENT-'+(++sequence),actor_id:call.body.actor_id,utterances:[],...(followup?{followup}: {})});sessions.set(session.id,session);}
+    else{
+      session=sessions.get(sid);if(!session||session.actor_id!==call.body.actor_id)return response({error:'wrong owner'},403);
+      if(session.version!==call.body.expected_version)return response({error:'VERSION_CONFLICT'},409);
+      const old=copy(session),fields={...session.fields};
+      if(call.method==='PATCH'){Object.assign(fields,call.body.changes);for(const field of call.body.unset_fields)delete fields[field];}
+      else{if(call.body.text==='환자 A 정보')Object.assign(fields,{age:47,pulse:92});
+        if(call.body.text==='환자 B 정보')Object.assign(fields,{age:61,pulse:105});
+        if(call.body.text==='환자 C 정보')Object.assign(fields,{age:72,pulse:88});
+        if(call.body.text==='A 추가 정보')Object.assign(fields,{breathing:'normal'});}
+      session={...old,version:old.version+1,fields,field_metadata:{},utterances:call.method==='PATCH'?old.utterances:[...old.utterances,{transcript:call.body.text}]};sessions.set(sid,session);
+    }
+    const data={session:copy(session)};if(key)cached.set(key,copy(data));
+    if(after)await after(call,data);return response(data);
+  };
+  return {handler,sessions};
+}
+const notebook=h=>readPatientRecords(h.localStorage,'http://127.0.0.1:8000').book;
+const notePayload=(h,id)=>readDraftRecovery({getItem:()=>notebook(h).records.find(record=>record.id===id).checkpoint},'http://127.0.0.1:8000').payload;
+const selectNote=async(h,id)=>{h.el('patient-select').value=id;await h.el('patient-switch').onclick();await flush();};
+const speak=async(h,text)=>{await h.el('quick-record').onclick();h.capture.final(text);if(h.capture.active)await h.el('quick-record').onclick();await flush();};
+
+test('patients A and B keep separate actors, sessions, clinical fields and source history across switches',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');const a=notebook(h).activeId,first=notePayload(h,a);
+  await h.el('patient-new').onclick();assert.match(h.el('patient-current').textContent,/02/);assert.equal(h.calls.filter(c=>c.method==='POST').length,2);
+  await speak(h,'환자 B 정보');const b=notebook(h).activeId,second=notePayload(h,b);
+  assert.notEqual(first.actorId,second.actorId);assert.notEqual(first.sessionId,second.sessionId);assert.equal(notebook(h).records.length,2);
+  const writes=h.calls.filter(c=>c.method!=='GET').length;await selectNote(h,a);
+  assert.match(h.el('patient-current').textContent,/01/);assert.match(textOf(h.el('summary-chips')),/47/);assert.doesNotMatch(textOf(h.el('quick-history')),/환자 B 정보/);
+  await h.el('patient-previous').onclick();await flush();assert.match(h.el('patient-current').textContent,/02/);assert.match(textOf(h.el('summary-chips')),/61/);
+  assert.equal(h.calls.filter(c=>c.method!=='GET').length,writes);assert.equal(h.capture.active,false);
+});
+
+test('manual text, unsent speech and dirty editor proposals stay with their original patient',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');const a=notebook(h).activeId;
+  h.el('recording-review').value='A 미반영 수동 메모';h.el('recording-review').oninput();
+  criticalButton(h,'pulse','edit').onclick();criticalInput(h,'pulse').value='130';criticalInput(h,'pulse').oninput();
+  await h.el('patient-new').onclick();assert.equal(h.el('recording-review').value,'');assert.equal(h.el('critical-editor').hidden,true);
+  await speak(h,'환자 B 정보');await selectNote(h,a);
+  assert.match(h.el('recording-review').value,/A 미반영 수동 메모/);assert.match(h.el('recording-review').value,/맥박: 130/);
+  assert.equal(server.sessions.get(notePayload(h,a).sessionId).fields.pulse,92);
+});
+
+test('voice new-patient saves the prefix first and keeps command suffix on the old patient',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보 새 환자 시작 A 전환 뒤 추가 메모');
+  const book=notebook(h),a=book.records.find(record=>record.number===1);assert.equal(book.records.length,2);assert.match(h.el('patient-current').textContent,/02/);
+  assert.equal(h.calls.filter(c=>c.url.endsWith('/transcripts')).length,1);assert.equal(h.calls.find(c=>c.url.endsWith('/transcripts')).body.text,'환자 A 정보');
+  assert.equal(notePayload(h,a.id).recoveryText,'A 전환 뒤 추가 메모');assert.equal(h.el('recording-excluded').hidden,true);
+  await selectNote(h,a.id);assert.equal(h.el('recording-excluded-text').textContent,'A 전환 뒤 추가 메모');
+});
+
+test('command-only patient navigation never creates an empty server draft or repeats a command',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'새 환자 시작');assert.equal(h.calls.length,0);assert.equal(notebook(h).records.length,2);
+  const current=notebook(h).activeId;await speak(h,'이전 환자로 돌아가');assert.equal(h.calls.length,0);assert.notEqual(notebook(h).activeId,current);
+  h.capture.end();await flush();assert.equal(notebook(h).records.length,2);
+});
+
+test('voice return to the previous patient selects the saved draft without writing it',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');const a=notebook(h).activeId;
+  await h.el('patient-new').onclick();await speak(h,'환자 B 정보');const writes=h.calls.filter(c=>c.method!=='GET').length;
+  await speak(h,'이전 환자로 돌아가');assert.equal(notebook(h).activeId,a);assert.match(textOf(h.el('summary-chips')),/47/);
+  assert.equal(h.calls.filter(c=>c.method!=='GET').length,writes);
+});
+
+test('an uncertain prefix save blocks all patient changes until exact retry succeeds',async()=>{
+  let failed=false;const server=patientServer({after:call=>{if(call.url.endsWith('/transcripts')&&!failed){failed=true;throw Error('response lost');}}});
+  const h=harness(server.handler);await speak(h,'환자 A 정보 새 환자 시작');const a=notebook(h).activeId,original=h.calls.find(c=>c.url.endsWith('/transcripts')).body;
+  await h.el('patient-new').onclick();h.el('patient-remove').onclick();assert.equal(notebook(h).activeId,a);assert.equal(notebook(h).records.length,1);
+  await h.el('quick-retry').onclick();await flush();assert.equal(notebook(h).records.length,2);assert.notEqual(notebook(h).activeId,a);
+  assert.deepEqual(h.calls.filter(c=>c.url.endsWith('/transcripts'))[1].body,original);assert.equal(server.sessions.values().next().value.utterances.length,1);
+});
+
+test('reload restores the active patient and pending command in its original record before a single switch',async()=>{
+  let failed=false;const recoveryStore=new Map(),server=patientServer({after:call=>{if(call.url.endsWith('/transcripts')&&!failed){failed=true;throw Error('response lost');}}});
+  const first=harness(server.handler,{recoveryStore});await speak(first,'환자 A 정보 새 환자 시작');const a=notebook(first).activeId;
+  const next=harness(server.handler,{recoveryStore});await flush();assert.equal(notebook(next).activeId,a);assert.equal(next.calls.some(c=>c.method==='POST'),false);
+  await next.el('quick-retry').onclick();await flush();assert.equal(notebook(next).records.length,2);assert.notEqual(notebook(next).activeId,a);
+  assert.equal(server.sessions.values().next().value.utterances.length,1);
+});
+
+test('target GET failure keeps the source patient, selection pointer and source input intact',async()=>{
+  let rejectSid=null;const server=patientServer({before:call=>call.method==='GET'&&call.url.includes(rejectSid||'__never__')?response({error:'unavailable'},503):undefined});
+  const h=harness(server.handler);await speak(h,'환자 A 정보');const a=notebook(h).activeId;await h.el('patient-new').onclick();await speak(h,'환자 B 정보');const b=notebook(h).activeId;
+  rejectSid=notePayload(h,a).sessionId;h.el('recording-review').value='B 연결 실패 전 메모';h.el('recording-review').oninput();await selectNote(h,a);
+  assert.equal(notebook(h).activeId,b);assert.match(h.el('patient-current').textContent,/02/);assert.equal(h.el('recording-review').value,'B 연결 실패 전 메모');
+});
+
+test('stale critical callbacks cannot read, edit or confirm for another patient',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');const stale=['read','edit','confirm','voice'].map(action=>criticalButton(h,'pulse',action).onclick);
+  await h.el('patient-new').onclick();await speak(h,'환자 B 정보');const calls=h.calls.length,spoken=h.capture.spoken.length;
+  for(const callback of stale)await callback();await flush();assert.equal(h.calls.length,calls);assert.equal(h.capture.spoken.length,spoken);assert.equal(h.el('critical-editor').hidden,true);
+  assert.match(h.el('patient-current').textContent,/02/);assert.match(h.el('critical-summary').textContent,/1개 대기/);
+});
+
+test('identical values and identical questions do not let the old patient callbacks confirm or answer for the new patient',async()=>{
+  const followup=plan(question('breathing','호흡 상태는?',['breathing'])),server=patientServer({followup}),h=harness(server.handler);
+  await speak(h,'환자 A 정보');const oldConfirm=criticalButton(h,'pulse','confirm').onclick,oldAnswer=h.el('followup-options').children[0].onclick;
+  await h.el('patient-new').onclick();await speak(h,'환자 A 정보');const before=h.calls.length;
+  await oldConfirm();await oldAnswer();await flush();assert.equal(h.calls.length,before);assert.match(h.el('critical-summary').textContent,/1개 대기/);
+  assert.match(h.el('patient-current').textContent,/02/);assert.equal(h.el('critical-editor').hidden,true);
+});
+
+test('removing one local patient preserves all other checkpoints and all server records',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');const a=notebook(h).activeId;await h.el('patient-new').onclick();await speak(h,'환자 B 정보');
+  h.el('patient-remove').onclick();assert.equal(notebook(h).records.length,1);assert.equal(notebook(h).records[0].id,a);assert.equal(notebook(h).activeId,null);
+  assert.equal(server.sessions.size,2);assert.equal(h.el('quick-record').disabled,true);await selectNote(h,a);assert.match(textOf(h.el('summary-chips')),/47/);
+});
+
+test('a quota failure prevents switching and preserves the active record and unsubmitted text',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');const id=notebook(h).activeId;
+  h.el('recording-review').value='보관해야 할 A 메모';h.el('recording-review').oninput();const raw=h.recoveryStore.get(PATIENT_RECORDS_KEY);
+  h.localStorage.setItem=()=>{throw Error('quota');};await h.el('patient-new').onclick();assert.equal(h.recoveryStore.get(PATIENT_RECORDS_KEY),raw);
+  assert.equal(notebook(h).activeId,id);assert.equal(h.el('recording-review').value,'보관해야 할 A 메모');assert.match(h.el('patient-current').textContent,/01/);
+});
+
+test('a storage implementation silently ignoring writes cannot authorize a network write',async()=>{
+  const h=harness();h.localStorage.setItem=()=>{};await speak(h,'환자 A 정보');
+  assert.equal(h.calls.length,0);assert.equal(h.el('quick-retry').hidden,false);assert.match(h.el('recovery-status').textContent,/저장 실패/);
+});
+
+test('single-draft migration preserves the exact request, writes the notebook first and removes the legacy key last',async()=>{
+  const server=patientServer(),seed=harness(server.handler);await speak(seed,'환자 A 정보');const payload=seed.checkpointStorage.getItem(),recoveryStore=new Map([[RECOVERY_KEY,payload]]);
+  const next=harness(server.handler,{recoveryStore});await flush();assert.equal(recoveryStore.has(RECOVERY_KEY),false);assert.equal(notebook(next).records.length,1);
+  assert.equal(next.checkpointStorage.getItem(),payload);assert.equal(next.calls.filter(c=>c.method==='POST').length,0);assert.match(textOf(next.el('summary-chips')),/47/);
+});
+
+test('migration storage failure leaves the legacy checkpoint untouched and never creates a replacement draft',async()=>{
+  const server=patientServer(),seed=harness(server.handler);await speak(seed,'환자 A 정보');const payload=seed.checkpointStorage.getItem(),recoveryStore=new Map([[RECOVERY_KEY,payload]]);
+  const next=harness(server.handler,{recoveryStore,recoveryWriteError:true});await flush();assert.equal(recoveryStore.get(RECOVERY_KEY),payload);
+  assert.equal(recoveryStore.has(PATIENT_RECORDS_KEY),false);assert.equal(next.calls.length,0);await next.el('patient-new').onclick();assert.equal(next.calls.length,0);
+});
+
+test('a blocked or expired target never replaces the source patient or creates another server draft',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');const a=notebook(h).activeId;await h.el('patient-new').onclick();await speak(h,'환자 B 정보');const b=notebook(h).activeId;
+  const book=notebook(h),entry=book.records.find(record=>record.id===a),p=JSON.parse(entry.checkpoint);
+  p.createdAt=Date.now()-13*60*60*1000;p.expiresAt=p.createdAt+12*60*60*1000;entry.checkpoint=JSON.stringify(p);
+  const raw=h.recoveryStore.get(PATIENT_RECORDS_KEY);writePatientRecords(h.localStorage,book,{expectedRaw:raw});
+  const next=harness(server.handler,{recoveryStore:h.recoveryStore});await flush();const writes=next.calls.filter(c=>c.method!=='GET').length;
+  await selectNote(next,a);assert.equal(notebook(next).activeId,b);assert.match(next.el('patient-current').textContent,/02/);
+  assert.equal(next.calls.filter(c=>c.method!=='GET').length,writes);assert.match(next.el('quick-error').textContent,/12시간/);
+});
+
+test('a concurrent notebook change during target GET cannot activate the stale target response',async()=>{
+  let gateSid=null,release;const gate=new Promise(resolve=>{release=resolve;});
+  const server=patientServer({before:call=>call.method==='GET'&&call.url.includes(gateSid||'__never__')?gate:undefined});
+  const h=harness(server.handler);await speak(h,'환자 A 정보');const a=notebook(h).activeId;await h.el('patient-new').onclick();await speak(h,'환자 B 정보');
+  gateSid=notePayload(h,a).sessionId;h.el('patient-select').value=a;const pending=h.el('patient-switch').onclick();
+  h.recoveryStore.set(PATIENT_RECORDS_KEY,'another tab notebook');release(response({session:server.sessions.get(gateSid)}));await pending;await flush();
+  assert.match(h.el('patient-current').textContent,/02/);assert.equal(h.recoveryStore.get(PATIENT_RECORDS_KEY),'another tab notebook');assert.equal(h.el('quick-record').disabled,true);
+});
+
+test('invalid legacy data is preserved until the explicit local reset and cannot be overwritten by new-patient',async()=>{
+  const recoveryStore=new Map([[RECOVERY_KEY,'{broken']]),h=harness(undefined,{recoveryStore});await flush();
+  await h.el('patient-new').onclick();assert.equal(recoveryStore.get(RECOVERY_KEY),'{broken');assert.equal(h.calls.length,0);
+  h.el('patient-reset-invalid').onclick();assert.equal(recoveryStore.has(RECOVERY_KEY),false);assert.equal(h.calls.length,0);assert.equal(h.el('quick-record').disabled,false);
+});
 
 async function criticalHarness(fields,{metadata={},recoveryStore=new Map(),criticalAutoread=true,before,load=true}={}){
   let session=draft(),patches=0;const copy=value=>JSON.parse(JSON.stringify(value));
@@ -255,7 +429,7 @@ test('a correction committed before response loss restores its exact PATCH and n
   assert.equal(next.calls.some(c=>c.method==='PATCH'),false);assert.equal(next.el('quick-retry').hidden,false);
   await next.el('quick-retry').onclick();await flush();assert.deepEqual(next.calls.find(c=>c.method==='PATCH').body,original);
   assert.match(next.el('critical-summary').textContent,/1개 대기/);assert.doesNotMatch(textOf(criticalCard(next,'pulse')),/입력 내용 확인됨/);
-  assert.equal(readDraftRecovery(next.localStorage,'http://127.0.0.1:8000').payload.pending,null);
+  assert.equal(readDraftRecovery(next.checkpointStorage,'http://127.0.0.1:8000').payload.pending,null);
 });
 
 test('a correction checkpoint failure sends no PATCH and preserves its review input',async()=>{
@@ -295,7 +469,7 @@ test('reload restores the same saved draft by GET without recording, writing or 
   const recoveryStore=new Map(),saved=draft(2,{age:47},{utterances:[{transcript:'47세 남성.'}]});
   const server=call=>response({session:call.url.endsWith('/transcripts')||call.method==='GET'?saved:draft()});
   const first=harness(server,{recoveryStore});await first.el('quick-record').onclick();first.capture.final('47세 남성. 병원 추천해줘');await flush();
-  const actorId=readDraftRecovery(first.localStorage,'http://127.0.0.1:8000').payload.actorId;
+  const actorId=readDraftRecovery(first.checkpointStorage,'http://127.0.0.1:8000').payload.actorId;
   const next=harness(server,{recoveryStore});await flush();
   assert.equal(next.capture.starts,0);assert.equal(next.calls.length,1);assert.equal(next.calls[0].method,'GET');
   assert.ok(next.calls[0].url.includes(encodeURIComponent(actorId)));assert.match(next.el('quick-state').textContent,/복원 완료/);
@@ -331,13 +505,13 @@ test('reload of a committed transcript with a lost response retries exactly once
   await next.el('quick-retry').onclick();await flush();
   assert.deepEqual(next.calls.find(c=>c.method==='POST').body,original);
   assert.equal(next.el('recommendation-prep').hidden,false);
-  assert.equal(readDraftRecovery(next.localStorage,'http://127.0.0.1:8000').payload.pending,null);
+  assert.equal(readDraftRecovery(next.checkpointStorage,'http://127.0.0.1:8000').payload.pending,null);
 });
 
 test('a lost create response restores without a GET or empty replacement and continues its original utterance only on retry',async()=>{
   const recoveryStore=new Map(),first=harness(()=>{throw Error('lost create response');},{recoveryStore});
   await first.el('quick-record').onclick();first.capture.final('47세 남성.');await first.el('quick-record').onclick();await flush();
-  const stored=readDraftRecovery(first.localStorage,'http://127.0.0.1:8000').payload;
+  const stored=readDraftRecovery(first.checkpointStorage,'http://127.0.0.1:8000').payload;
   assert.equal(stored.sessionId,null);assert.equal(stored.pending.job.phase,'create');
   const next=harness(undefined,{recoveryStore});await flush();assert.equal(next.calls.length,0);
   await next.el('quick-retry').onclick();await flush();
@@ -347,10 +521,10 @@ test('a lost create response restores without a GET or empty replacement and con
 
 test('restore GET failure preserves the checkpoint and blocks input without making a replacement draft',async()=>{
   const recoveryStore=new Map(),first=harness(undefined,{recoveryStore});await first.hold('quick-record',{say:['47세 남성.']});
-  const raw=recoveryStore.get(RECOVERY_KEY),next=harness(()=>response({error:'missing'},404),{recoveryStore});await flush();
+  const raw=recoveryStore.get(PATIENT_RECORDS_KEY),next=harness(()=>response({error:'missing'},404),{recoveryStore});await flush();
   assert.equal(next.calls.length,1);assert.equal(next.calls[0].method,'GET');assert.equal(next.el('quick-record').disabled,true);
-  assert.equal(recoveryStore.get(RECOVERY_KEY),raw);assert.equal(next.el('recovery-retry').hidden,false);
-  next.el('quick-new').onclick();assert.equal(recoveryStore.has(RECOVERY_KEY),false);assert.equal(next.calls.length,1);
+  assert.equal(recoveryStore.get(PATIENT_RECORDS_KEY),raw);assert.equal(next.el('recovery-retry').hidden,false);
+  next.el('patient-remove').onclick();assert.equal(JSON.parse(recoveryStore.get(PATIENT_RECORDS_KEY)).records.length,0);assert.equal(next.calls.length,1);
 });
 
 test('storage quota failure blocks HTTP before sending and retains the original request for retry',async()=>{
@@ -362,16 +536,16 @@ test('storage quota failure blocks HTTP before sending and retains the original 
 test('stale tabs cannot overwrite or clear a checkpoint updated by a newer tab',async()=>{
   const recoveryStore=new Map(),old=harness(undefined,{recoveryStore});old.el('recording-review').value='첫 문장';old.el('recording-review').oninput();
   const next=harness(undefined,{recoveryStore});await flush();next.el('recording-review').value='새 탭 문장';next.el('recording-review').oninput();
-  const latest=recoveryStore.get(RECOVERY_KEY);
+  const latest=recoveryStore.get(PATIENT_RECORDS_KEY);
   old.el('recording-review').value='옛 탭 수정';old.el('recording-review').oninput();
-  assert.equal(recoveryStore.get(RECOVERY_KEY),latest);old.el('quick-new').onclick();assert.equal(recoveryStore.get(RECOVERY_KEY),latest);
+  assert.equal(recoveryStore.get(PATIENT_RECORDS_KEY),latest);old.el('quick-new').onclick();assert.equal(recoveryStore.get(PATIENT_RECORDS_KEY),latest);
   assert.equal(old.calls.length,0);assert.equal(old.el('quick-record').disabled,true);
 });
 
 test('storage events stop an active stale recorder without saving or clearing the newer checkpoint',async()=>{
   const h=harness();await h.el('quick-record').onclick();h.capture.final('47세 남성.');
-  h.recoveryStore.set(RECOVERY_KEY,'new owner checkpoint');h.events.storage({key:RECOVERY_KEY,newValue:'new owner checkpoint'});await flush();
-  assert.equal(h.capture.active,false);assert.equal(h.calls.length,0);assert.equal(h.recoveryStore.get(RECOVERY_KEY),'new owner checkpoint');
+  h.recoveryStore.set(PATIENT_RECORDS_KEY,'new owner checkpoint');h.events.storage({key:PATIENT_RECORDS_KEY,newValue:'new owner checkpoint'});await flush();
+  assert.equal(h.capture.active,false);assert.equal(h.calls.length,0);assert.equal(h.recoveryStore.get(PATIENT_RECORDS_KEY),'new owner checkpoint');
 });
 
 test('expired or malformed recovery never silently starts an empty draft',async()=>{
@@ -391,22 +565,22 @@ test('reload preserves a pending followup answer and retries against its origina
   const next=harness(call=>response({session:saved,...(call.method==='POST'?{answer:{accepted:true,applied_fields:['consciousness']}}:{})}),{recoveryStore});await flush();
   assert.equal(next.calls.filter(c=>c.method==='POST').length,0);
   await next.el('quick-retry').onclick();await flush();assert.deepEqual(next.calls.find(c=>c.method==='POST').body,original);
-  assert.equal(readDraftRecovery(next.localStorage,'http://127.0.0.1:8000').payload.pending,null);
+  assert.equal(readDraftRecovery(next.checkpointStorage,'http://127.0.0.1:8000').payload.pending,null);
 });
 
 test('a concurrent checkpoint change during restore GET keeps the new checkpoint and blocks editing',async()=>{
   const recoveryStore=new Map(),first=harness(undefined,{recoveryStore});await first.hold('quick-record',{say:['47세 남성.']});
   let release;const gate=new Promise(resolve=>{release=resolve;});const next=harness(()=>gate,{recoveryStore});
-  recoveryStore.set(RECOVERY_KEY,'other tab update');release(response({session:draft(2,{age:47})}));await flush();
-  assert.equal(next.el('quick-record').disabled,true);assert.equal(recoveryStore.get(RECOVERY_KEY),'other tab update');
+  recoveryStore.set(PATIENT_RECORDS_KEY,'other tab update');release(response({session:draft(2,{age:47})}));await flush();
+  assert.equal(next.el('quick-record').disabled,true);assert.equal(recoveryStore.get(PATIENT_RECORDS_KEY),'other tab update');
   assert.equal(next.calls.filter(c=>c.method==='POST').length,0);
 });
 
 test('patient-linked or submitted server records cannot replace a quick voice draft',async()=>{
   for(const extra of [{patient_id:'P-OTHER'},{state:'SUBMITTED'},{id:'VS-OTHER'},{actor_id:'OTHER'}]){
     const recoveryStore=new Map(),first=harness(undefined,{recoveryStore});await first.hold('quick-record',{say:['47세 남성.']});
-    const raw=recoveryStore.get(RECOVERY_KEY),next=harness(()=>response({session:draft(2,{age:47},extra)}),{recoveryStore});await flush();
-    assert.equal(next.el('quick-record').disabled,true);assert.equal(recoveryStore.get(RECOVERY_KEY),raw);
+    const raw=recoveryStore.get(PATIENT_RECORDS_KEY),next=harness(()=>response({session:draft(2,{age:47},extra)}),{recoveryStore});await flush();
+    assert.equal(next.el('quick-record').disabled,true);assert.equal(recoveryStore.get(PATIENT_RECORDS_KEY),raw);
     assert.equal(next.calls.filter(c=>c.method==='POST').length,0);
   }
 });
