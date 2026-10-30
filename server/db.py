@@ -226,9 +226,10 @@ def init(conn):
         conn.execute('ALTER TABLE inquiries ADD COLUMN review_response_fingerprint TEXT')
     # 계측·전달 확인은 업무 입력이 아니다. 기존 DB를 삭제하지 않고 확장하며
     # 아래 planning 입력 트리거에도 포함하지 않는다.
-    from . import work_activity, important_events, call_records, patient_amendments
+    from . import work_activity, important_events, call_records, patient_amendments, voice_input, voice_lexicon
     conn.executescript(work_activity.SCHEMA + important_events.SCHEMA + call_records.SCHEMA
-                       + patient_amendments.SCHEMA)
+                       + patient_amendments.SCHEMA + voice_input.SCHEMA + voice_lexicon.SCHEMA)
+    voice_lexicon.seed(conn)
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS accounting_reconciliations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -358,6 +359,20 @@ def init(conn):
 @contextmanager
 def transaction(conn):
     """쓰기 잠금을 먼저 잡아 검사와 반영 사이에 다른 요청이 끼어들지 못하게 한다 (S05)."""
+    if conn.in_transaction:
+        # Composite workflows reuse the existing services atomically. An inner
+        # service must never commit or roll back its caller's transaction.
+        import uuid
+        name = 'nested_' + uuid.uuid4().hex
+        conn.execute(f'SAVEPOINT {name}')
+        try:
+            yield conn
+        except BaseException:
+            conn.execute(f'ROLLBACK TO SAVEPOINT {name}')
+            conn.execute(f'RELEASE SAVEPOINT {name}')
+            raise
+        conn.execute(f'RELEASE SAVEPOINT {name}')
+        return
     conn.execute('BEGIN IMMEDIATE')
     try:
         yield conn

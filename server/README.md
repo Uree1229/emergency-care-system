@@ -1,5 +1,15 @@
 # 공통 서버 (시연용)
 
+2026-10-30 main 기준 서버 전용 준비본 `codex/server-main-ready-20261030`에는 이송 중 환자정보의 병원 검토 API, 자료 출처 조회, 백업·복원 및 연결 검증을 함께 정리했습니다. 새 작업본의 설치·실행과 통합 범위는 [서버 통합 안내](../docs/SERVER_INTEGRATION_20261030.md)를 참고하세요.
+
+2026-10-30 공통 실행은 `python -m server.team_runtime serve`를 사용합니다. 기본 `data/team-common.db`·18033 포트에서 문의/배정 워커를 함께 켜며, 기존 DB 초기화 없이 재사용합니다. 음성 단독 시험은 `--mode voice-only`로 명시합니다. 준비·접속 주소·예제·자원 갱신·기준 검사·재현 방법은 [공통 실행 안내](../docs/TEAM_COMMON_RUNTIME_20261030.md)를 참고하세요. 기존 개별 실행기는 보존했습니다.
+
+별도 음성 UI의 `/paramedic/`는 Claude UI 브랜치에 있는 화면이며 이번 서버 PR에는 포함하지 않습니다. 이 서버만 받았을 때 해당 주소가 바로 열리는 것으로 가정하지 않습니다. [11월 2일 시작·역할별 API 계약](../docs/TEAM_START_20261102.md)과 [같은 Wi-Fi HTTPS 접속](../docs/TEAM_LAN_20261102.md)을 사용하세요.
+
+2026-10-30: [구급대원 음성 입력·수정·확인 API](../docs/VOICE_INPUT_API.md)를 추가했습니다. 음성 인식문에서 검토용 초안을 만들고, 항목별 수정·되돌리기·읽어주기 텍스트·현재 버전 확인 뒤 기존 환자 등록/수정으로 연결합니다. 앱 연결용 요청·응답·JavaScript 예제와 Azure 설정은 해당 문서에 있습니다. 텍스트 경로는 별도 STT 키 없이 검증할 수 있고, WAV 음성 인식은 Azure 키가 필요합니다. 실제 오디오 스트리밍과 TTS 재생은 앱 연계 대상입니다.
+
+2026-10-29: 팀원 프론트엔드를 비워 두고 서버 흐름만 확인하려면 `python -m server.flow_rehearsal run --scenario all`을 실행합니다. API만 계속 켜려면 `python -m server.flow_rehearsal serve --db data/flow-server.db --port 18030`을 사용합니다. [전체 연결 흐름·역할별 API·결과 보고서](../docs/FRONTEND_FREE_FLOW.md).
+
 2026-10-29: [응답 관측 수정·업무 계측·중요 사건 확인 API](../docs/BACKEND_MEASUREMENT_API.md)를 추가했습니다. 화면 연결과 실제 사용자 인증은 별도입니다.
 같은 이송 건의 [통화 결과 기록·상대 기관측 내용 확인·정정 API](../docs/CALL_RECORD_API.md)도 제공합니다. 통화 기록은 수용·배정 상태를 자동으로 바꾸지 않습니다.
 문의 후에는 [버전 기반 환자정보 수정](../docs/PATIENT_AMENDMENTS_API.md)을, 이송 ID를 모르는 새 통화 발견에는 `GET /api/hospitals/{hid}/call-records`를 사용합니다. 일반 정보 수정은 목적지 확정 전 단계만 지원합니다.

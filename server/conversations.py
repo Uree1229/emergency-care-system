@@ -6,6 +6,7 @@
 import re
 
 from . import db, service
+from .important_events import event_summary
 
 POLL_INTERVAL = 3
 MAX_BODY = 2000
@@ -107,7 +108,9 @@ def _event_item(event, hospital_name):
         'no_show': '미도착 처리로 이송 대화가 종료됐습니다.',
         'discharged': '퇴실 처리가 완료됐습니다.',
     }
-    if typ == 'inquiry_responded':
+    if typ in ('enroute_patient_change_requested', 'enroute_patient_change_decided'):
+        text = event_summary(event)
+    elif typ == 'inquiry_responded':
         action = data.get('action')
         text = {
             'checking': f'{name}에서 확인 중으로 응답했습니다.',

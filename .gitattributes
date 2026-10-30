@@ -1,0 +1,134 @@
+# Apply release text policy only to files owned by this server change.
+# UI, research and unrelated main paths keep their existing policy.
+.gitattributes text eol=lf
+README.md text eol=lf
+config/paramedic_voice_terms.json text eol=lf
+config/resource_model_scope_20261030.json text eol=lf
+config/server_allocation_baseline_20261030.json text eol=lf
+config/team_runtime_profile_20261030.json text eol=lf
+config/voice_commands.json text eol=lf
+docs/ALLOCATION_BASELINE_AND_E2E_20261030.md text eol=lf
+docs/ALLOCATION_INPUT_REVIEW_API_20261030.md text eol=lf
+docs/DATA_AND_RESOURCE_SCOPE_20261030.md text eol=lf
+docs/ENROUTE_PATIENT_CHANGE_20261030.md text eol=lf
+docs/FRONTEND_FREE_FLOW.md text eol=lf
+docs/PEER_REVIEW_SERVER_CONTRACT.md text eol=lf
+docs/R1_MINIMUM_INPUT.md text eol=lf
+docs/RECOVERY_AND_RELEASE_20261030.md text eol=lf
+docs/SERVER_DOMAIN_20261102.md text eol=lf
+docs/SERVER_INTEGRATION_20261030.md text eol=lf
+docs/TEAM_COMMON_RUNTIME_20261030.md text eol=lf
+docs/TEAM_CONNECTION_CHECK_20261030.md text eol=lf
+docs/TEAM_DATABASE_BACKUP_20261030.md text eol=lf
+docs/TEAM_LAN_20261102.md text eol=lf
+docs/TEAM_START_20261102.md text eol=lf
+docs/VOICE_DICTIONARY_AND_COMMANDS_20261030.md text eol=lf
+docs/VOICE_INPUT_API.md text eol=lf
+docs/VOICE_TREATMENT_REVIEW_API_20261030.md text eol=lf
+docs/api/SERVER_SCHEMA_20261102.json text eol=lf
+docs/api/SERVER_TESTS_20261102.json text eol=lf
+requirements-server.txt text eol=lf
+server/README.md text eol=lf
+server/allocation_baseline.py text eol=lf
+server/allocation_input_review.py text eol=lf
+server/app.py text eol=lf
+server/conversations.py text eol=lf
+server/data_provenance.py text eol=lf
+server/enroute_patient_review.py text eol=lf
+server/flow_rehearsal.py text eol=lf
+server/flow_scenarios.py text eol=lf
+server/important_events.py text eol=lf
+server/recommendation_view.py text eol=lf
+server/recovery_rehearsal.py text eol=lf
+server/team_backup.py text eol=lf
+server/team_connection_check.py text eol=lf
+server/team_lan.py text eol=lf
+server/team_readiness.py text eol=lf
+server/team_runtime.py text eol=lf
+server/team_runtime_profile.py text eol=lf
+server/voice_allocation_rehearsal.py text eol=lf
+server/voice_audio.py text eol=lf
+server/voice_commands.py text eol=lf
+server/voice_dictionary_cli.py text eol=lf
+server/voice_followup.py text eol=lf
+server/voice_input.py text eol=lf
+server/voice_lexicon.py text eol=lf
+server/voice_r1.py text eol=lf
+server/voice_record_check.py text eol=lf
+server/voice_terms.py text eol=lf
+server/voice_treatment_review.py text eol=lf
+speech_eval/ANNOTATION.md text eol=lf
+speech_eval/README.md text eol=lf
+speech_eval/__init__.py text eol=lf
+speech_eval/__main__.py text eol=lf
+speech_eval/corpus_dev.json text eol=lf
+speech_eval/metrics.py text eol=lf
+speech_eval/recordings_synthetic_example.json text eol=lf
+speech_eval/runner.py text eol=lf
+test_allocation_baseline.py text eol=lf
+test_allocation_input_review.py text eol=lf
+test_allocation_input_review_http.py text eol=lf
+test_allocation_input_review_integration.py text eol=lf
+test_data_provenance_20261030.py text eol=lf
+test_data_provenance_snapshot.py text eol=lf
+test_enroute_notifications_20261030.py text eol=lf
+test_enroute_patient_review.py text eol=lf
+test_recovery_rehearsal.py text eol=lf
+test_server_integration_20261030.py text eol=lf
+test_speech_eval_metrics.py text eol=lf
+test_speech_eval_runner.py text eol=lf
+test_team_backup.py text eol=lf
+test_team_backup_resume.py text eol=lf
+test_team_connection_check.py text eol=lf
+test_team_connection_races.py text eol=lf
+test_team_connection_recovery.py text eol=lf
+test_team_lan.py text eol=lf
+test_team_readiness.py text eol=lf
+test_team_runtime.py text eol=lf
+test_team_runtime_profile.py text eol=lf
+test_voice_allocation_rehearsal.py text eol=lf
+test_voice_allocation_transport_flow.py text eol=lf
+test_voice_api.py text eol=lf
+test_voice_audio.py text eol=lf
+test_voice_commands_v3.py text eol=lf
+test_voice_connection_edges.py text eol=lf
+test_voice_connection_http.py text eol=lf
+test_voice_dialogue_v2.py text eol=lf
+test_voice_dictionary_commands_api.py text eol=lf
+test_voice_followup.py text eol=lf
+test_voice_followup_edges_v2.py text eol=lf
+test_voice_input.py text eol=lf
+test_voice_lexicon.py text eol=lf
+test_voice_patient_projection.py text eol=lf
+test_voice_r1.py text eol=lf
+test_voice_record_check.py text eol=lf
+test_voice_terms.py text eol=lf
+test_voice_terms_v2.py text eol=lf
+test_voice_treatment_review.py text eol=lf
+test_voice_treatment_review_http.py text eol=lf
+test_voice_ui_handoff_answers.py text eol=lf
+test_voice_ui_handoff_edges.py text eol=lf
+test_voice_ui_handoff_particles.py text eol=lf
+
+# Preserve exact allocation-v1 source bytes, including original mixed/CRLF endings.
+config/inquiry_v3_selected.json -text
+config/treatment_requirements.json -text
+server/db.py -text
+server/inquiry_observations.py -text
+server/inquiry_policies.py -text
+server/inquiry_v3.py -text
+server/inquiry_worker.py -text
+server/inquiry_workflow.py -text
+server/patient_amendments.py -text
+server/planning.py -text
+server/resource_accounting.py -text
+server/service.py -text
+server/solver_adapter.py -text
+server/transport_reassignment.py -text
+server/transport_review.py -text
+server/travel.py -text
+server/treatment_binding.py -text
+server/treatment_data.py -text
+server/worker.py -text
+simulation/observed_inquiry.py -text
+solver_improved.py -text
