@@ -32,7 +32,7 @@
 html,body{margin:0;height:100%}
 body.qv{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 .qv-app{max-width:560px;height:100vh;height:100dvh;margin:0 auto;display:flex;flex-direction:column}
@@ -60,6 +60,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{o
 .qv-seg button{min-height:40px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:13px;font-weight:600}
 .qv-seg button[aria-pressed="true"]{background:var(--card);color:var(--teal-ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .qv-seg button:disabled{opacity:.5;cursor:not-allowed}
+.qv-seg-two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .qv-help{margin:0;font-size:12px;line-height:1.6;color:var(--muted)}
 .qv-check{display:flex;align-items:center;gap:8px;min-height:40px;font-size:14px}
 .qv-check input{width:18px;height:18px;margin:0;accent-color:var(--teal)}
@@ -130,6 +131,9 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{o
 .qv-tag.is-warn{background:var(--amber-soft);color:var(--amber-ink)}
 .qv-tag.is-muted{background:var(--grey-soft);color:var(--grey-ink)}
 .qv-tag.is-ok{background:var(--teal-soft);color:var(--teal-ink)}
+.qv-source{max-width:100%;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.qv-source summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+.qv-source p{margin:4px 0;white-space:pre-wrap}
 
 /* Dock */
 .qv-dock{padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:var(--card);border-radius:22px 22px 0 0;box-shadow:var(--dock-shadow);display:flex;flex-direction:column;gap:10px}
@@ -177,6 +181,11 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{o
 #quick-time{font-variant-numeric:tabular-nums}
 .qv-dock:not(.is-recording) #quick-time{display:none}
 #quick-interim{flex-basis:100%;overflow-wrap:anywhere}
+.qv-ended{text-align:center}
+.qv-excluded{max-height:30vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--amber-line);border-radius:12px;background:var(--amber-soft)}
+.qv-excluded h2{margin:0;font-size:13px;color:var(--amber-ink)}
+#recording-excluded-text{margin:0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+#recording-review{width:100%;resize:vertical;min-height:72px;border:1px solid var(--line-strong);border-radius:8px;padding:8px;font:inherit;font-size:13px;color:var(--text);background:var(--card)}
 
 @keyframes qv-pulse{0%{box-shadow:0 0 0 0 var(--rec-ring)}100%{box-shadow:0 0 0 14px rgba(201,60,60,0)}}
 @media (prefers-reduced-motion:reduce){.qv-mic[aria-pressed="true"]::before{animation:none}}

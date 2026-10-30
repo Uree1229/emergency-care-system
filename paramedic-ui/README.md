@@ -2,15 +2,19 @@
 
 2026-10-30. 팀원 앱과 별개로 새로 작성한 웹 앱이다. 기존 `patient-ui`, `emergency-app`, `hospital-ui`를 수정하거나 가져오지 않았다. 공통 서버의 음성 초안 API와 환자·병원 후보 API를 사용한다.
 
-현재 로컬 시연: **http://127.0.0.1:18032/paramedic/**
+메인 이송 노트: **http://127.0.0.1:8000/paramedic/**
 
-간편 음성 시험은 **http://127.0.0.1:18032/paramedic/quick-test.html** 에서 진행한다(음성 V2, 2026-10-30).
+간편 음성 시험은 **http://127.0.0.1:8000/paramedic/quick-test.html** 에서 진행한다(음성 V2, 2026-10-30). 이번 토글 변경은 `quick-test.html`에만 적용했다. 메인 화면(`/paramedic/`, `index.html`)의 입력 방식은 변경하지 않았다.
 
 - **화면(시안 B 대화형, 10-30 사용자 선택):** 위에 환자 요약 칩(확인 질문 12항목: 변화 ▼·질문 중·보류·미측정·빈칸 구분), 가운데에 대화(앱 질문과 말한 문장 말풍선, 그 아래 처리 결과 태그), 아래에 질문 카드와 큰 원형 마이크가 있다. 질문이 있으면 큰 마이크는 그 질문에 답하고 왼쪽 `다른 내용` 버튼이 일반 입력이다. 의식·호흡처럼 보기가 정해진 질문은 보기 버튼을 탭해도 된다. 상세 값·근거·경고는 `전체 보기`, 말하기 방식·예시·안내는 설정에 있다. 시스템 설정에 따라 다크 모드로 바뀐다.
-- **무전기 방식:** 큰 버튼을 누르고 있는 동안만 듣고, 손을 떼면 STT 최종 조각을 합쳐 서버에 한 번 보낸다. 0.4초보다 짧은 누름은 버리고, 30초가 지나면 자동으로 마친다. Space·Enter를 누르고 있어도 같다. 누름 없이 들어온 클릭(보조기기)은 시작/종료 토글로 동작한다.
+- **토글 방식(기본):** 버튼을 한 번 눌러 시작하고 다시 눌러 종료한다. 손을 떼어도 계속 듣는다. 확정 인식 조각을 합쳐 종료 후 서버에 한 번 보낸다. Space·Enter도 한 번 눌러 시작·종료하며 키 자동 반복은 무시한다. 앱의 상한은 180초이고, 브라우저 음성 서비스가 먼저 종료할 수도 있다.
+- **음성 종료:** 토글 방식에서 확정 인식문 마지막의 “그만”·“종료”·“녹음 종료”를 종료 명령으로 처리한다. 임시 인식문은 실행하지 않는다. “혈압 120에 80, 그만”은 앞의 본문을 보존하고 종료어를 뺀 본문만 API에 보낸다. “처치 종료” 같은 임상 표현, 인용·부정 표현의 오종료를 막는 규칙이 있다. 종료어만 있으면 새 초안이나 빈 발화를 만들지 않는다.
+- **무전기 방식(선택):** 설정에서 `누르는 동안 말하기`를 고르면 기존처럼 누르는 동안 듣고 손을 떼어 종료한다. 0.4초보다 짧은 누름은 버리고 최대 30초다. 음성 종료어는 토글 방식에서만 적용한다.
+- **원문과 늦은 인식:** 말하기 기록의 `인식 원문 · API 전송 본문`에서 확정 인식 원문, 종료어를 뺀 전송 본문, 종료 사유·시각을 구분한다. 음성 종료 명령 뒤 늦게 확정된 문장은 `종료 후 추가 인식 (미반영)`에 남기고 자동 반영하지 않는다. `직접 입력으로 가져오기` → 내용을 검토·수정 → `검토한 내용을 초안에 반영`을 눌러야 별도 받아쓰기 입력으로 적용한다. 버튼·시간 상한으로 종료할 때는 종료 과정의 늦은 확정 결과까지 모은다.
+- **직접 입력 시험:** 설정의 `직접 입력 시험`에서 1~4000자 본문을 검토해 초안에 반영할 수 있다. 직접 입력에는 음성 종료어 규칙을 적용하지 않는다. 같은 본문을 성공 직후 다시 보내지 않으며, 녹음·요청 처리 중에는 입력 방식을 바꾸거나 수동 본문을 반영할 수 없다. 음성 본문이 4000자를 넘으면 원문을 화면에 남기고 전송하지 않는다.
 - **자동 판단(기본):** `mode: "auto"`로 보낸다. 상태 설명과 “혈압이 100에 70으로 떨어졌어” 같은 변화는 초안에 반영하고, “방금 거 취소”·“정리해줘” 같은 말은 명령으로 처리한다. 음성 “확인”·“전송”은 실행하지 않는다. `환자 상태만`·`수정·확인 명령`으로 바꿀 수 있다.
 - **방금 바뀐 내용:** `session.latest_changes`로 `이전 값 → 현재 값`과 수치 방향(▲▼)을 보여 준다. 값 없이 “맥박이 떨어졌어”처럼 말해 서버가 재확인 표시를 하면, 이전 값을 **이전 관찰값**으로 표시하고 현재 값은 미확인으로 둔다.
-- **확인 질문:** `session.followup.next_question`을 카드로 보여 주고, 마이크가 닫힌 뒤 한 번 읽어 준다. 카드의 `누른 채로 답하기`는 `followup/answers`로 그 질문의 답만 보낸다. `미측정 · 모름`은 `unavailable: true`로 보내며 값을 채우지 않는다.
+- **확인 질문:** `session.followup.next_question`을 카드로 보여 주고, 마이크가 닫힌 뒤 한 번 읽어 준다. 카드의 답하기 버튼도 선택한 토글·무전기 방식을 따르며, `followup/answers`로 그 질문의 답만 보낸다. `미측정 · 모름`은 `unavailable: true`로 보내며 값을 채우지 않는다.
 - **널널한 답변 처리:** 구급대원이 검토·전송 때 고친다는 전제로, 답을 깐깐하게 다시 묻지 않는다.
   - ‘비 측정’·‘및 측정’·‘미측’·‘측정 안 했어요’·‘모르겠어요’ 같은 답은 미측정으로 보낸다(들린 문장 그대로 + `unavailable: true`).
   - 답변 녹음 때는 인식 후보 5개 중 질문에 맞는 것을 고르고, 그 질문의 보기 단어를 힌트로 준다(특정 숫자는 넣지 않음).
@@ -19,11 +23,13 @@
 - **서버 확인:** 시작할 때 `voice_revision`이 `voice-v2-20261030`인지 확인하고, 다르면 화면 아래에 경고한다. 서버가 `auto`를 지원하지 않으면 `환자 상태만`으로 바꾼다.
 - **문맥 힌트:** 서버 힌트 중 항목 이름·증상 용어만 브라우저 `SpeechRecognitionPhrase`에 넘긴다. ‘의식 명료’·‘구토 없음’·숫자처럼 값이 든 표현은 정상 소견 쪽으로 인식을 끌 수 있어 넘기지 않는다. 브라우저가 거부하면 한 번만 일반 인식으로 다시 시작한다. 힌트를 넘긴 것과 정확도 개선은 별개이며 측정하지 않았다.
 
-`새 시험 시작`은 새 초안을 만들며 이전 서버 기록을 삭제하지 않는다. 실제 환자 등록·병원 문의·전송 API는 호출하지 않는다. 작업 기록: [Claude 구급대원 화면 인계](../docs/VOICE_UI_CLAUDE_HANDOFF.md).
+저장 응답을 잃어 결과가 불확실하면 새 입력을 막고 `재시도`를 제공한다. 재시도는 원래 요청 ID·본문·버전을 유지한다. 409에서는 최신 초안과 질문을 다시 불러오며 이전 본문을 자동 덮어쓰지 않는다.
 
-이 화면은 **자유 발화 기능 확인**이며 정답 일치율이나 실제 음성 정확도를 계산하지 않는다. 관찰 항목과 R1에서 파생한 추가 제안을 구분해 표시한다. 정상 처리한 인식 원문과 결과는 서버 음성 초안에 남고, 인식 실패 시 받은 원문은 화면에만 남는다. 브라우저 새로고침 후 초안 자동 복원은 하지 않는다. 나중에 개발자가 결과를 확인할 때는 `voice_sessions.actor_id`의 `QUICK-VOICE-` 접두사를 사용한다.
+`새 기록 시작`은 새 화면 기록을 시작하며 이전 서버 기록을 삭제하지 않는다. 환자 본문을 전송할 때 새 초안을 만든다. 실제 환자 등록·병원 문의·전송 API는 호출하지 않는다. 작업 기록: [Claude 구급대원 화면 인계](../docs/VOICE_UI_CLAUDE_HANDOFF.md).
 
-정답을 고정한 문장별 STT 결과 수집은 **http://127.0.0.1:18032/paramedic/evaluate.html** 에서 별도로 진행한다. [정답셋·평가 실행·현재 기준선](../docs/SPEECH_EVALUATION.md).
+이 화면은 **자유 발화 기능 확인**이며 정답 일치율이나 실제 음성 정확도를 계산하지 않는다. 관찰 항목과 R1에서 파생한 추가 제안을 구분해 표시한다. 서버에는 성공적으로 전송한 본문과 결과가 남으며, 음성 종료어를 포함한 확정 인식 원문·미반영 문장은 화면 세션 기록이다. 새로고침하면 이 화면 기록이 사라지고 초안도 자동 복원하지 않는다. 나중에 개발자가 서버 결과를 확인할 때는 `voice_sessions.actor_id`의 `QUICK-VOICE-` 접두사를 사용한다.
+
+정답을 고정한 문장별 STT 결과 수집은 **http://127.0.0.1:8000/paramedic/evaluate.html** 에서 별도로 진행한다. [정답셋·평가 실행·현재 기준선](../docs/SPEECH_EVALUATION.md).
 
 ## 기능
 
@@ -69,17 +75,16 @@ http://127.0.0.1:8000/paramedic/ 를 연다. 같은 서버의 API를 기본으�
 ## 검증
 
 ```powershell
-node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs
-node --test test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs
+node --test test_paramedic_voice_client.mjs test_paramedic_speech.mjs test_paramedic_quick_session.mjs test_paramedic_quick_page.mjs test_paramedic_answer_match.mjs test_paramedic_recording_control.mjs
 python -m unittest test_voice_api test_voice_input test_voice_terms test_voice_audio
 ```
 
 Node가 설치되지 않은 PC에서는 VS Code에 들어 있는 Node로 같은 앱 테스트를 돌릴 수 있다(Git Bash).
 
 ```bash
-ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_paramedic_quick_session.mjs test_paramedic_speech.mjs test_paramedic_voice_client.mjs
+ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --test test_paramedic_answer_match.mjs test_paramedic_quick_page.mjs test_paramedic_quick_session.mjs test_paramedic_speech.mjs test_paramedic_voice_client.mjs test_paramedic_recording_control.mjs
 ```
 
-앱 테스트는 가짜 캡처·가짜 서버로 이벤트 흐름만 확인한다. 실제 마이크·브라우저 STT 정확도 시험이 아니다.
+이번 토글 변경의 Node 회귀는 128/128 통과했다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 별도 통합 검증은 실제 `quick-test.js`·`VoiceCapture`·`VoiceClient`·`QuickSession`과 HTTP 서버·빈 SQLite DB를 연결해 6개 시나리오·34개 확인을 통과했다. 이 통합 검증에서도 DOM과 `SpeechRecognition`은 모의 처리했다. 두 결과 모두 실제 브라우저·마이크·STT 정확도 측정이 아니다.
 
 API 계약·Speech 키 설정: [음성 입력 API](../docs/VOICE_INPUT_API.md). 실제 마이크로 녹음한 한국어의 인식 정확도와 현장 편의성은 별도 평가가 필요하다.

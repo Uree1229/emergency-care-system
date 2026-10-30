@@ -6,6 +6,7 @@ import {setImmediate as nextTurn} from 'node:timers/promises';
 import {VoiceClient} from './paramedic-ui/voice-client.mjs';
 import {QuickSession} from './paramedic-ui/quick-session.mjs';
 import {chooseAnswer, answerVocabulary} from './paramedic-ui/answer-match.mjs';
+import {RECORDING_LIMITS, splitStopCommand} from './paramedic-ui/recording-control.mjs';
 
 // Event-lifecycle unit harness with a FAKE capture object and a fake server.
 // It is NOT a browser/STT accuracy test and NOT an actual microphone test.
@@ -66,7 +67,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]}}={
     fail(){this.active=false;this.callbacks.onState('idle');this.callbacks.onError(new Error('recognition network failure'));}
   }
   const events={};
-  const context=vm.createContext({VoiceCapture:FakeCapture,VoiceClient:TestClient,QuickSession,chooseAnswer,answerVocabulary,
+  const context=vm.createContext({VoiceCapture:FakeCapture,VoiceClient:TestClient,QuickSession,chooseAnswer,answerVocabulary,RECORDING_LIMITS,splitStopCommand,
     requestId:()=>`page-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000'},
     document:{getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
       querySelector:()=>new Element(),createElement:tag=>new Element(tag)},
@@ -76,6 +77,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]}}={
   vm.runInContext(pageSource,context,{filename:'quick-test.js'});
   const el=id=>elements[id];
   const hold=async(id,{ms=1000,say=[]}={})=>{
+    el('recording-hold').onclick();
     await el(id).onpointerdown({button:0,isPrimary:true,pointerId:1});
     // An array entry is one final result with recognizer alternatives, best first.
     for(const text of say)Array.isArray(text)?captures[0].final(text[0],text):captures[0].final(text);
@@ -111,6 +113,157 @@ test('explicit stop and onend callback cannot double-send the same utterance',as
   capture.end();await flush();
   assert.equal(calls.filter(c=>c.url.endsWith('/transcripts')).length,1);
   assert.equal(el('quick-history-count').textContent,'1회');
+});
+
+test('toggle is the default: pointer release/click does not stop, second pointer gesture stops once',async()=>{
+  const {el,capture,calls}=harness();
+  assert.equal(el('recording-toggle').attributes['aria-pressed'],'true');
+  const down={button:0,isPrimary:true,pointerId:7},up={pointerId:7};
+  await el('quick-record').onpointerdown(down);capture.final('혈압12080 맥박92');
+  await el('quick-record').onpointerup(up);await el('quick-record').onclick();
+  assert.equal(capture.active,true);assert.equal(calls.length,0);
+  await el('quick-record').onpointerdown(down);await el('quick-record').onpointerup(up);await el('quick-record').onclick();await flush();
+  assert.equal(capture.active,false);assert.equal(capture.starts,1);
+  assert.equal(calls.filter(c=>c.url.endsWith('/transcripts')).length,1);
+  assert.match(el('recording-ended').textContent,/버튼으로 종료/);
+});
+
+test('toggle Space/Enter ignore repeats and synthetic clicks; each gesture acts only once',async()=>{
+  for(const key of [' ','Enter']){
+    const {el,capture,calls}=harness();const event=repeat=>({key,repeat,preventDefault(){}});
+    await el('quick-record').onkeydown(event(false));await el('quick-record').onkeydown(event(true));
+    capture.final('맥박 92');await el('quick-record').onkeyup(event(false));await el('quick-record').onclick();
+    assert.equal(capture.active,true);assert.equal(capture.starts,1);
+    await el('quick-record').onkeydown(event(false));await el('quick-record').onkeyup(event(false));await el('quick-record').onclick();await flush();
+    assert.equal(capture.active,false);assert.equal(capture.starts,1);assert.equal(calls.filter(c=>c.url.endsWith('/transcripts')).length,1);
+  }
+});
+
+test('toggle allows 180 seconds while hold retains the 30 second limit',async()=>{
+  const {el,capture,calls,clock,tick}=harness();
+  await el('quick-record').onclick();capture.final('47세 남성');
+  clock.now+=30_000;tick();await flush();assert.equal(capture.active,true);
+  clock.now+=149_000;tick();await flush();assert.equal(capture.active,true);
+  clock.now+=1_000;tick();await flush();assert.equal(capture.active,false);
+  assert.equal(calls.filter(c=>c.url.endsWith('/transcripts')).length,1);
+  assert.match(el('quick-interim').textContent,/180초/);assert.match(el('recording-ended').textContent,/180초 시간 한도/);
+});
+
+test('lost keyboard/pointer focus releases gesture state; toggle continues and hold cancels',async()=>{
+  for(const holdMode of [false,true]){
+    const {el,capture,calls,events}=harness();if(holdMode)el('recording-hold').onclick();
+    const key={key:'Enter',repeat:false,preventDefault(){}};
+    await el('quick-record').onkeydown(key);capture.final('맥박 92');el('quick-record').onblur();await flush();
+    assert.equal(capture.active,!holdMode);assert.equal(calls.length,0);
+    if(!holdMode){await el('quick-record').onkeydown(key);await el('quick-record').onkeyup(key);await flush();assert.equal(capture.active,false);assert.equal(calls.length,2);}
+    else{
+      await el('quick-record').onpointerdown({button:0,isPrimary:true,pointerId:9});capture.final('혈압 120에 80.');
+      el('quick-record').onlostpointercapture();await flush();assert.equal(capture.active,false);assert.equal(calls.length,0);
+      await el('quick-record').onpointerdown({button:0,isPrimary:true,pointerId:9});events.blur();await flush();assert.equal(capture.active,false);
+    }
+  }
+});
+
+test('only final terminal control words stop; raw final source keeps the command and body excludes it',async()=>{
+  const {el,capture,calls}=harness();
+  await el('quick-record').onclick();capture.callbacks.onInterim('혈압 12080 그만');await flush();
+  assert.equal(capture.active,true);assert.equal(calls.length,0);
+  capture.final('혈압12080 맥박92 그만');await flush();
+  assert.equal(capture.active,false);assert.equal(calls[1].body.text,'혈압12080 맥박92');
+  assert.equal(lastUser(el).children[0].textContent,'혈압12080 맥박92 그만');
+  assert.match(textOf(lastUser(el).children[2]),/확정 인식 원문: 혈압12080 맥박92 그만/);
+  assert.match(textOf(lastUser(el).children[2]),/API 전송 본문: 혈압12080 맥박92/);
+  assert.match(el('recording-ended').textContent,/음성 명령 “그만”/);
+  capture.final('늦은 결과');capture.end();await flush();assert.equal(calls.length,2);
+});
+
+test('command-only finals, including a command split across finals, create no API draft or write',async()=>{
+  for(const segments of [['그만'],['종료'],['녹음 종료'],['녹음','종료'],['음성','입력 종료']]){
+    const {el,capture,calls}=harness();await el('quick-record').onclick();
+    for(const text of segments)capture.final(text);await flush();
+    assert.equal(capture.active,false);assert.equal(calls.length,0,segments.join('|'));
+    assert.match(textOf(lastUser(el)),/종료 명령만 있어 API에 보내지 않았습니다/);
+  }
+});
+
+test('a control command split across final segments preserves all earlier clinical text exactly once',async()=>{
+  const {el,capture,calls}=harness();await el('quick-record').onclick();
+  capture.final('혈압 120에 80.');capture.final('맥박 92. 녹음');capture.final('종료');await flush();
+  assert.equal(calls[1].body.text,'혈압 120에 80. 맥박 92.');assert.equal(calls.length,2);
+  assert.equal(lastUser(el).children[0].textContent,'혈압 120에 80. 맥박 92. 녹음 종료');
+});
+
+test('negative, quoted, partial words and split clinical endings remain clinical text',async()=>{
+  for(const segments of [['처치','종료'],['환자가','그만'],['종료하지 마'],['환자가 그만이라고 했습니다'],['그만큼 아픕니다'],['CPR 종료'],['종료시각 14시']]){
+    const {el,capture,calls}=harness();await el('quick-record').onclick();
+    for(const text of segments)capture.final(text);await flush();assert.equal(capture.active,true,segments.join('|'));
+    await el('quick-record').onclick();await flush();assert.equal(calls[1].body.text,segments.join(' '));
+  }
+});
+
+test('manual button stop drains delayed finals; voice stop freezes body and exposes delayed finals for review',async()=>{
+  for(const voiceStop of [false,true]){
+    const {el,capture,calls}=harness();let endStop;
+    capture.stop=async()=>{await new Promise(resolve=>{endStop=resolve;});capture.active=false;capture.callbacks.onState('idle');};
+    await el('quick-record').onclick();capture.final('혈압 120에 80.');
+    let stopped;if(voiceStop)capture.final('녹음 종료');else stopped=el('quick-record').onclick();
+    capture.final('맥박 92.');assert.equal(calls.length,0);
+    endStop();await stopped;await flush();
+    assert.equal(calls[1].body.text,voiceStop?'혈압 120에 80.':'혈압 120에 80. 맥박 92.');
+    if(voiceStop){
+      assert.equal(el('recording-excluded').hidden,false);assert.equal(el('recording-excluded-text').textContent,'맥박 92.');
+      assert.match(textOf(lastUser(el).children[2]),/종료 명령 뒤 확정되어 본문에 넣지 않은 내용: 맥박 92/);
+      el('recording-excluded-copy').onclick();assert.equal(el('recording-review').value,'맥박 92.');assert.equal(calls.length,2);
+      await el('recording-review-apply').onclick();await flush();assert.equal(calls.length,3);
+      assert.equal(calls[2].body.text,'맥박 92.');assert.equal(calls[2].body.mode,'dictation');
+      assert.match(metaOf(lastUser(el)),/직접 입력/);assert.equal(el('recording-review-apply').disabled,true);
+      await el('recording-review-apply').onclick();assert.equal(calls.length,3);
+    }
+  }
+});
+
+test('4000 characters stop and send once, excess characters remain visible without any API write',async()=>{
+  for(const length of [4000,4001]){
+    const {el,capture,calls}=harness();await el('quick-record').onclick();capture.final('가'.repeat(length));await flush();
+    assert.equal(capture.active,false);
+    if(length===4000){assert.equal(calls.length,2);assert.equal(calls[1].body.text.length,4000);}
+    else{assert.equal(calls.length,0);assert.match(el('quick-error').textContent,/4000자/);assert.equal(lastUser(el).children[0].textContent.length,4001);}
+  }
+});
+
+test('synchronous/asynchronous start and stop failures always release capture without a draft write',async()=>{
+  for(const failure of ['sync-start','async-start','sync-stop','async-stop']){
+    const {el,capture,calls}=harness();
+    if(failure==='sync-start')capture.start=()=>{capture.active=true;throw Error('start sync failed');};
+    if(failure==='async-start')capture.start=async()=>{capture.active=true;throw Error('start async failed');};
+    await el('quick-record').onclick();
+    if(failure.endsWith('stop')){
+      capture.final('혈압 120에 80.');
+      capture.stop=failure==='sync-stop'?()=>{throw Error('stop sync failed');}:async()=>{throw Error('stop async failed');};
+      await el('quick-record').onclick();
+    }
+    await flush();assert.equal(capture.active,false,failure);assert.equal(calls.length,0);assert.equal(el('quick-record').disabled,false);assert.match(el('quick-error').textContent,/failed/);
+  }
+});
+
+test('recording mode and manual input cannot change while recording or while a request is busy',async()=>{
+  const {el,capture}=harness();await el('quick-record').onclick();
+  el('recording-hold').onclick();el('mode-dictation').onclick();
+  assert.equal(el('recording-toggle').attributes['aria-pressed'],'true');assert.equal(el('mode-auto').attributes['aria-pressed'],'true');
+  assert.equal(el('recording-review').disabled,true);assert.equal(el('recording-review-apply').disabled,true);
+  el('recording-review').value='임의 입력';await el('recording-review-apply').onclick();
+  assert.equal(capture.active,true);el('quick-cancel').onclick();await flush();assert.equal(capture.active,false);
+});
+
+test('manual text validates 1..4000 characters and applies dictionary text once without stopword handling',async()=>{
+  const {el,calls}=harness();
+  el('recording-review').value=' ';await el('recording-review-apply').onclick();assert.equal(calls.length,0);
+  el('recording-review').value='가'.repeat(4001);await el('recording-review-apply').onclick();assert.equal(calls.length,0);
+  el('recording-review').value='환자가 그만이라고 했습니다. 혈압 120에 80.';el('recording-review').oninput();
+  await el('recording-review-apply').onclick();await flush();assert.equal(calls.length,2);assert.equal(calls[1].body.mode,'dictation');
+  assert.equal(calls[1].body.text,el('recording-review').value);assert.match(metaOf(lastUser(el)),/직접 입력/);
+  await el('recording-review-apply').onclick();assert.equal(calls.length,2);
+  el('quick-new').onclick();el('recording-review').value='혈압 120에 80.';await el('recording-review-apply').onclick();await flush();assert.equal(calls.length,4,'a new draft permits a new manual utterance');
 });
 
 test('recognition failure after a final fragment preserves raw text and never edits server draft',async()=>{
@@ -215,6 +368,7 @@ test('push-to-talk: a press shorter than 0.4 s records nothing and explains how 
 
 test('push-to-talk: Space held on the keyboard ignores auto-repeat and sends once on keyup',async()=>{
   const {el,capture,calls,clock}=harness();
+  el('recording-hold').onclick();
   const key=(repeat=false)=>({key:' ',repeat,preventDefault(){this.prevented=true;}});
   const down=key();
   await el('quick-record').onkeydown(down);
@@ -228,6 +382,7 @@ test('push-to-talk: Space held on the keyboard ignores auto-repeat and sends onc
 
 test('push-to-talk: recording still held after 30 s stops and sends automatically',async()=>{
   const {el,capture,calls,clock,tick}=harness();
+  el('recording-hold').onclick();
   await el('quick-record').onpointerdown({button:0,isPrimary:true,pointerId:1});
   capture.final('47세 남성. 흉통이 있습니다.');
   clock.now+=29_000;tick();await flush();
