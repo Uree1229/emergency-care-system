@@ -10,6 +10,16 @@ python -m server.team_demo --db data/team-demo.db --port 18027 --scenario normal
 
 브라우저에서 <http://127.0.0.1:18027/public-flow-demo.html>을 엽니다. 병원 문의·응답·채팅은 로컬 DB에서만 처리되며 실제 병원에는 전송되지 않습니다. 원본 환자 입력 앱 실행과 조건 변경 테스트는 가이드에 있습니다. 기존 테스트 DB는 재시작해도 초기화하지 않습니다.
 
+## 구급대원 음성 기록 체험
+
+버튼을 누른 채로 환자 상태를 말하면 초안을 만들고, 빠진 항목을 질문하며, 바뀐 값을 이전 값과 함께 보여 줍니다. [체험 안내(말해 볼 문장·의견 남기는 법 포함)](docs/VOICE_TRYOUT_GUIDE.md)를 따라 하세요. 처음 한 번만 `--seed`를 붙입니다.
+
+```powershell
+python -m server.app --db data/voice-tryout.db --seed --port 8000 --no-planner --no-inquiry-worker
+```
+
+크롬에서 <http://127.0.0.1:8000/paramedic/quick-test.html>을 열고 마이크를 허용합니다. 가상 환자만 사용하며 환자 등록·병원 문의는 실행하지 않습니다.
+
 
 캡스톤 디자인 시연 프로젝트입니다. 환자·이송자가 필요한 진료 조건을 입력하면 후보 병원을 찾고, 병원에 환자별 수용 여부를 문의한 뒤 목적지 확정을 돕습니다. 이동 중 병원에 다른 환자가 유입되면 영향을 받는 예정 환자를 표시하고 병원 판단을 받아 조정할 수 있습니다.
 
