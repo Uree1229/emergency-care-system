@@ -22,7 +22,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_FILES = ('server/voice_connection_check.py', 'server/voice_client_connection_probe.mjs',
     'server/voice_patient_flow_probe.mjs',
     'server/voice_commands.py', 'server/voice_lexicon.py', 'server/voice_dictionary_cli.py', 'config/voice_commands.json',
-    'server/voice_treatment_review.py',
+    'server/voice_treatment_review.py', 'server/allocation_input_review.py',
+    'server/recommendation_view.py', 'server/solver_adapter.py',
     'server/voice_input.py', 'server/voice_followup.py', 'server/voice_terms.py', 'server/voice_r1.py',
     'server/voice_audio.py', 'server/app.py', 'server/db.py', 'server/service.py',
     'config/paramedic_voice_terms.json', 'paramedic-ui/voice-client.mjs')

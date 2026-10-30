@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "baseline_id": "server-allocation-baseline-20261030-v1",
+  "created_at": "2026-10-30T10:54:30.362880+00:00",
+  "scope": {
+    "system": "current_server_allocation_prototype",
+    "research_candidates": "G2/G5/QI/QJ are separate research implementations; not activated by this lock",
+    "excluded": [
+      "voice parsing",
+      "voice command dictionaries",
+      "UI",
+      "live hospital data",
+      "clinical effectiveness"
+    ],
+    "integration_dependencies": "Capture voice/API/UI versions separately for each end-to-end verification run",
+    "enforcement": "explicit read-only check; no runtime policy switch or automatic lock refresh"
+  },
+  "settings": {
+    "solver": {
+      "entrypoint": "server.worker.bounded_solve -> solver_improved.solve",
+      "policy": "severity_first",
+      "seconds": 3,
+      "solver_default_seconds": 3.0,
+      "priority_groups": [
+        4,
+        2,
+        1
+      ],
+      "objective": "lexicographic unassigned counts by groups 4,2,1; then start-minus-release sums by groups 4,2,1",
+      "search_workers": 1,
+      "random_seed": 0,
+      "fallback": "existing validated greedy incumbent (seconds=0), destination locks preserved",
+      "time_unit": "integer minutes; model time and arrival use ceil(seconds/60)",
+      "max_patients": 64,
+      "max_hospitals": 32
+    },
+    "model": {
+      "resource_types": [
+        "ed_bed",
+        "special_team"
+      ],
+      "horizon_minutes": 120,
+      "default_treatment_seconds": 1800,
+      "default_max_wait_seconds": 3600,
+      "operational_capacity": "hospital-input resource capacity; public registered counts are not substituted",
+      "candidate_confirmation": "valid patient-version-specific ACCEPTED reply required for initial assignment",
+      "destination_change": "human confirmation with new valid acceptance; never automatic"
+    },
+    "inquiry": {
+      "policy": "fixed_3",
+      "policy_version": "1",
+      "batch_size": 3,
+      "wait_seconds": 60,
+      "max_contacts": 10,
+      "deadline_seconds": 300
+    },
+    "service": {
+      "accept_ttl": 600,
+      "pending_warn": 60,
+      "retry_min": 120,
+      "stale_after": 600
+    },
+    "travel": {
+      "road_factor": 1.3,
+      "speed_kmh": 40.0,
+      "verification_provider": "synthetic (use_kakao=False)",
+      "live_provider": "environment-dependent Kakao with synthetic fallback; record per run"
+    },
+    "clinical_policy": "experimental configuration; not clinically validated triage or waiting-time thresholds"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "python_implementation": "CPython",
+    "ortools": "9.15.6755",
+    "sqlite": "3.53.1"
+  },
+  "sources": {
+    "solver_improved.py": {
+      "sha256": "3ea6bb4704ed1f9f07b2c3ae4a8b7264bc5d7b927c98087f8b24bc896372544c",
+      "bytes": 16919
+    },
+    "server/solver_adapter.py": {
+      "sha256": "98b0f94adb6a377fcf0b3586ed509b03a656d812994de94e58681ee8f8c6172f",
+      "bytes": 13045
+    },
+    "server/worker.py": {
+      "sha256": "b46d7587eefa5d1a4904f404c5ee4aa4290ae72c30f37292e3676ecf0f065f48",
+      "bytes": 4620
+    },
+    "server/planning.py": {
+      "sha256": "cd7136ecc02d72373e99d5af81f3ba0ea466f353d8f41fecaa7d5eae63af9d10",
+      "bytes": 4226
+    },
+    "server/service.py": {
+      "sha256": "225de3116ffc973af8fb82a3fa9003b60e124253de53ad15f9a1ae14d4e0ee1a",
+      "bytes": 60891
+    },
+    "server/db.py": {
+      "sha256": "4e7fa00ad2b6eaa8e44f035b3542d114ca989d8386d7e8bfdcd3fd6f834ab983",
+      "bytes": 25592
+    },
+    "server/resource_accounting.py": {
+      "sha256": "5281f9ca32680b9a6f5727cb468e74b715ce7c57ba104017bbd2738bf587dc92",
+      "bytes": 4453
+    },
+    "server/inquiry_workflow.py": {
+      "sha256": "2bb0899cfb4e635cf3bfb2b17711dc211c9ff5dbf855b13729bd4030e186933c",
+      "bytes": 21666
+    },
+    "server/inquiry_worker.py": {
+      "sha256": "3a3a30c2d0e6e9637844a2426b45cb5c8b5fc5b8c48a5b9e198e404fc724e498",
+      "bytes": 1962
+    },
+    "server/inquiry_policies.py": {
+      "sha256": "84a11ae6ba5b7c838070a61c047812cc36e8412991f852f165fe13ab6df077a7",
+      "bytes": 13132
+    },
+    "server/inquiry_observations.py": {
+      "sha256": "a8950078d2b3679acd68c52bc2abc1c5a46616f1290e727a72c74a3e58c09beb",
+      "bytes": 6072
+    },
+    "server/inquiry_v3.py": {
+      "sha256": "25123a29fe0db39b3ccd122fe23844b3652295e324d8a89064346b4311f783d1",
+      "bytes": 5013
+    },
+    "simulation/observed_inquiry.py": {
+      "sha256": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+      "bytes": 11613
+    },
+    "config/inquiry_v3_selected.json": {
+      "sha256": "32f95b42baa9ea89cc78474b78a35742fa9534ba956ada5641d0b746a370082b",
+      "bytes": 162
+    },
+    "server/transport_review.py": {
+      "sha256": "db319253d994a6d15bff1e894c1bcfe1e376db47e461c135e6c916786ad4fc80",
+      "bytes": 17379
+    },
+    "server/transport_reassignment.py": {
+      "sha256": "53b9deea9e9ba6ef5430d813ec6ae5e4d8057300b829c05ed500d84d69dd56d8",
+      "bytes": 21711
+    },
+    "server/patient_amendments.py": {
+      "sha256": "93cd4b06fb69afa4c9778045d1a352243e1a936f538de9a3c1eb5487cb1de4ac",
+      "bytes": 11591
+    },
+    "server/treatment_binding.py": {
+      "sha256": "fad407469bc261a9cb063e3b78359d250810f97b20a82c161a3fd5047c61569e",
+      "bytes": 6423
+    },
+    "server/treatment_data.py": {
+      "sha256": "9f8a6cf866d83285edcbb5dad8556705913fd777586c0ae4140b507348a750f6",
+      "bytes": 30441
+    },
+    "config/treatment_requirements.json": {
+      "sha256": "5ca616b0c5843a2f1af689d10a1120c67a0b88c818919fa030f647a2b59d64bb",
+      "bytes": 23782
+    },
+    "server/travel.py": {
+      "sha256": "275131418aa6e17dbd797d609731cf0d6eff235d7fd160c0046f135082d5b136",
+      "bytes": 2938
+    }
+  },
+  "manifest_sha256": "642e0cf3b18c9129a3ac17af9cbc7d04e9cda12d47093a5af1b773b03290ac0d"
+}
