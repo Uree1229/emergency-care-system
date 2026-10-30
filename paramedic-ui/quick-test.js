@@ -8,6 +8,7 @@ import {RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery} fr
 import {buildCriticalReview,planCriticalCorrection,classifyCriticalReply} from './critical-review.mjs';
 import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord} from './patient-records.mjs';
 import {buildHospitalHandoff} from './hospital-handoff.mjs';
+import {buildObservationHistory,historySnapshotSignature} from './observation-history.mjs';
 
 const $ = id => document.getElementById(id);
 const VOICE_REVISION = 'voice-v2-20261030', HOLD_MS = 400;
@@ -45,6 +46,7 @@ let recovering=true,recoveryBlocked=false,recoveryConflict=false,recoveryRaw,uns
 let criticalAcknowledged=new Map(),criticalEditor=null,lastCriticalSpoken='';
 let patientBook=null,patientBookRaw=null,patientEpoch=0,patientStoreInvalid=false,legacyRecoveryRaw=null;
 let handoffPreview=null;
+let observationHistory=null;
 const activePatient=()=>patientBook?.records.find(record=>record.id===patientBook.activeId)||null;
 const patientLabel=record=>`환자 ${String(record?.number??patientBook?.nextNumber??1).padStart(2,'0')}`;
 function handoffHasUnapplied(){const manual=$('recording-review').value;return !!(unappliedText.trim()||unsentVoice.trim()||(manual.trim()&&manual.trim()!==manualAppliedText)||criticalEditor?.dirty);}
@@ -77,7 +79,7 @@ async function freshHandoffSession(context){
   const result=await context.owner.api(`/api/voice/sessions/${encodeURIComponent(context.sid)}?actor_id=${encodeURIComponent(context.actorId)}`);
   assertPatientStore();
   if(context.owner!==client||context.epoch!==patientEpoch||context.recordId!==patientBook?.activeId||context.actorId!==actor||context.bookRaw!==patientBookRaw)
-    throw Error('요약을 준비하는 동안 환자 기록이 변경됐습니다.');
+    throw Error('기록을 조회하는 동안 환자 기록이 변경됐습니다.');
   if(!validHandoffSession(result.session,context.sid,context.version))throw Error('요약 대상 초안의 ID·상태·작성자·버전이 맞지 않습니다.');
   return result.session;
 }
@@ -117,6 +119,36 @@ async function runHandoffAction(action,preview){
   }catch(err){invalidateHandoff('최신 초안을 확인하지 못해 복사·읽어주기를 중단했습니다. '+err.message);error(err.message);return false;}
   finally{busy=false;controls();}
 }
+function invalidateObservationHistory(message='현재 환자의 저장된 관찰·수정 이력을 조회해 주세요.'){
+  observationHistory=null;$('observation-history-list').replaceChildren();$('observation-history-status').textContent=message;
+}
+function renderObservationHistory(){
+  if(observationHistory&&(client.pending||flow.job||!handoffOwnerMatches(observationHistory)||observationHistory.version!==client.session?.version||observationHistory.model.sourceSignature!==historySnapshotSignature(client.session)))
+    invalidateObservationHistory('저장본이 바뀌었거나 저장 확인 중입니다. 이력을 다시 조회해 주세요.');
+  const epoch=patientEpoch;$('observation-history-panel').hidden=!client.session;
+  $('observation-history-load').disabled=locked()||!!criticalEditor||!client.session||client.session.state!=='DRAFT';
+  $('observation-history-load').onclick=()=>{if(epoch===patientEpoch)return loadObservationHistory();};
+}
+async function loadObservationHistory(){
+  if(locked()||criticalEditor)return false;
+  if(!client.session){invalidateObservationHistory('환자 정보를 먼저 저장한 뒤 이력을 조회하세요.');return false;}
+  const context=handoffContext();busy=true;capture.stopSpeaking();invalidateObservationHistory('저장된 이력을 조회하고 있습니다.');controls();
+  try{
+    const before=await freshHandoffSession(context);
+    const history=await context.owner.api(`/api/voice/sessions/${encodeURIComponent(context.sid)}/history?actor_id=${encodeURIComponent(context.actorId)}`);
+    const after=await freshHandoffSession(context);
+    if(before.version!==after.version||historySnapshotSignature(before)!==historySnapshotSignature(after))throw Error('조회 중 저장본이 변경됐습니다. 이력을 다시 조회해 주세요.');
+    const model=buildObservationHistory(after,history);
+    client.session=after;observationHistory={model,epoch:patientEpoch,recordId:patientBook?.activeId,actorId:actor,sessionId:after.id,version:after.version};
+    for(const entry of model.entries){
+      const card=node('article',undefined,'qv-observation-entry');card.append(node('h3',`${entry.kindLabel} · 버전 ${entry.version}`),node('p',`기록 시각 ${entry.recordedAt}`,'qv-help'));
+      const changes=node('ul');for(const change of entry.changes)changes.append(node('li',change));card.append(changes);$('observation-history-list').append(card);
+    }
+    $('observation-history-status').textContent=`${patientLabel(activePatient())} · 조회 시점 버전 ${after.version} · 전체 ${model.total}건 중 최근 ${model.shown}건${model.total>model.shown?' 표시':''}. ${model.hasEntries?'최신 기록부터 표시합니다.':'저장된 변경 이력이 없습니다.'}`;
+    $('observation-history-panel').open=true;render();$('observation-history-panel').scrollIntoView?.({block:'nearest'});return true;
+  }catch(err){invalidateObservationHistory('이력을 표시하지 못했습니다. '+err.message);error(err.message);return false;}
+  finally{busy=false;controls();}
+}
 function physicalStorage(){try{return localStorage;}catch{return null;}}
 function assertPatientStore(){
   const storage=physicalStorage();if(!storage)throw Error('브라우저 저장 공간을 사용할 수 없습니다.');
@@ -150,6 +182,7 @@ function resetPatientUI(){
   patientEpoch++;capture.stopSpeaking();clearInterval(ticker);attempt=null;historyCount=0;press=null;lastSpoken='';deferred=new Map();recent=null;
   unsentVoice='';unappliedText='';manualAppliedText='';manualCopiedSource='';recommendationReady=false;criticalAcknowledged=new Map();criticalEditor=null;lastCriticalSpoken='';
   invalidateHandoff('현재 환자의 기록으로 인계용 요약을 만들어 주세요.');
+  invalidateObservationHistory();
   error('');heard('');$('quick-history').replaceChildren();$('quick-history-count').textContent='0회';$('quick-time').textContent='00:00';
   $('recording-ended').hidden=true;$('recording-excluded').hidden=true;$('recording-excluded-text').textContent='';$('recording-review').value='';
   $('quick-feedback').hidden=true;$('recommendation-prep').hidden=true;$('critical-status').textContent='항목별 복창 확인을 진행하세요.';
@@ -473,6 +506,7 @@ function controls() {
   $('recovery-retry').hidden=!recoveryBlocked;$('recovery-retry').disabled=busy||stopping||active||recovering||recoveryConflict;
   renderCritical();
   renderHandoff();
+  renderObservationHistory();
 }
 function valueText(key,value) {
   if(key==='onset_at')return new Date(value*1000).toLocaleString('ko-KR');

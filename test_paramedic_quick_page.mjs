@@ -12,6 +12,7 @@ import {RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery} fr
 import {buildCriticalReview,planCriticalCorrection,classifyCriticalReply} from './paramedic-ui/critical-review.mjs';
 import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord} from './paramedic-ui/patient-records.mjs';
 import {buildHospitalHandoff} from './paramedic-ui/hospital-handoff.mjs';
+import {buildObservationHistory,historySnapshotSignature} from './paramedic-ui/observation-history.mjs';
 
 // Event-lifecycle unit harness with a FAKE capture object and a fake server.
 // It is NOT a browser/STT accuracy test and NOT an actual microphone test.
@@ -97,7 +98,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery,localStorage,
     buildCriticalReview,planCriticalCorrection,classifyCriticalReply,
     PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord,
-    buildHospitalHandoff,navigator,
+    buildHospitalHandoff,buildObservationHistory,historySnapshotSignature,navigator,
     requestId:()=>`page-${instance}-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',assign:url=>navigations.push(url)},
     document:{getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
       querySelector:()=>new Element(),createElement:tag=>new Element(tag)},
@@ -1572,4 +1573,133 @@ test('settings and full-detail panels toggle, and the server chip reports the vo
   const old=harness(undefined,{capabilities:{voice_revision:'voice-v1',transcript_modes:['dictation','command']}});
   await flush();
   assert.deepEqual([old.el('server-chip').textContent,old.el('server-chip').className],['버전 다름','qv-server is-warn']);
+});
+
+// Synthetic revision rows mirror the production history shape; no audio or DB.
+function observationHistoryServer(){
+  const revisions=new Map(),previous=new Map();let rowId=100;
+  const copy=value=>JSON.parse(JSON.stringify(value));
+  function remember(session,kind='dictation'){
+    const before=previous.get(session.id);
+    if(before&&session.version>before.version){
+      const rows=revisions.get(session.id)||[];
+      rows.push({id:rowId+=3,session_id:session.id,version:session.version,kind,recorded_at:1_700_000_000+session.version,
+        before_fields:copy(before.fields),after_fields:copy(session.fields),before_metadata:copy(before.field_metadata),after_metadata:copy(session.field_metadata),warnings:[]});
+      revisions.set(session.id,rows);
+    }
+    previous.set(session.id,copy(session));
+  }
+  const server=patientServer({
+    before:call=>{if(call.method==='GET'&&/\/history\?/.test(call.url)){
+      const sid=/\/sessions\/([^/]+)\//.exec(call.url)[1];return response({session_id:sid,revisions:copy(revisions.get(sid)||[])});
+    }},
+    after:(call,data)=>remember(data.session,call.method==='PATCH'?'correction':'dictation'),
+  });
+  function advance(sid,fields,kind='observation'){
+    const old=server.sessions.get(sid),next={...old,version:old.version+1,fields:copy(fields)};server.sessions.set(sid,next);remember(next,kind);return next;
+  }
+  return {...server,revisions,advance};
+}
+const historyText=h=>textOf(h.el('observation-history-list'));
+
+test('observation history: fetches three read-only endpoints and displays saved revisions newest first',async()=>{
+  const server=observationHistoryServer(),h=harness(server.handler);await flush();
+  assert.equal(h.el('observation-history-panel').hidden,true);
+  await speak(h,'환자 A 정보');await speak(h,'A 추가 정보');
+  const start=h.calls.length;await h.el('observation-history-load').onclick();
+  assert.deepEqual(h.calls.slice(start).map(call=>[call.method,call.url.includes('/history?')]),[['GET',false],['GET',true],['GET',false]]);
+  assert.equal(h.el('observation-history-panel').open,true);
+  assert.equal(h.el('observation-history-list').children.length,2);
+  assert.match(textOf(h.el('observation-history-list').children[0]),/버전 3/);
+  assert.match(textOf(h.el('observation-history-list').children[1]),/버전 2/);
+  assert.match(historyText(h),/맥박.*92/);
+  assert.doesNotMatch(historyText(h),/환자 A 정보|A 추가 정보/);
+  assert.match(h.el('observation-history-status').textContent,/전체 2건 중 최근 2건/);
+});
+
+test('observation history: empty initial draft does not fabricate a baseline revision',async()=>{
+  const h=harness(call=>response(call.url.includes('/history?')?{session_id:'VS-PAGE',revisions:[]}:{session:draft(1,{})}));
+  await flush();await speak(h,'구조화되지 않은 가상 시험 문장');await h.el('observation-history-load').onclick();
+  assert.equal(h.el('observation-history-list').children.length,0);assert.match(h.el('observation-history-status').textContent,/변경 이력이 없습니다/);
+});
+
+test('observation history: a lower server version is rejected instead of replacing a known saved record',async()=>{
+  const server=observationHistoryServer(),h=harness(server.handler);await flush();await speak(h,'환자 A 정보');
+  server.sessions.values().next().value.version=1;await h.el('observation-history-load').onclick();
+  assert.equal(h.el('observation-history-list').children.length,0);assert.match(h.el('observation-history-status').textContent,/표시하지 못/);
+});
+
+test('observation history: accepts a newer saved snapshot before loading and refreshes current summary',async()=>{
+  const server=observationHistoryServer(),h=harness(server.handler);await flush();await speak(h,'환자 A 정보');
+  const sid=server.sessions.keys().next().value;server.advance(sid,{age:47,pulse:110},'observation');
+  await h.el('observation-history-load').onclick();
+  assert.match(historyText(h),/92.*110/);assert.match(h.el('observation-history-status').textContent,/버전 3/);
+  assert.ok(h.el('summary-chips').children.some(chip=>chip.textContent.includes('110')));
+});
+
+test('observation history: a new local save invalidates old cards; unapplied manual text never enters history',async()=>{
+  const server=observationHistoryServer(),h=harness(server.handler);await flush();await speak(h,'환자 A 정보');await h.el('observation-history-load').onclick();
+  h.el('recording-review').value='UNAPPLIED-ONLY 999';h.el('recording-review').oninput();
+  assert.doesNotMatch(historyText(h),/UNAPPLIED|999/);
+  await speak(h,'A 추가 정보');assert.equal(h.el('observation-history-list').children.length,0);
+  assert.match(h.el('observation-history-status').textContent,/다시 조회/);
+});
+
+test('observation history: patient switch and old callbacks cannot show the prior patient',async()=>{
+  const server=observationHistoryServer(),h=harness(server.handler);await flush();await speak(h,'환자 A 정보');await h.el('observation-history-load').onclick();
+  const staleLoad=h.el('observation-history-load').onclick;
+  await h.el('patient-new').onclick();assert.equal(h.el('observation-history-list').children.length,0);
+  await speak(h,'환자 B 정보');const before=h.calls.length;await staleLoad();assert.equal(h.calls.length,before);
+  await h.el('observation-history-load').onclick();
+  assert.match(historyText(h),/105/);assert.doesNotMatch(historyText(h),/92/);
+  assert.match(h.el('observation-history-status').textContent,/환자 02/);
+});
+
+test('observation history: a held history response blocks switching and recording until consistency check completes',async()=>{
+  const server=observationHistoryServer();let release;
+  const held=new Promise(resolve=>release=resolve);
+  const h=harness(async call=>{const result=await server.handler(call);if(call.url.includes('/history?'))await held;return result;});
+  await flush();await speak(h,'환자 A 정보');const loading=h.el('observation-history-load').onclick();await flush();
+  assert.equal(h.el('patient-new').disabled,true);assert.equal(h.el('quick-record').disabled,true);
+  await h.el('patient-new').onclick();assert.equal(notebook(h).records.length,1);
+  release();await loading;assert.match(historyText(h),/92/);
+});
+
+test('observation history: a saved revision arriving between reads discards the entire mixed preview',async()=>{
+  const server=observationHistoryServer(),h=harness(async call=>{
+    const result=await server.handler(call);
+    if(call.url.includes('/history?')){const sid=server.sessions.keys().next().value;server.advance(sid,{age:47,pulse:110});}
+    return result;
+  });await flush();await speak(h,'환자 A 정보');await h.el('observation-history-load').onclick();
+  assert.equal(h.el('observation-history-list').children.length,0);
+  assert.match(h.el('observation-history-status').textContent,/조회 중 저장본이 변경/);
+});
+
+test('observation history: same-version field tampering between reads is rejected',async()=>{
+  const server=observationHistoryServer(),h=harness(async call=>{
+    const result=await server.handler(call);if(call.url.includes('/history?'))server.sessions.values().next().value.fields.pulse=999;
+    return result;
+  });await flush();await speak(h,'환자 A 정보');await h.el('observation-history-load').onclick();
+  assert.equal(h.el('observation-history-list').children.length,0);assert.match(h.el('observation-history-status').textContent,/조회 중 저장본이 변경/);
+});
+
+test('observation history: cross-tab notebook changes while loading prevent rendering',async()=>{
+  const server=observationHistoryServer();let h;
+  h=harness(async call=>{const result=await server.handler(call);if(call.url.includes('/history?'))h.recoveryStore.set(PATIENT_RECORDS_KEY,h.recoveryStore.get(PATIENT_RECORDS_KEY)+' ');return result;});
+  await flush();await speak(h,'환자 A 정보');await h.el('observation-history-load').onclick();
+  assert.equal(h.el('observation-history-list').children.length,0);assert.match(h.el('observation-history-status').textContent,/다른 탭/);
+});
+
+for(const fault of ['wrong-session','bad-revision','offline'])test(`observation history: ${fault} clears any previous preview`,async()=>{
+  const server=observationHistoryServer();let broken=false;
+  const h=harness(async call=>{
+    if(broken&&call.url.includes('/history?')){
+      if(fault==='offline')throw Error('synthetic offline');
+      const sid=server.sessions.keys().next().value;
+      return response(fault==='wrong-session'?{session_id:'VS-OTHER',revisions:[]}:{session_id:sid,revisions:[{version:999}]});
+    }
+    return server.handler(call);
+  });await flush();await speak(h,'환자 A 정보');await h.el('observation-history-load').onclick();assert.match(historyText(h),/92/);
+  broken=true;await h.el('observation-history-load').onclick();
+  assert.equal(h.el('observation-history-list').children.length,0);assert.match(h.el('observation-history-status').textContent,/표시하지 못/);
 });
