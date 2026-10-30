@@ -85,6 +85,13 @@
 
   <section class="qv-timeline" aria-label="말한 내용과 앱 응답">
     <div class="qv-msg is-app qv-greeting"><p class="qv-bubble">가상 환자 상태를 말해 주세요. 예: “47세 남성, 20분 전부터 흉통. 의식 명료, 혈압 120에 80, 맥박 92”</p></div>
+    <details id="handoff-panel" class="qv-handoff" hidden>
+      <summary>병원 인계용 요약 · 입력 기반 초안</summary>
+      <p class="qv-help">저장된 관찰만 정리합니다. 미반영 원문·자동 해석 제안은 사실로 넣지 않습니다. 생성 시각·버전을 확인하고 전달 전에 검토하세요.</p>
+      <div class="qv-critical-actions"><button id="handoff-generate" class="qv-chip-btn" type="button">인계용 요약 만들기·새로고침</button><button id="handoff-copy" class="qv-chip-btn" type="button" disabled>요약 복사</button><button id="handoff-read" class="qv-chip-btn" type="button" disabled>요약 읽어주기</button></div>
+      <p id="handoff-status" class="qv-help" role="status">현재 환자의 기록으로 요약을 만들어 주세요. 병원으로 자동 전송하지 않습니다.</p>
+      <label for="handoff-text" class="qv-label">인계 메모 · 읽기 전용</label><textarea id="handoff-text" rows="10" readonly></textarea>
+    </details>
     <details id="critical-panel" class="qv-critical" open hidden>
       <summary id="critical-summary">중요 항목 복창 확인</summary>
       <p class="qv-help">입력 내용을 원문과 비교하는 단계입니다. 미확인을 정상·없음으로 바꾸지 않습니다. 확인 상태는 현재 화면에서만 유지하며, 새로고침하면 다시 확인합니다.</p>

@@ -11,6 +11,7 @@ import {writeDraftHandoff,readDraftHandoff,DRAFT_HANDOFF_KEY} from './paramedic-
 import {RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery} from './paramedic-ui/draft-recovery.mjs';
 import {buildCriticalReview,planCriticalCorrection,classifyCriticalReply} from './paramedic-ui/critical-review.mjs';
 import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord} from './paramedic-ui/patient-records.mjs';
+import {buildHospitalHandoff} from './paramedic-ui/hospital-handoff.mjs';
 
 // Event-lifecycle unit harness with a FAKE capture object and a fake server.
 // It is NOT a browser/STT accuracy test and NOT an actual microphone test.
@@ -41,10 +42,13 @@ class Element {
   prepend(...children){this.children.unshift(...children);}
   replaceChildren(...children){this.children=[...children];}
   setAttribute(key,value){this.attributes[key]=value;}
+  focus(){this.focused=true;}
+  select(){this.selected=true;}
+  setSelectionRange(start,end){this.selection=[start,end];}
 }
 let harnessSequence=0;
 
-function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},storageError=false,recoveryStore=new Map(),recoveryWriteError=false,criticalAutoread=false}={}) {
+function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},storageError=false,recoveryStore=new Map(),recoveryWriteError=false,criticalAutoread=false,clipboardError=false,clipboardImpl}={}) {
   const instance=++harnessSequence;
   const elements=Object.fromEntries(ids.map(id=>[id,new Element()])), calls=[], meta=[], captures=[], intervals=[], clock={now:1234};
   elements['followup-autoread'].checked=true;
@@ -84,7 +88,8 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     end(){this.active=false;this.callbacks.onState('idle');}
     fail(){this.active=false;this.callbacks.onState('idle');this.callbacks.onError(new Error('recognition network failure'));}
   }
-  const events={},stored=new Map(),navigations=[];
+  const events={},stored=new Map(),navigations=[],copied=[];
+  const navigator={clipboard:{writeText:async text=>{if(clipboardError)throw Error('clipboard unavailable');if(clipboardImpl)return clipboardImpl(text);copied.push(text);}}};
   const sessionStorage={getItem:k=>stored.get(k)??null,setItem(k,v){if(storageError)throw Error('storage unavailable');stored.set(k,v);},removeItem:k=>stored.delete(k)};
   const localStorage={getItem:k=>recoveryStore.get(k)??null,setItem(k,v){if(recoveryWriteError)throw Error('local storage quota');recoveryStore.set(k,v);},removeItem:k=>recoveryStore.delete(k)};
   const checkpointStorage={getItem:()=>{const raw=recoveryStore.get(PATIENT_RECORDS_KEY);if(!raw)return recoveryStore.get(RECOVERY_KEY)??null;const book=JSON.parse(raw);return book.records.find(record=>record.id===book.activeId)?.checkpoint??null;}};
@@ -92,6 +97,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery,localStorage,
     buildCriticalReview,planCriticalCorrection,classifyCriticalReply,
     PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord,
+    buildHospitalHandoff,navigator,
     requestId:()=>`page-${instance}-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',assign:url=>navigations.push(url)},
     document:{getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
       querySelector:()=>new Element(),createElement:tag=>new Element(tag)},
@@ -109,7 +115,7 @@ function harness(handler,{capabilities=V2,terms={speech_recognition_hints:[]},st
     await el(id).onpointerup({pointerId:1});await flush();
   };
   const tick=()=>{for(const callback of intervals)callback?.();};
-  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage,checkpointStorage};
+  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage,checkpointStorage,copied};
 }
 
 function patientServer({before,after,followup}={}){
@@ -293,6 +299,106 @@ async function criticalHarness(fields,{metadata={},recoveryStore=new Map(),criti
   if(load){await h.el('quick-record').onclick();h.capture.final('합성 입력');await h.el('quick-record').onclick();await flush();}
   return h;
 }
+
+test('handoff preview is built from the current saved draft by GET and excludes raw and derived clinical guesses',async()=>{
+  const h=await criticalHarness({age:47,sex:'male',pulse:92,breathing:'unknown',denied_symptoms:['구토'],uncertain_symptoms:['출혈'],pre_ktas:1,stemi_suspected:true});
+  h.el('recording-review').value='복사되면 안 되는 미반영 개인메모';h.el('recording-review').oninput();
+  const before=h.calls.filter(c=>c.method!=='GET').length;await h.el('handoff-generate').onclick();await flush();
+  const text=h.el('handoff-text').value;assert.match(text,/환자 01/);assert.match(text,/47 세/);assert.match(text,/맥박: 92/);
+  assert.match(text,/호흡: 미확인/);assert.match(text,/구토 없음/);assert.match(text,/출혈 미확인/);assert.match(text,/미반영 내용 있음/);
+  assert.doesNotMatch(text,/개인메모|pre_ktas|STEMI|stemi/);assert.equal(h.calls.filter(c=>c.method!=='GET').length,before);
+  assert.equal(h.copied.length,0);assert.equal(h.el('handoff-copy').disabled,false);
+});
+
+test('copy and read each verify the same preview by GET without clinical writes',async()=>{
+  const h=await criticalHarness({pulse:92,breathing:'absent'});await h.el('handoff-generate').onclick();const preview=h.el('handoff-text').value;
+  const before=h.calls.length,spoken=h.capture.spoken.length;await h.el('handoff-copy').onclick();await h.el('handoff-read').onclick();await flush();
+  assert.deepEqual(h.copied,[preview]);assert.equal(h.capture.spoken.length,spoken+1);assert.equal(h.capture.spoken.at(-1),preview);
+  assert.equal(h.calls.slice(before).every(call=>call.method==='GET'),true);assert.equal(h.capture.active,false);
+  assert.equal(h.calls.some(call=>call.url.endsWith('/confirm')||call.url.endsWith('/submit')),false);
+});
+
+test('clipboard failure offers a real selection fallback and never reports successful copying',async()=>{
+  const server=patientServer(),h=harness(server.handler,{clipboardError:true});await speak(h,'환자 A 정보');await h.el('handoff-generate').onclick();
+  const preview=h.el('handoff-text').value;await h.el('handoff-copy').onclick();await flush();
+  assert.equal(h.copied.length,0);assert.equal(h.el('handoff-text').selected,true);assert.equal(h.el('handoff-text').focused,true);
+  assert.deepEqual(h.el('handoff-text').selection,[0,preview.length]);assert.match(h.el('handoff-status').textContent,/직접 복사/);
+  assert.doesNotMatch(h.el('handoff-status').textContent,/복사했습니다/);
+});
+
+test('remote changes stop copy/read and require an explicitly regenerated summary',async()=>{
+  const h=await criticalHarness({pulse:92});await h.el('handoff-generate').onclick();h.setSession(draft(3,{pulse:130}));
+  await h.el('handoff-copy').onclick();await flush();assert.equal(h.copied.length,0);assert.equal(h.el('handoff-text').value,'');
+  assert.equal(h.el('handoff-copy').disabled,true);await h.el('handoff-generate').onclick();assert.match(h.el('handoff-text').value,/맥박: 130/);
+  const spoken=h.capture.spoken.length;h.setSession(draft(4,{pulse:140}));await h.el('handoff-read').onclick();await flush();
+  assert.equal(h.capture.spoken.length,spoken);assert.equal(h.el('handoff-text').value,'');
+});
+
+test('new local unapplied content and completed readback review invalidate an earlier preview',async()=>{
+  const h=await criticalHarness({pulse:92});await h.el('handoff-generate').onclick();
+  h.el('recording-review').value='아직 반영하지 않은 메모';h.el('recording-review').oninput();
+  assert.equal(h.el('handoff-text').value,'');assert.equal(h.el('handoff-copy').disabled,true);
+  await h.el('handoff-generate').onclick();assert.match(h.el('handoff-text').value,/복창 확인 대기: 맥박/);
+  await h.el('critical-all').onclick();await flush();assert.equal(h.el('handoff-text').value,'');
+  await h.el('handoff-generate').onclick();assert.match(h.el('handoff-text').value,/복창 확인 대기: 없음/);
+});
+
+test('a held clipboard request blocks changing patients or starting recording until it settles',async()=>{
+  let release;const pending=new Promise(resolve=>{release=resolve;});const server=patientServer(),requests=[];
+  const h=harness(server.handler,{clipboardImpl:text=>{requests.push(text);return pending;}});await speak(h,'환자 A 정보');await h.el('handoff-generate').onclick();
+  const owner=notebook(h).activeId,copy=h.el('handoff-copy').onclick();await flush();assert.equal(requests.length,1);
+  await h.el('patient-new').onclick();await h.el('quick-record').onclick();assert.equal(notebook(h).activeId,owner);assert.equal(h.capture.active,false);
+  release();await copy;await flush();assert.match(h.el('handoff-status').textContent,/복사했습니다/);
+});
+
+test('switching patients clears the preview and old copy/read/generate callbacks cannot act on the new patient',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보');await h.el('handoff-generate').onclick();
+  const stale=[h.el('handoff-copy').onclick,h.el('handoff-read').onclick,h.el('handoff-generate').onclick];
+  await h.el('patient-new').onclick();assert.equal(h.el('handoff-text').value,'');await speak(h,'환자 B 정보');await h.el('handoff-generate').onclick();
+  const before=h.calls.length,spoken=h.capture.spoken.length;for(const action of stale)await action();await flush();
+  assert.equal(h.calls.length,before);assert.equal(h.capture.spoken.length,spoken);assert.equal(h.copied.length,0);
+  assert.match(h.el('handoff-text').value,/환자 02/);assert.match(h.el('handoff-text').value,/61 세/);assert.doesNotMatch(h.el('handoff-text').value,/47 세/);
+});
+
+test('an envelope change during a summary GET never publishes a stale patient preview',async()=>{
+  let gate=false,release;const pending=new Promise(resolve=>{release=resolve;});
+  const h=await criticalHarness({pulse:92},{before:call=>gate&&call.method==='GET'?pending:undefined});gate=true;
+  const generating=h.el('handoff-generate').onclick();h.recoveryStore.set(PATIENT_RECORDS_KEY,'other tab notebook');release(response({session:h.getSession()}));await generating;await flush();
+  assert.equal(h.el('handoff-text').value,'');assert.equal(h.copied.length,0);assert.equal(h.el('handoff-copy').disabled,true);
+});
+
+test('wrong patient responses and unavailable GET cannot generate or export a summary',async()=>{
+  for(const responseMode of ['sid','actor','state','patient','offline']){
+    let fault=false;const h=await criticalHarness({pulse:92},{before:call=>fault&&call.method==='GET'?
+      responseMode==='offline'?response({error:'offline'},503):response({session:draft(2,{pulse:92},{...(responseMode==='sid'?{id:'VS-OTHER'}:responseMode==='actor'?{actor_id:'OTHER'}:responseMode==='state'?{state:'SUBMITTED'}:{patient_id:'P-OTHER'})})}):undefined});
+    fault=true;await h.el('handoff-generate').onclick();await flush();assert.equal(h.el('handoff-text').value,'');assert.equal(h.el('handoff-copy').disabled,true);assert.equal(h.copied.length,0);
+  }
+});
+
+test('previous flagged values remain outside current observations in the handoff preview',async()=>{
+  const h=await criticalHarness({systolic_bp:120,diastolic_bp:80,pulse:92},{metadata:{systolic_bp:{needs_clarification:true},diastolic_bp:{needs_clarification:true}}});
+  await h.el('handoff-generate').onclick();const text=h.el('handoff-text').value;
+  const observations=text.split('[저장된 관찰]')[1].split('[미확인·재확인]')[0];assert.doesNotMatch(observations,/120|80/);
+  const uncertain=text.split('[미확인·재확인]')[1].split('[최근 기록 변경]')[0];assert.match(uncertain,/이전 관찰 120/);assert.match(uncertain,/이전 관찰 80/);assert.match(uncertain,/현재 미확인/);
+});
+
+test('voice handoff command saves its prefix then opens a preview while trailing notes remain unapplied',async()=>{
+  const server=patientServer(),h=harness(server.handler);await speak(h,'환자 A 정보 인계 요약해줘 아직 확인하지 않은 추가 메모');
+  assert.equal(h.calls.filter(call=>call.url.endsWith('/transcripts')).length,1);assert.equal(h.calls.find(call=>call.url.endsWith('/transcripts')).body.text,'환자 A 정보');
+  assert.match(h.el('handoff-text').value,/47 세/);assert.match(h.el('handoff-text').value,/미반영 내용 있음/);
+  assert.doesNotMatch(h.el('handoff-text').value,/아직 확인하지 않은 추가 메모/);assert.equal(h.copied.length,0);
+});
+
+test('a command-only handoff request creates no empty server draft and summary without facts cannot be copied',async()=>{
+  const h=harness();await speak(h,'인계 요약해줘');assert.equal(h.calls.length,0);assert.equal(h.copied.length,0);
+  const empty=await criticalHarness({});await empty.el('handoff-generate').onclick();assert.equal(empty.el('handoff-copy').disabled,true);assert.equal(empty.el('handoff-read').disabled,true);
+});
+
+test('a network-uncertain note must finish the original request before generating its handoff',async()=>{
+  let failed=false;const server=patientServer({after:call=>{if(call.url.endsWith('/transcripts')&&!failed){failed=true;throw Error('response lost');}}}),h=harness(server.handler);
+  await speak(h,'환자 A 정보 인계 요약해줘');assert.equal(h.el('handoff-text').value,'');assert.equal(h.el('quick-retry').hidden,false);
+  await h.el('quick-retry').onclick();await flush();assert.match(h.el('handoff-text').value,/47 세/);assert.equal(server.sessions.values().next().value.utterances.length,1);assert.equal(h.copied.length,0);
+});
 
 test('critical readback speaks structured values and distinct negative/unknown states once with the microphone closed',async()=>{
   const h=await criticalHarness({systolic_bp:120,diastolic_bp:80,breathing:'absent',denied_symptoms:['구토'],uncertain_symptoms:['출혈']});

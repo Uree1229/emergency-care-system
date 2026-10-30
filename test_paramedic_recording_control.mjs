@@ -209,3 +209,48 @@ test('new patient actions never change the terminal stop compatibility return sh
   for(const raw of ['새 환자 시작','다음 환자 시작','이전 환자로 돌아가','이전 환자 기록으로 돌아가주세요'])assert.equal(splitStopCommand(raw),null);
   assert.deepEqual(splitStopCommand('혈압 120 종료.'),{prefix:'혈압 120',command:'종료',index:7,end:9});
 });
+
+const HANDOFF_TRIGGER_CASES = [
+  ['인계 요약해줘','handoff_summary','','인계 요약해줘',''],
+  ['인계요약해줘','handoff_summary','','인계요약해줘',''],
+  ['인계용 요약해 주세요','handoff_summary','','인계용 요약해 주세요',''],
+  ['인계 요약해주세요','handoff_summary','','인계 요약해주세요',''],
+  ['인계 요약 해 줘','handoff_summary','','인계 요약 해 줘',''],
+  ['인계 요약해 줘요','handoff_summary','','인계 요약해 줘요',''],
+  ['병원 인계 요약해줘','handoff_summary','','병원 인계 요약해줘',''],
+  ['병원인계용요약해주세요','handoff_summary','','병원인계용요약해주세요',''],
+  ['인계 요약 보여줘','handoff_summary','','인계 요약 보여줘',''],
+  ['인계용 요약 보여 주세요','handoff_summary','','인계용 요약 보여 주세요',''],
+  ['혈압 120에 80 인계 요약해줘 맥박 92','handoff_summary','혈압 120에 80','인계 요약해줘','맥박 92'],
+  ['출혈 없음. 병원 인계 요약해 주세요! 호흡 정상.','handoff_summary','출혈 없음.','병원 인계 요약해 주세요','! 호흡 정상.'],
+  ['인계 요약해줘 새 환자 시작','handoff_summary','','인계 요약해줘','새 환자 시작'],
+  ['새 환자 시작 인계 요약해줘','new_patient','','새 환자 시작','인계 요약해줘'],
+  ['종료 인계 요약해줘','stop','','종료','인계 요약해줘'],
+  ['인계 요약해주지 마. 인계 요약 보여줘','handoff_summary','인계 요약해주지 마.','인계 요약 보여줘',''],
+  ['환자가 “인계 요약해줘”라고 말함. 인계용 요약해 주세요','handoff_summary','환자가 “인계 요약해줘”라고 말함.','인계용 요약해 주세요',''],
+];
+for(const [raw,action,prefix,command,suffix] of HANDOFF_TRIGGER_CASES)test(`dedicated handoff preview trigger preserves both sides: ${raw}`,()=>{
+  const result=findVoiceTrigger(raw);assert.ok(result);assert.equal(result.action,action);
+  assert.equal(result.prefix,prefix);assert.equal(result.command,command);assert.equal(result.suffix,suffix);
+  assert.equal(raw.slice(result.index,result.end),command);assert.equal(findVoiceTrigger(raw,{isFinal:false}),null);
+});
+
+for(const raw of [
+  '요약해줘','요약 보여줘','병원 요약해줘','인계해줘','인계 요약','인계용 요약문',
+  '인계 요약해주지마','인계 요약해 주지 마','인계 요약 보여주지 마','인계 요약해줘 말고 계속',
+  '인계 요약해줘라고 했다','인계요약이라고환자가말함','인계 요약해줘 라고 전달했다',
+  '인계 요약해 주세요 라는 문구','인계 요약해주면 좋겠어요','인계 요약해야 합니다',
+  '환자가 인계 요약해줘','보호자가 인계용 요약 보여줘','명령어 인계 요약해줘',
+  '트리거 병원 인계 요약해줘','아직 인계 요약해줘','절대 인계 요약 보여줘',
+  '“인계 요약해줘”','‘인계용 요약해 주세요’','「병원 인계 요약해줘」','"인계 요약 보여줘"',
+])test(`handoff reports, negation, quotes and generic summaries remain non-controls: ${raw}`,()=>{
+  assert.equal(findVoiceTrigger(raw),null);
+});
+
+test('a complete dedicated handoff command may span final segments and never becomes a stop compatibility result',()=>{
+  const raw=['혈압 120에 80','병원 인계용','요약해','주세요','맥박 92'].join(' '),result=findVoiceTrigger(raw);
+  assert.equal(result.action,'handoff_summary');assert.equal(result.prefix,'혈압 120에 80');
+  assert.equal(result.command,'병원 인계용 요약해 주세요');assert.equal(result.suffix,'맥박 92');
+  assert.equal(findVoiceTrigger('병원 인계용 요약해'),null);
+  for(const text of ['인계 요약해줘','인계용 요약해 주세요','병원 인계 요약 보여줘'])assert.equal(splitStopCommand(text),null);
+});

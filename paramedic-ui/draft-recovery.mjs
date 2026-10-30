@@ -70,7 +70,7 @@ function validateAttempt(attempt,job,payload){
   for(const field of attempt.beforeFlagged)identifier(field,80);
   if(attempt.trigger!==null){
     keys(attempt.trigger,['action','command']);
-    if(!['stop','recommend','new_patient','previous_patient'].includes(attempt.trigger.action))fail();
+    if(!['stop','recommend','new_patient','previous_patient','handoff_summary'].includes(attempt.trigger.action))fail();
     text(attempt.trigger.command,100,true);
   }
   if(correct){

@@ -43,6 +43,11 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 .qv-patient-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
 .qv-patient-actions select{min-width:0;flex:1;padding:8px;border:1px solid var(--line-strong);border-radius:8px;color:var(--text);background:var(--card);font:inherit}
 .qv-critical{margin:10px 0;padding:12px;background:var(--card);border:1px solid var(--line-strong);border-radius:14px}
+.qv-handoff{margin:10px 0;padding:12px;background:var(--card);border:1px solid var(--teal);border-radius:14px}
+.qv-handoff>summary{font-weight:700;cursor:pointer}
+.qv-app:has(.qv-handoff[open]){height:auto;min-height:100vh;min-height:100dvh}
+.qv-timeline:has(.qv-handoff[open]){flex:none;overflow:visible}
+#handoff-text{display:block;width:100%;margin-top:6px;padding:12px;min-height:180px;border:1px solid var(--line-strong);border-radius:8px;color:var(--text);background:var(--bg);font:inherit;font-size:13px;line-height:1.65;resize:vertical}
 .qv-critical>summary{font-weight:700;cursor:pointer}
 .qv-critical-item{padding:12px 0;border-top:1px solid var(--line)}
 .qv-critical-item h3,.qv-critical-editor h3{margin:0 0 5px;font-size:14px}

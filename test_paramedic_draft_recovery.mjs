@@ -249,3 +249,26 @@ test('patient-switch actions remain disallowed for structured correction attempt
     const input=correction();input.pending.attempt.trigger={action,command:'synthetic patient action'};assertRejected(input);
   }
 });
+
+for(const [make,command] of [[transcript,'인계 요약해줘'],[answer,'병원 인계용 요약해 주세요'],[create,'인계 요약 보여줘']])test(`pending ${make.name} preserves dedicated handoff_summary metadata without changing the original API request`,()=>{
+  const input=make(),original=JSON.stringify(input.pending.request),storage=memory();
+  input.pending.attempt.trigger={action:'handoff_summary',command};input.pending.attempt.excludedText='synthetic unapplied tail';
+  writeDraftRecovery(storage,input,{now:NOW});const result=readDraftRecovery(storage,ORIGIN,{now:NOW});
+  assert.equal(result.status,'valid');assert.deepEqual(result.payload.pending.attempt.trigger,{action:'handoff_summary',command});
+  assert.equal(JSON.stringify(result.payload.pending.request),original);
+  assert.equal(result.payload.pending.attempt.excludedText,'synthetic unapplied tail');
+});
+
+for(const [name,trigger] of [
+  ['automatic clipboard',{action:'copy_handoff',command:'인계 요약해줘'}],
+  ['automatic hospital transmission',{action:'send_handoff',command:'인계 요약해줘'}],
+  ['extra copy flag',{action:'handoff_summary',command:'인계 요약해줘',copy:true}],
+  ['extra destination',{action:'handoff_summary',command:'인계 요약해줘',hospitalId:'H-other'}],
+  ['missing phrase',{action:'handoff_summary'}],['oversized phrase',{action:'handoff_summary',command:'x'.repeat(101)}],
+])test(`handoff recovery rejects ${name} and preserves the previous snapshot`,()=>{
+  const input=transcript();input.pending.attempt.trigger=trigger;assertRejected(input);
+});
+
+test('structured correction cannot carry a handoff_summary action',()=>{
+  const input=correction();input.pending.attempt.trigger={action:'handoff_summary',command:'인계 요약해줘'};assertRejected(input);
+});
