@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "profile_id": "team-runtime-profile-20261030-v1",
+  "baseline_id": "server-allocation-baseline-20261030-v1",
+  "baseline_manifest_sha256": "642e0cf3b18c9129a3ac17af9cbc7d04e9cda12d47093a5af1b773b03290ac0d",
+  "normalization": "CRLF bytes replaced with LF only; no other normalization",
+  "sources": {
+    "solver_improved.py": {
+      "baseline_sha256": "3ea6bb4704ed1f9f07b2c3ae4a8b7264bc5d7b927c98087f8b24bc896372544c",
+      "baseline_bytes": 16919,
+      "lf_sha256": "3ea6bb4704ed1f9f07b2c3ae4a8b7264bc5d7b927c98087f8b24bc896372544c",
+      "lf_bytes": 16919
+    },
+    "server/solver_adapter.py": {
+      "baseline_sha256": "98b0f94adb6a377fcf0b3586ed509b03a656d812994de94e58681ee8f8c6172f",
+      "baseline_bytes": 13045,
+      "lf_sha256": "98b0f94adb6a377fcf0b3586ed509b03a656d812994de94e58681ee8f8c6172f",
+      "lf_bytes": 13045
+    },
+    "server/worker.py": {
+      "baseline_sha256": "b46d7587eefa5d1a4904f404c5ee4aa4290ae72c30f37292e3676ecf0f065f48",
+      "baseline_bytes": 4620,
+      "lf_sha256": "b46d7587eefa5d1a4904f404c5ee4aa4290ae72c30f37292e3676ecf0f065f48",
+      "lf_bytes": 4620
+    },
+    "server/planning.py": {
+      "baseline_sha256": "cd7136ecc02d72373e99d5af81f3ba0ea466f353d8f41fecaa7d5eae63af9d10",
+      "baseline_bytes": 4226,
+      "lf_sha256": "cd7136ecc02d72373e99d5af81f3ba0ea466f353d8f41fecaa7d5eae63af9d10",
+      "lf_bytes": 4226
+    },
+    "server/service.py": {
+      "baseline_sha256": "225de3116ffc973af8fb82a3fa9003b60e124253de53ad15f9a1ae14d4e0ee1a",
+      "baseline_bytes": 60891,
+      "lf_sha256": "8a6bab4ad9e19dc8de65bc2650e87ea54d2d6adbd86674b666a2ced377b6566d",
+      "lf_bytes": 59945
+    },
+    "server/db.py": {
+      "baseline_sha256": "4e7fa00ad2b6eaa8e44f035b3542d114ca989d8386d7e8bfdcd3fd6f834ab983",
+      "baseline_bytes": 25592,
+      "lf_sha256": "1d7f987a2a7c94b02e9082d1823fa284d1a1dc9785b2552a39c2a67e15fe139e",
+      "lf_bytes": 25130
+    },
+    "server/resource_accounting.py": {
+      "baseline_sha256": "5281f9ca32680b9a6f5727cb468e74b715ce7c57ba104017bbd2738bf587dc92",
+      "baseline_bytes": 4453,
+      "lf_sha256": "5281f9ca32680b9a6f5727cb468e74b715ce7c57ba104017bbd2738bf587dc92",
+      "lf_bytes": 4453
+    },
+    "server/inquiry_workflow.py": {
+      "baseline_sha256": "2bb0899cfb4e635cf3bfb2b17711dc211c9ff5dbf855b13729bd4030e186933c",
+      "baseline_bytes": 21666,
+      "lf_sha256": "2bb0899cfb4e635cf3bfb2b17711dc211c9ff5dbf855b13729bd4030e186933c",
+      "lf_bytes": 21666
+    },
+    "server/inquiry_worker.py": {
+      "baseline_sha256": "3a3a30c2d0e6e9637844a2426b45cb5c8b5fc5b8c48a5b9e198e404fc724e498",
+      "baseline_bytes": 1962,
+      "lf_sha256": "3a3a30c2d0e6e9637844a2426b45cb5c8b5fc5b8c48a5b9e198e404fc724e498",
+      "lf_bytes": 1962
+    },
+    "server/inquiry_policies.py": {
+      "baseline_sha256": "84a11ae6ba5b7c838070a61c047812cc36e8412991f852f165fe13ab6df077a7",
+      "baseline_bytes": 13132,
+      "lf_sha256": "84a11ae6ba5b7c838070a61c047812cc36e8412991f852f165fe13ab6df077a7",
+      "lf_bytes": 13132
+    },
+    "server/inquiry_observations.py": {
+      "baseline_sha256": "a8950078d2b3679acd68c52bc2abc1c5a46616f1290e727a72c74a3e58c09beb",
+      "baseline_bytes": 6072,
+      "lf_sha256": "a8950078d2b3679acd68c52bc2abc1c5a46616f1290e727a72c74a3e58c09beb",
+      "lf_bytes": 6072
+    },
+    "server/inquiry_v3.py": {
+      "baseline_sha256": "25123a29fe0db39b3ccd122fe23844b3652295e324d8a89064346b4311f783d1",
+      "baseline_bytes": 5013,
+      "lf_sha256": "25123a29fe0db39b3ccd122fe23844b3652295e324d8a89064346b4311f783d1",
+      "lf_bytes": 5013
+    },
+    "simulation/observed_inquiry.py": {
+      "baseline_sha256": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+      "baseline_bytes": 11613,
+      "lf_sha256": "6c325dfae0db22f27ada9c944b52a6701dde4fa0d3dcd452426894ef408a2c08",
+      "lf_bytes": 11613
+    },
+    "config/inquiry_v3_selected.json": {
+      "baseline_sha256": "32f95b42baa9ea89cc78474b78a35742fa9534ba956ada5641d0b746a370082b",
+      "baseline_bytes": 162,
+      "lf_sha256": "4850143119e1321dc15c33005d95b579a8474dd017ae9afbaa8ae1a4a5a859fb",
+      "lf_bytes": 157
+    },
+    "server/transport_review.py": {
+      "baseline_sha256": "db319253d994a6d15bff1e894c1bcfe1e376db47e461c135e6c916786ad4fc80",
+      "baseline_bytes": 17379,
+      "lf_sha256": "db319253d994a6d15bff1e894c1bcfe1e376db47e461c135e6c916786ad4fc80",
+      "lf_bytes": 17379
+    },
+    "server/transport_reassignment.py": {
+      "baseline_sha256": "53b9deea9e9ba6ef5430d813ec6ae5e4d8057300b829c05ed500d84d69dd56d8",
+      "baseline_bytes": 21711,
+      "lf_sha256": "53b9deea9e9ba6ef5430d813ec6ae5e4d8057300b829c05ed500d84d69dd56d8",
+      "lf_bytes": 21711
+    },
+    "server/patient_amendments.py": {
+      "baseline_sha256": "93cd4b06fb69afa4c9778045d1a352243e1a936f538de9a3c1eb5487cb1de4ac",
+      "baseline_bytes": 11591,
+      "lf_sha256": "93cd4b06fb69afa4c9778045d1a352243e1a936f538de9a3c1eb5487cb1de4ac",
+      "lf_bytes": 11591
+    },
+    "server/treatment_binding.py": {
+      "baseline_sha256": "fad407469bc261a9cb063e3b78359d250810f97b20a82c161a3fd5047c61569e",
+      "baseline_bytes": 6423,
+      "lf_sha256": "fad407469bc261a9cb063e3b78359d250810f97b20a82c161a3fd5047c61569e",
+      "lf_bytes": 6423
+    },
+    "server/treatment_data.py": {
+      "baseline_sha256": "9f8a6cf866d83285edcbb5dad8556705913fd777586c0ae4140b507348a750f6",
+      "baseline_bytes": 30441,
+      "lf_sha256": "9f8a6cf866d83285edcbb5dad8556705913fd777586c0ae4140b507348a750f6",
+      "lf_bytes": 30441
+    },
+    "config/treatment_requirements.json": {
+      "baseline_sha256": "5ca616b0c5843a2f1af689d10a1120c67a0b88c818919fa030f647a2b59d64bb",
+      "baseline_bytes": 23782,
+      "lf_sha256": "883ef21e30e211481db0b4a529c3226eac0eb8a4f68c5e3453934a25a1db87d7",
+      "lf_bytes": 23111
+    },
+    "server/travel.py": {
+      "baseline_sha256": "275131418aa6e17dbd797d609731cf0d6eff235d7fd160c0046f135082d5b136",
+      "baseline_bytes": 2938,
+      "lf_sha256": "275131418aa6e17dbd797d609731cf0d6eff235d7fd160c0046f135082d5b136",
+      "lf_bytes": 2938
+    }
+  },
+  "profile_sha256": "91b9767d651ec361bc248b9302257725c24704de2301efbfb17561e488727665"
+}
