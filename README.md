@@ -69,7 +69,7 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m simulation.run --seeds 30 --sensitivity
 ```
 
-솔버 데모는 `.\.venv\Scripts\python.exe solver_improved.py`로 실행할 수 있습니다. 화면 프로토타입은 [`prototype/index.html`](prototype/index.html)을 열어 볼 수 있으며, 서버와 데이터가 자동으로 동기화되지는 않습니다. 기존 `SETUP_WINDOWS.cmd`, `TEST_WINDOWS.cmd`, `RUN_EXPERIMENTS_WINDOWS.cmd`는 USB의 `portable-runtime.zip`을 사용하는 이전 방식입니다. 일반 GitHub 클론에는 ZIP이 포함되지 않습니다.
+솔버 데모는 `.\.venv\Scripts\python.exe solver_improved.py`로 실행할 수 있습니다. 화면 프로토타입은 [`prototype/index.html`](prototype/index.html)을 열어 볼 수 있으며, 서버와 데이터가 자동으로 동기화되지는 않습니다. USB의 `portable-runtime.zip`을 쓰던 이전 실행 스크립트(`SETUP_WINDOWS.cmd` 등), 초기 최적화 실험, 제안서 생성 도구는 [`archive/`](archive/)로 옮겼습니다.
 
 ## 프로젝트 구조
 
@@ -83,6 +83,7 @@ py -3 -m venv .venv
 | `prototype/` | 독립형 화면 프로토타입 |
 | `docs/` | API 명세, 현재 상태, 문서 안내 |
 | `solver_improved.py` | CP-SAT 배정 솔버 실험 |
+| `archive/` | 이전 USB 실행 방식, 초기 최적화 실험, 제안서·보고서 생성 도구 보관 |
 | `test_*.py` | 서버·솔버·시뮬레이션 테스트 |
 | `docs/design/캡스톤_전체구현기능_롱리스트.*` | 핵심 100개·선택 12개 기능 목록 |
 
