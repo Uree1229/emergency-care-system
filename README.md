@@ -6,8 +6,8 @@
 
 ```powershell
 python -m pip install --target .solver_deps -r requirements-server.txt
-python -m server.team_runtime prepare --db data/team-common.db
-python -m server.team_runtime serve --db data/team-common.db --port 18050
+python -m server.team_runtime prepare --db data/team-common-20261102.db
+python -m server.team_runtime serve --db data/team-common-20261102.db --port 18033
 ```
 
 배정 기준 환경·명시적 환경 차이 허용은 [서버 통합 안내](docs/SERVER_INTEGRATION_20261030.md)를 따릅니다. 시험 직전에 새 가상 이송을 생성하며, 미리 만든 문의·수용의 유효기간을 늘리지 않습니다.
