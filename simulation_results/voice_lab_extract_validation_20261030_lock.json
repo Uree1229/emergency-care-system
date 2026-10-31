@@ -1,0 +1,13 @@
+{
+ "schema_version": 1,
+ "experiment": "voice_lab_extract_20261030",
+ "stage": "holdout",
+ "source_sha256": {
+  "voice_lab/__init__.py": "744ab9777cec4d059b655ebe26dc60a4f119dbab8d1713ad022d02260bd8126c",
+  "voice_lab/terms.py": "986376836995066d54d32af6174df319ecf65dbae50e4a0c30a32fc5e799ffdb",
+  "voice_lab/extract.py": "5fd05e051a3440127abbff4cb6025a2a53c8364afb4eb55cd4c55e2f2496067d",
+  "voice_lab/evaluate.py": "0e097eee57c2ee88b16637045bb0ff9ac188eac6be81292f70135679323d15df",
+  "voice_lab/cases_holdout.json": "949c1a16eababc0599cc985899a902ee8b82ce65da393fc8138c0fdc54c94024"
+ },
+ "locked_at": "2026-10-30 12:37:45"
+}

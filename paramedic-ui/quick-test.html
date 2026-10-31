@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#F3F5F8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0F161D" media="(prefers-color-scheme: dark)">
+  <title>음성 기록 · 이송 노트</title>
+  <link rel="stylesheet" href="./quick-test.css">
+  <script type="module" src="./quick-test.js"></script>
+</head>
+<body class="qv">
+<div class="qv-app">
+  <header class="qv-top">
+    <a class="qv-icon-btn" href="./" aria-label="이송 노트로 돌아가기"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div class="qv-title"><h1>음성 기록</h1><p id="quick-session">가상 환자 · 새 기록</p></div>
+    <span id="server-chip" class="qv-server">서버 확인 중</span>
+    <button type="button" id="settings-toggle" class="qv-icon-btn" aria-label="설정" aria-expanded="false" aria-controls="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
+  </header>
+
+  <section id="settings" class="qv-sheet" aria-labelledby="settings-title" hidden>
+    <div class="qv-sheet-head"><h2 id="settings-title">설정</h2><button type="button" id="quick-new" class="qv-pill">새 환자 시작</button></div>
+    <p class="qv-label">마이크 조작</p>
+    <div class="qv-seg qv-seg-two" role="group" aria-label="마이크 조작"><button type="button" id="recording-toggle" aria-pressed="true">한 번 눌러 시작 · 종료</button><button type="button" id="recording-hold" aria-pressed="false">누르는 동안 말하기</button></div>
+    <p class="qv-help">한 번 눌러 시작·종료합니다(최대 180초). 두 조작 방식 모두 확정 인식문의 “중단”·“종료”·“그만”은 앞 내용을 저장하고 마칩니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다. 누르는 동안 말하기는 최대 30초입니다.</p>
+    <details class="qv-example"><summary>사이렌·주변 소음이 클 때</summary><p class="qv-help">이 화면은 브라우저가 마이크 입력과 인식을 관리합니다. 앱의 PCM 소음 억제 설정은 이 경로에 적용되지 않습니다. 입 가까운 마이크로 항목명과 값을 짧게 말하고, 숫자·없음 표현은 원문과 비교해 확인하세요. <a href="./evaluate.html">소음 조건을 기록하며 시험하기</a></p></details>
+    <p class="qv-label">말하기 방식</p>
+    <div class="qv-seg" role="group" aria-label="말하기 방식"><button type="button" id="mode-auto" aria-pressed="true">자동 판단</button><button type="button" id="mode-dictation" aria-pressed="false">상태만</button><button type="button" id="mode-command" aria-pressed="false" disabled>명령만</button></div>
+    <p id="mode-hint" class="qv-help">상태 설명은 초안에 더하고, “방금 거 취소”·“정리해줘”·“혈압 110에 70으로 수정” 같은 말은 명령으로 처리합니다.</p>
+    <details id="recording-manual" class="qv-example"><summary>직접 입력 시험 · 최대 4000자</summary>
+      <label class="qv-label" for="recording-review">직접 입력 검토칸 · 버튼을 눌러야 초안에 반영</label>
+      <textarea id="recording-review" rows="4"></textarea>
+      <p id="recording-review-count" class="qv-help">0 / 4000자</p>
+      <button type="button" id="recording-review-apply" class="qv-chip-btn" disabled>검토한 내용을 초안에 반영</button>
+      <p id="recording-review-status" class="qv-help" role="status">자동 전송하지 않습니다. 환자 등록이나 병원 전송 없이 음성 초안만 갱신합니다.</p>
+    </details>
+    <label class="qv-check"><input type="checkbox" id="followup-autoread" checked> 처리 뒤 확인 질문을 소리로 읽기</label>
+    <label class="qv-check"><input type="checkbox" id="critical-autoread" checked> 중요 수치·부정 표현 먼저 복창하기</label>
+    <details class="qv-example"><summary>예시 문장</summary><blockquote id="long-prompt">47세 남성 환자입니다. 20분 전부터 가슴 통증이 있습니다. 의식은 명료하고 호흡은 정상입니다. 혈압 120에 80, 맥박 92회, 산소포화도 97퍼센트, 체온 37.2도, 호흡수 20회, 혈당 105입니다. 구토와 출혈은 없습니다.</blockquote></details>
+    <ul class="qv-notes">
+      <li id="server-status">서버 음성 기능을 확인하고 있습니다.</li>
+      <li id="hint-status"></li>
+      <li>이번 기록에서 <span id="quick-history-count">0회</span> 말했습니다.</li>
+      <li>누르는 동안 말하기에서 0.4초보다 짧게 누르면 취소합니다. 임시 인식문의 종료어는 실행하지 않습니다. 본문은 한 번에 최대 4000자이며, 초과하면 원문을 화면에 남기고 전송하지 않습니다.</li>
+      <li>문장 중간의 첫 명령까지만 실행합니다. 명령 앞의 본문을 저장하고, 뒤의 말과 늦게 인식된 말은 미반영 검토칸에 남깁니다. “처치 종료”·“종료하지 마”·인용한 말은 명령에서 제외합니다. 인식 원문과 API 본문을 구분하며 원본 음성은 저장하지 않습니다. 새로고침 후 서버 원문·미반영 내용·확인 대기 요청을 복원합니다.</li>
+      <li>원문과 추출 결과는 이 로컬 서버의 음성 초안에 저장합니다. 환자 등록·병원 문의·전송은 실행하지 않습니다. 실제 환자정보는 말하지 마세요.</li>
+    </ul>
+  </section>
+
+  <section class="qv-patients" aria-label="환자별 기록 전환">
+    <strong id="patient-current">현재 환자 01 · 음성 초안</strong>
+    <div class="qv-patient-actions"><label for="patient-select" class="sr-only">환자 기록 선택</label><select id="patient-select"></select><button id="patient-switch" class="qv-chip-btn" type="button">선택 환자 열기</button></div>
+    <div class="qv-patient-actions"><button id="patient-new" class="qv-chip-btn" type="button">새 환자 시작</button><button id="patient-previous" class="qv-chip-btn" type="button">이전 환자로</button></div>
+    <p id="patient-status" class="qv-help" role="status">입력 전에 현재 환자를 확인하세요. 전환 전 미반영 내용을 보관합니다.</p>
+    <details class="qv-source"><summary>환자별 보관·정리</summary><p>최대 20개 초안을 이 브라우저에 나눠 보관합니다. 새 환자는 이전 기록을 지우지 않습니다. 12시간은 자동 복원 가능 기간이며 자동 삭제 시간이 아닙니다. 현재 환자 복구본 제거는 이 브라우저의 미반영 내용까지 지우며 서버 원기록은 유지합니다.</p><button id="patient-remove" class="qv-chip-btn" type="button">현재 환자 복구본 제거</button></details>
+    <button id="patient-reset-invalid" class="qv-chip-btn" type="button" hidden>읽을 수 없는 브라우저 기록 목록 초기화 · 로컬 미반영 내용 삭제</button>
+  </section>
+  <section class="qv-summary" aria-labelledby="summary-title">
+    <div class="qv-summary-head"><h2 id="summary-title">환자 요약 <span id="quick-count" class="qv-count">기록 대기</span></h2><button type="button" id="summary-toggle" class="qv-link" aria-expanded="false" aria-controls="summary-detail">전체 보기 ›</button></div>
+    <div id="summary-chips" class="qv-sum-chips"></div>
+    <p id="quick-storage-status" class="qv-storage" role="status">아직 서버에 전송한 발화가 없습니다.</p>
+    <details id="quick-storage-receipt" class="qv-source" hidden><summary>저장된 기록 확인</summary><p id="quick-storage-details"></p></details>
+    <div id="summary-detail" class="qv-detail" hidden>
+      <section id="quick-changes" class="qv-changes" aria-labelledby="changes-title" hidden><h3 id="changes-title">방금 바뀐 내용 <span id="changes-kind"></span></h3><ul id="change-items"></ul></section>
+      <div id="quick-fields" class="quick-fields"></div>
+      <details id="quick-derived" hidden><summary>자동 해석 제안 <span id="derived-count"></span></summary><p class="qv-help">원문에서 파생한 제안입니다. 직접 관찰한 값과 구분해 확인하세요.</p><div id="derived-fields" class="quick-fields"></div></details>
+      <details id="quick-warnings" hidden><summary>확인할 내용 <span id="warning-count"></span></summary><ul id="warning-items"></ul></details>
+      <p class="qv-help">▲▼는 이전 값과의 수치 비교이며 임상 판단이 아닙니다. 값은 전송 전에 검토하세요.</p>
+    </div>
+    <p id="quick-status" class="sr-only" role="status"></p>
+    <p id="quick-feedback" class="sr-only" aria-live="polite" hidden></p>
+  </section>
+
+  <div id="quick-error" class="qv-alert" role="alert" hidden></div>
+  <section class="qv-recovery" aria-label="중간 저장·복구">
+    <p id="recovery-status" class="qv-help" role="status">이 브라우저의 복구 기록을 확인하고 있습니다.</p>
+    <details id="connection-panel" class="qv-connection">
+      <summary>연결·저장 상태 · <span id="connection-label">확인 전</span></summary>
+      <p id="connection-title" class="qv-help" role="status"></p>
+      <ul id="connection-lines"></ul>
+      <div class="qv-critical-actions"><button id="connection-check" class="qv-chip-btn" type="button">서버 연결 확인</button><button id="connection-manual" class="qv-chip-btn" type="button">직접 입력 열기</button></div>
+    </details>
+    <button id="recovery-retry" type="button" class="qv-chip-btn" hidden>저장된 기록 다시 복원</button>
+    <details class="qv-source"><summary>브라우저 임시 보관 안내</summary><p>확정 인식문·직접 입력·저장 확인 대기 요청을 환자별로 보관합니다. 마지막 저장 후 12시간 이내에 새로고침·재접속하면 같은 초안을 복원하며 자동 전송하지 않습니다. 원본 음성과 임시 인식문은 보관하지 않습니다. 공용 기기에서는 작업 후 환자별 보관·정리의 복구본 제거로 정리하세요. 새 환자 시작은 이전 기록을 지우지 않습니다.</p></details>
+  </section>
+  <section id="recommendation-prep" class="qv-sheet" aria-labelledby="recommendation-title" hidden>
+    <h2 id="recommendation-title">병원 추천 준비</h2>
+    <p id="recommendation-status" class="qv-help" role="status"></p>
+    <p class="qv-help">저장한 초안을 이어서 엽니다. 환자 정보 검토·확인, 위치와 동의, 환자 등록을 마치면 병원 후보를 조회합니다. 미반영 내용도 검토칸으로 가져갑니다.</p>
+    <button id="recommendation-continue" type="button" class="qv-chip-btn">정보 확인·병원 추천으로 계속</button>
+  </section>
+
+  <section class="qv-timeline" aria-label="말한 내용과 앱 응답">
+    <div class="qv-msg is-app qv-greeting"><p class="qv-bubble">가상 환자 상태를 말해 주세요. 예: “47세 남성, 20분 전부터 흉통. 의식 명료, 혈압 120에 80, 맥박 92”</p></div>
+    <details id="observation-history-panel" class="qv-observation-history" hidden>
+      <summary>상태 관찰·수정 이력</summary>
+      <p class="qv-help">저장된 관찰과 입력 수정을 기록 시각순으로 봅니다. 기록 시각은 실제 측정 시각과 다를 수 있습니다.</p>
+      <button id="observation-history-load" class="qv-chip-btn" type="button">이력 조회·새로고침</button>
+      <p id="observation-history-status" class="qv-help" role="status">현재 환자의 저장된 관찰·수정 이력을 조회해 주세요.</p>
+      <div id="observation-history-list"></div>
+    </details>
+    <details id="handoff-panel" class="qv-handoff" hidden>
+      <summary>병원 인계용 요약 · 입력 기반 초안</summary>
+      <p class="qv-help">저장된 관찰만 정리합니다. 미반영 원문·자동 해석 제안은 사실로 넣지 않습니다. 생성 시각·버전을 확인하고 전달 전에 검토하세요.</p>
+      <div class="qv-critical-actions"><button id="handoff-generate" class="qv-chip-btn" type="button">인계용 요약 만들기·새로고침</button><button id="handoff-copy" class="qv-chip-btn" type="button" disabled>요약 복사</button><button id="handoff-read" class="qv-chip-btn" type="button" disabled>요약 읽어주기</button></div>
+      <p id="handoff-status" class="qv-help" role="status">현재 환자의 기록으로 요약을 만들어 주세요. 병원으로 자동 전송하지 않습니다.</p>
+      <label for="handoff-text" class="qv-label">인계 메모 · 읽기 전용</label><textarea id="handoff-text" rows="10" readonly></textarea>
+    </details>
+    <details id="critical-panel" class="qv-critical" open hidden>
+      <summary id="critical-summary">중요 항목 복창 확인</summary>
+      <p class="qv-help">입력 내용을 원문과 비교하는 단계입니다. 미확인을 정상·없음으로 바꾸지 않습니다. 확인 상태는 현재 화면에서만 유지하며, 새로고침하면 다시 확인합니다.</p>
+      <div class="qv-critical-actions"><button id="critical-read" type="button" class="qv-chip-btn">중요 항목 다시 듣기</button><button id="critical-all" type="button" class="qv-chip-btn">표시된 값 모두 맞아요</button></div>
+      <p id="critical-status" class="qv-help" role="status">항목별로 맞아요 또는 수정 버튼을 눌러 주세요. 말로 확인은 해당 항목의 버튼을 누른 뒤 맞아요·아니요로 답합니다.</p>
+      <div id="critical-items"></div>
+      <section id="critical-editor" class="qv-critical-editor" hidden aria-labelledby="critical-editor-title">
+        <h3 id="critical-editor-title">항목 수정</h3>
+        <p class="qv-help">빈 수치는 미확인으로 남깁니다. 저장해야 초안에 반영됩니다. 저장 전 입력한 수정안은 새로고침 시 직접 입력 검토칸으로 복원합니다.</p>
+        <div id="critical-inputs"></div>
+        <div class="qv-critical-actions"><button id="critical-save" class="qv-chip-btn" type="button">이 항목만 저장</button><button id="critical-cancel" class="qv-chip-btn" type="button">수정 취소</button></div>
+      </section>
+    </details>
+    <div id="quick-history" class="qv-thread"></div>
+    <div id="quick-live" class="qv-msg is-user is-live" hidden><p id="quick-transcript" class="qv-bubble"></p></div>
+  </section>
+
+  <div id="dock" class="qv-dock">
+    <button type="button" id="quick-retry" class="qv-retry" hidden>응답을 받지 못했습니다 · 같은 요청 재시도</button>
+    <section id="followup-card" class="qv-question" aria-labelledby="followup-title" hidden>
+      <div class="qv-q-head"><span id="followup-title" class="qv-q-kicker">확인 질문</span><span id="followup-reason" class="qv-q-reason"></span><span id="followup-progress" class="qv-q-progress"></span></div>
+      <p id="followup-question" class="qv-q-text" aria-live="polite"></p>
+      <p id="followup-hint" class="qv-q-hint"></p>
+      <div class="qv-q-actions"><span id="followup-options" class="qv-options" hidden></span><button type="button" id="followup-unavailable" class="qv-chip-btn">미측정 · 모름</button></div>
+    </section>
+    <p id="followup-done" class="qv-note is-ok" role="status" hidden></p>
+    <div id="followup-deferred" class="qv-note is-warn" hidden><p id="followup-deferred-text"></p><button type="button" id="followup-deferred-retry" class="qv-link">다시 묻기</button></div>
+    <div class="qv-mic-row">
+      <button type="button" id="quick-record" class="qv-mic ptt-button" aria-pressed="false" aria-describedby="quick-interim">한 번 눌러 말하기</button>
+      <button type="button" id="followup-record" class="qv-mic ptt-button" aria-pressed="false" aria-describedby="quick-interim">한 번 눌러 답하기</button>
+      <button type="button" id="followup-speak" class="qv-pill qv-speak">다시 듣기</button>
+      <button type="button" id="quick-readback" class="qv-pill qv-speak" disabled>읽어주기</button>
+      <button type="button" id="quick-cancel" class="qv-pill" hidden>취소</button>
+    </div>
+    <div class="qv-status-line"><span id="quick-state" role="status">준비됨</span><span id="quick-time">00:00</span><span id="quick-interim" aria-live="polite">“중단”·“녹음 종료”는 앞 내용을 저장합니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다.</span></div>
+    <p id="recording-ended" class="qv-help qv-ended" role="status" hidden></p>
+    <section id="recording-excluded" class="qv-excluded" aria-labelledby="recording-excluded-title" hidden>
+      <h2 id="recording-excluded-title">명령 뒤 추가 인식 (미반영)</h2>
+      <p class="qv-help">명령 뒤의 말과 늦게 확정된 문장입니다. 원문을 남겼으며 초안에 자동 반영하지 않았습니다. 직접 입력으로 가져와 검토한 뒤 반영할 수 있습니다.</p>
+      <p id="recording-excluded-text"></p>
+      <button type="button" id="recording-excluded-copy" class="qv-chip-btn">직접 입력으로 가져오기</button>
+    </section>
+  </div>
+</div>
+</body>
+</html>

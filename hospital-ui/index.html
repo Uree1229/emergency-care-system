@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>병원용 웹 · 수용 문의</title>
+<link rel="stylesheet" href="workflow-panel.css">
 <style>
   :root {
     --ink: #1B2430; --muted: #5B6573; --line: #D5D9E0; --bg: #F4F5F7; --card: #FFFFFF;
@@ -109,6 +110,11 @@
   #incomingList { display:flex; flex-direction:column; gap:10px; }
   #chatStatus { overflow-wrap:anywhere; }
   .sub,.note,.field .v { overflow-wrap:anywhere; }
+  #operationsDetail { display:flex; flex-direction:column; gap:14px; }
+  #operationsDetail form { display:flex; flex-direction:column; gap:12px; }
+  #operationsDetail input,#operationsDetail select { min-height:40px; max-width:100%; padding:6px 9px; border:1px solid #C3C9D2; border-radius:8px; }
+  #operationsDetail label { display:flex; flex-direction:column; gap:5px; }
+  #operationsDetail .row { flex-direction:row; }
   @media(max-width:920px) { main{ flex-direction:column; padding:16px; } #listCol,#detailCol{width:100%;} header{padding:14px 16px;gap:10px;} .workspace-tabs{padding:14px 16px 0;} }
   @media(max-width:500px) { .grid{padding:16px;gap:14px;} .panel-head,.actions{padding:16px;} .panel-head{flex-wrap:wrap;} .btn{padding:0 12px;font-size:14px;} .btn-accept{font-size:16px;} .q-input{min-width:150px;} #server{width:170px;} }
 </style>
@@ -129,11 +135,14 @@
   <a id="patientViewLink" hidden target="_blank" rel="noopener">같은 환자의 이송자 화면 열기</a>
 </aside>
 
+<section id="hospitalImportantEvents" class="workflow-events" aria-label="선택 환자 중요 사건" hidden></section>
+
 <nav class="workspace-tabs" aria-label="업무 선택">
   <button type="button" class="active" data-tab="inquiries">수용 문의</button>
   <button type="button" data-tab="incoming">도착 예정 · 이송 대화</button>
   <button type="button" data-tab="resources">병원 자원</button>
   <button type="button" data-tab="restrictions">수용 제한</button>
+  <button type="button" data-tab="operations">통화 기록 · 업무 계측</button>
 </nav>
 
 <main>
@@ -151,14 +160,18 @@
     </div>
     <div id="resourceHelp" hidden class="empty">운영자가 확인한 총량과 실제 점유를 관리합니다. 확정 이송 수요는 서버가 별도로 계산합니다.</div>
     <div id="restrictionHelp" hidden class="empty">기관 전체 또는 필요한 진료 분야의 수용 제한을 관리합니다. 종료 예정이 지나면 자동 정상화하지 않고 재확인 필요로 표시합니다.</div>
+    <div id="operationsHelp" hidden class="empty">통화 기록은 자기 병원에 공유된 내용만 조회합니다. 기록 내용 확인과 수용 응답을 구분하고 실제 업무를 시작·종료할 때 계측 버튼을 누르세요.</div>
   </section>
 
   <section id="detailCol" aria-label="문의 상세">
     <div id="notice" role="status" aria-live="polite"></div>
+    <div id="hospitalWorkflowPlanning" hidden></div>
     <div id="detail"><div class="empty">왼쪽에서 문의를 선택하세요.</div></div>
     <div id="incomingDetail" hidden></div>
     <div id="resourceDetail" hidden class="stack"></div>
+    <div id="externalOperations" hidden class="stack"></div>
     <div id="restrictionDetail" hidden class="stack"></div>
+    <div id="operationsDetail" hidden aria-label="통화 기록 및 직접 업무 계측"><p class="empty">업무 기록 도구를 불러오는 중입니다.</p></div>
     <section id="hospitalChat" hidden class="panel chat" aria-label="이송 대화">
       <div class="panel-head"><div><h3>이송 대화</h3><div class="sub" id="chatStatus">환자를 선택하세요.</div></div></div>
       <div id="chatLog" class="chat-log" aria-live="polite"></div>
@@ -203,6 +216,8 @@ const reviewDrafts = new Map(), resourceDrafts = new Map();
 let externalDraft = {resource_type:null,amount:'1',note:''};
 let restrictionDraft = {scope:'all',reason:'',duration:'3600',note:''};
 let chat = null, chatLoading = false, chatSending = false, chatPending = null;
+let operations=null, operationsBusy=false;
+let workflow=null, workflowPatient=null;
 
 $('server').value = serverBase;
 $('handler').value = store.get('handler', '');
@@ -293,8 +308,8 @@ function renderHospitalContext() {
 }
 
 // ---------------------------------------------------------------- 서버 통신
-async function api(path, opts = {}) {
-  const res = await fetch(serverBase + path, {
+async function api(path, opts = {}, base = serverBase) {
+  const res = await fetch(base + path, {
     ...opts, headers: { 'Content-Type': 'application/json' },
   });
   const body = await res.json().catch(() => ({}));
@@ -319,7 +334,7 @@ async function loadHospitals() {
 }
 
 async function poll() {
-  if (busy || polling) return;
+  if (busy || operationsBusy || polling) return;
   polling = true;
   const version = contextVersion, hospitalId = hid, base = serverBase;
   try {
@@ -359,6 +374,12 @@ async function poll() {
     if (incomingChanged) renderIncoming();
     if (resourceChanged) { renderResources(); renderRestrictions(); if(!changed) renderDetail(); }
     if (activeTab === 'incoming' && selectedPatientId) await pollChat();
+    if (operations) {
+      operations.sync();
+      if(activeTab==='operations') await operations.refresh({background:true});
+      if(activeTab==='resources') await operations.refreshExternal();
+    }
+    syncWorkflow({events:true});
   } catch (e) {
     if (version !== contextVersion) return;
     $('conn').textContent = e.status ? e.message : '서버에 연결할 수 없습니다. 서버가 켜져 있는지 확인하세요.';
@@ -405,6 +426,14 @@ function notice(text, isErr) {
   $('notice').className = isErr ? 'err' : 'ok';
 }
 
+function syncWorkflow({events=false,restore=false}={}) {
+  if(activeTab==='inquiries') workflowPatient=current()?.patient||null;
+  if(activeTab==='incoming') workflowPatient=selectedPatient;
+  if(!workflow)return;
+  const changed=workflow.sync();
+  if(events||changed)workflow.refresh({restore:restore||changed});
+}
+
 function render() {
   const open = data.open;
   $('openCount').textContent = open.length;
@@ -435,7 +464,7 @@ function render() {
 
 function renderDetail() {
   const q = current();
-  if (!q) { $('detail').innerHTML = '<div class="empty">왼쪽에서 문의를 선택하세요.</div>'; return; }
+  if (!q) { $('detail').innerHTML = '<div class="empty">왼쪽에서 문의를 선택하세요.</div>'; syncWorkflow(); return; }
   const p = q.patient, [sev, sevCls] = severityTag(p), [st, stCls] = stateLabel(q);
   const isOpen = data.open.some((x) => x.id === q.id);
   const availability = acceptAvailability(p);
@@ -485,6 +514,7 @@ function renderDetail() {
   const input = $('questionInput');
   if (input && prevText) input.value = prevText;
   if (input && hadFocus) input.focus();
+  if(activeTab==='inquiries')syncWorkflow();
 }
 
 // ---------------------------------------------------------------- 이벤트
@@ -503,15 +533,21 @@ function issueText(issue) {
 }
 function setTab(tab) {
   activeTab = tab;
+  if(tab==='inquiries')workflowPatient=current()?.patient||null;
+  if(tab==='incoming')workflowPatient=selectedPatient;
   document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   $('inquiryLists').hidden = tab !== 'inquiries'; $('detail').hidden = tab !== 'inquiries';
   $('incomingLists').hidden = tab !== 'incoming'; $('incomingDetail').hidden = tab !== 'incoming';
   $('resourceHelp').hidden = tab !== 'resources'; $('resourceDetail').hidden = tab !== 'resources';
   $('restrictionHelp').hidden = tab !== 'restrictions'; $('restrictionDetail').hidden = tab !== 'restrictions';
+  $('operationsHelp').hidden = tab !== 'operations'; $('operationsDetail').hidden = tab !== 'operations';
+  $('externalOperations').hidden = tab !== 'resources';
   $('hospitalChat').hidden = tab !== 'incoming' || !selectedPatientId;
   if (tab === 'incoming') { renderIncoming(); if(selectedPatientId) pollChat(); }
   if (tab === 'resources') renderResources();
   if (tab === 'restrictions') renderRestrictions();
+  if (operations) { if(tab==='operations')operations.show(selectedPatientId||current()?.patient?.id||'');else operations.hide();if(tab==='resources')operations.refreshExternal(); }
+  syncWorkflow({events:true});
 }
 function renderIncoming() {
   $('incomingCount').textContent = incomingData.incoming.length;
@@ -520,16 +556,17 @@ function renderIncoming() {
     return `<button type="button" class="card ${p.id === selectedPatientId ? 'selected' : ''} ${risk ? 'overdue' : ''}" data-patient="${esc(p.id)}"><div class="top"><b>${esc(p.id)}</b><span class="tag ${risk ? 't-mid' : 't-blue'}">${esc(PATIENT_STATES[p.state] || p.state)}</span></div><div class="title">${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</div><div class="meta"><span data-eta="${esc(p.id)}">${esc(etaText(p))}</span><span>${esc(REVIEW_STATES[review.state] || '감시 미설정')}</span></div></button>`;
   }).join('') : '<div class="empty">확정된 도착 예정 환자가 없습니다.</div>';
   $('hospitalChat').hidden = activeTab !== 'incoming' || !selectedPatientId;
-  if (!selectedPatient) { $('incomingDetail').innerHTML = '<div class="empty">왼쪽에서 환자를 선택하세요.</div>'; return; }
+  if (!selectedPatient) { $('incomingDetail').innerHTML = '<div class="empty">왼쪽에서 환자를 선택하세요.</div>'; if(activeTab==='incoming')syncWorkflow(); return; }
   const p = selectedPatient, review = p.transport_review || {}, active = ['CONFIRMED','IN_TRANSIT'].includes(p.state) && incomingData.incoming.some(x => x.id === p.id);
   const issues = review.evidence?.issues || [];
   const draft = reviewDrafts.get(p.id) || '';
   const focus = document.activeElement?.id === 'reviewNote', start = $('reviewNote')?.selectionStart;
   $('incomingDetail').innerHTML = `<div class="panel"><div class="panel-head"><div><div class="sub">환자 ${esc(p.id)}</div><h3>${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</h3></div><span class="tag t-blue">${esc(PATIENT_STATES[p.state] || p.state)}</span></div><div class="grid">${active ? `<div class="field wide"><div class="k">도착 예정 · 남은 시간</div><div class="v" data-eta="${esc(p.id)}">${esc(etaText(p))}</div></div>` : ''}<div class="field"><div class="k">필요 진료</div><div class="v">${esc((p.required_capabilities || []).join(', ') || '-')}</div></div><div class="field"><div class="k">필요 자원</div><div class="v">${esc(demands(p))}</div></div><div class="field wide"><div class="k">수용 조건 재확인</div><div class="v"><b id="hospitalReviewState" data-state="${esc(review.state || 'NOT_STARTED')}">${esc(REVIEW_STATES[review.state] || '감시 미설정')}</b></div><div class="note">${review.state === 'HOSPITAL_SESSION_ENDED' ? '이 병원 참여가 끝났으며 참여 구간의 환자 요약과 대화만 표시합니다.' : review.enabled ? '이송자가 감시를 켠 건입니다. 조정 판단 후 서버가 대체병원에 문의하며, 목적지는 이송자가 결정합니다.' : '이송자가 감시를 켜지 않은 건입니다. 수동 유지·조정 판단만 반영합니다.'}</div></div>${issues.length ? `<div class="qa"><b>이 환자와 관련된 확인 사유</b><ul class="review-issues">${issues.map(i => `<li>${esc(issueText(i))}</li>`).join('')}</ul></div>` : '<div class="qa">현재 등록된 조건 재확인 사유가 없습니다. 신규 여유가 0이어도 기존 이송의 수용 조건은 유지될 수 있습니다.</div>'}${p.adjustment_note ? `<div class="field wide"><div class="k">조정 메모</div><div class="v">${esc(p.adjustment_note)}</div></div>` : ''}</div><div class="actions">${active ? `<textarea id="reviewNote" rows="2" maxlength="1000" placeholder="현재 조건을 유지할 수 있는지 판단한 근거 / 조정 사유" aria-label="수용 조건 판단 메모">${esc(draft)}</textarea><div class="row"><button class="btn-small" type="button" data-patient-action="keep" ${busy ? 'disabled' : ''}>수용 유지</button><button class="btn-small" type="button" data-patient-action="adjust" ${busy ? 'disabled' : ''}>조정 필요</button><button class="btn-small" type="button" data-patient-action="arrive" ${busy ? 'disabled' : ''}>환자 도착 확인</button></div><div class="note">관련 자원 부족은 잠재적 영향입니다. 실제 수용 유지 여부는 병원이 판단합니다.</div>` : p.state === 'ARRIVED' && incomingData.incoming.some(x=>x.id===p.id) ? `<button class="btn-small" type="button" data-patient-action="discharge" ${busy ? 'disabled' : ''}>퇴실 확인 · 점유 해제</button>` : '<div class="note">현재 이 병원에서 처리할 수 있는 이송 건이 아닙니다. 본 병원 참여 구간의 대화는 아래에서 조회할 수 있습니다.</div>'}</div></div>`;
   if(focus && $('reviewNote')) { $('reviewNote').focus(); if(start != null) $('reviewNote').setSelectionRange(start,start); }
+  if(activeTab==='incoming')syncWorkflow();
 }
 function requireHandler() { const name=$('handler').value.trim(); if(!name){notice('담당자 이름을 먼저 입력하세요.',true);$('handler').focus();} return name; }
-function lockContext() { $('hospital').disabled = busy || chatSending; $('server').disabled = busy || chatSending; }
+function lockContext() { $('hospital').disabled = busy || chatSending || operationsBusy; $('server').disabled = busy || chatSending || operationsBusy; $('handler').disabled = busy || chatSending || operationsBusy; }
 async function hospitalAction(action) {
   const p=selectedPatient, handler=requireHandler(); if(!p || !handler || busy) return;
   const pid=p.id, note=$('reviewNote')?.value.trim() || ''; reviewDrafts.set(pid,note);
@@ -610,6 +647,14 @@ function renderResources() {
   const externalForm=$('externalArrivalForm');
   if(externalDraft.resource_type && (hospitalData.resources || []).some(r=>r.resource_type===externalDraft.resource_type))externalForm.elements.resource_type.value=externalDraft.resource_type;
   externalForm.elements.amount.value=externalDraft.amount;externalForm.elements.note.value=externalDraft.note;
+  const pendingExternal=operations?.client.pending('external-register');
+  if(pendingExternal){
+    const payload=pendingExternal.payload,[resource,amount]=Object.entries(payload.resource_demands)[0];
+    externalForm.elements.resource_type.value=resource;externalForm.elements.amount.value=amount;externalForm.elements.note.value=payload.note||'';
+    externalForm.elements.resource_type.disabled=true;externalForm.elements.amount.disabled=true;externalForm.elements.note.readOnly=true;
+    externalForm.querySelector('button[type="submit"]').textContent='같은 유입 요청 재시도';
+    const text=document.createElement('p');text.className='note';text.textContent='전송 결과 미확인: 요청 ID '+payload.request_id+' · 원래 내용으로 재시도합니다. 새로고침 후에도 같은 요청을 복원합니다.';externalForm.append(text);
+  }
   if(activeId && $(activeId)){ $(activeId).focus();if(start != null && $(activeId).type !== 'number') $(activeId).setSelectionRange(start,start); }
 }
 async function saveResource(form) {
@@ -622,12 +667,13 @@ async function saveResource(form) {
 }
 async function registerExternal(form) {
   const handler=requireHandler();if(!handler||busy||hospitalData?.source!=='synthetic')return;
+  if(!operations){notice('업무 기록 도구가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.',true);return;}
   const amount=Number(form.elements.amount.value), resource=form.elements.resource_type.value,note=form.elements.note.value.trim();
   if(!Number.isInteger(amount)||amount<1||!note){notice('양의 정수 수량과 유입 메모를 입력하세요.',true);return;}
   busy=true;lockContext();
-  try{await api(`/api/hospitals/${encodeURIComponent(hid)}/external-arrivals`,{method:'POST',body:JSON.stringify({resource_demands:{[resource]:amount},note,handled_by:handler})});externalDraft={resource_type:resource,amount:'1',note:''};notice('가상 유입을 등록했습니다. 도착 예정 탭에서 관련 환자의 재확인 사유를 확인하세요.',false);}
-  catch(e){notice(e.message,true);}
-  finally{busy=false;lockContext();resourceSig='';incomingSig='';await poll();}
+  try{operations.sync();const result=await operations.client.registerExternal({resource_demands:{[resource]:amount},note});if(result.stale)return;externalDraft={resource_type:resource,amount:'1',note:''};notice(result.value.duplicate?'이미 등록된 같은 유입 요청을 확인했습니다. 점유를 다시 더하지 않았습니다.':'가상 유입을 등록했습니다. 아래 목록에서 이 기록을 개별 퇴실할 수 있습니다.',false);}
+  catch(e){notice(e.message+(e.pending?' · 결과 미확인 요청은 같은 요청 ID·내용으로 재시도합니다.':' · 요청이 거부되었습니다. 입력과 최신 목록을 확인한 뒤 직접 다시 시도하세요.'),true);}
+  finally{busy=false;lockContext();resourceSig='';incomingSig='';await poll();renderResources();await operations.refreshExternal();}
 }
 function chatKey(){return `${contextVersion}:${hid}:${selectedPatientId}`;}
 function resetChat(){chat=null;chatPending=null;$('chatBody').value='';$('chatLog').innerHTML='';$('chatSend').disabled=true;$('chatStatus').textContent='대화 연결 확인 중…';}
@@ -706,7 +752,9 @@ $('hospital').addEventListener('change', () => {
   hid = $('hospital').value; store.set('hid', hid);
   resetWorkspace(); poll();
 });
-$('handler').addEventListener('change', () => store.set('handler', $('handler').value.trim()));
+$('handler').addEventListener('input', () => syncWorkflow());
+$('handler').addEventListener('blur', () => syncWorkflow({events:true,restore:true}));
+$('handler').addEventListener('change', () => {store.set('handler', $('handler').value.trim());syncWorkflow({events:true,restore:true});if(operations){operations.sync();if(activeTab==='operations')operations.refresh();}});
 $('server').addEventListener('change', () => {
   serverBase = $('server').value.trim().replace(/\/$/, ''); store.set('serverBase', serverBase);
   resetWorkspace();
@@ -714,15 +762,19 @@ $('server').addEventListener('change', () => {
 });
 function resetWorkspace(){
   contextVersion++;selectedId=null;selectedPatientId=null;selectedPatient=null;landingPatientId=null;
+  workflowPatient=null;
   seen.clear();newUntil.clear();firstLoad=true;lastSig='';incomingSig='';resourceSig='';
   data={open:[],recent:[]};incomingData={incoming:[],affected:[],planning:[]};hospitalData=null;
   reviewDrafts.clear();resourceDrafts.clear();externalDraft={resource_type:null,amount:'1',note:''};restrictionDraft={scope:'all',reason:'',duration:'3600',note:''};resetChat();
   render();renderIncoming();renderResources();renderRestrictions();notice('',false);
   renderHospitalContext();
+  if(operations){operations.sync();if(activeTab==='operations')operations.refresh();if(activeTab==='resources')operations.refreshExternal();}
+  syncWorkflow({events:true,restore:true});
 }
 
 // 경과시간은 화면 전체를 다시 그리지 않고 글자만 1초마다 갱신 (클릭이 끊기지 않도록)
 setInterval(() => {
+  operations?.tick();
   for (const el of document.querySelectorAll('[data-elapsed]')) {
     const q = data.open.find((x) => x.id === Number(el.dataset.elapsed)) || data.recent.find((x) => x.id === Number(el.dataset.elapsed));
     if (q) el.textContent = elapsed(q);
@@ -740,6 +792,21 @@ setInterval(() => {
 }, 1000);
 
 renderHospitalContext();
+import('./workflow-panel.mjs').then(({HospitalWorkflowPanel})=>{
+  workflow=new HospitalWorkflowPanel({planningRoot:$('hospitalWorkflowPlanning'),eventRoot:$('hospitalImportantEvents'),
+    context:()=>({server:serverBase,hospital:hid,handler:$('handler').value.trim(),patient:workflowPatient?.id||'',version:contextVersion}),
+    snapshot:()=>({patient:workflowPatient,planning:(incomingData.planning||[]).find(p=>p.patient_id===workflowPatient?.id),availability:incomingData.planning_availability,showPlanning:['inquiries','incoming'].includes(activeTab)}),
+    request:(ctx,path,opts)=>api(path,opts,ctx.server),storage:localStorage,identityEditing:()=>document.activeElement===$('handler')});
+  syncWorkflow({events:true,restore:true});
+}).catch(error=>notice('추천·중요 사건 표시 도구를 불러오지 못했습니다. '+error.message,true));
+import('./operations.mjs').then(({HospitalOperations,HospitalOperationsPanel})=>{
+  const client=new HospitalOperations({request:(ctx,path,opts)=>api(path,opts,ctx.server),storage:localStorage});
+  operations=new HospitalOperationsPanel({root:$('operationsDetail'),externalRoot:$('externalOperations'),client,
+    context:()=>({server:serverBase,hospital:hid,handler:$('handler').value.trim(),version:contextVersion}),notice,
+    onBusy:value=>{operationsBusy=value;lockContext();},
+    onChanged:()=>{lastSig='';resourceSig='';incomingSig='';setTimeout(poll,0);}});
+  operations.sync();if(activeTab==='operations')operations.show(selectedPatientId||current()?.patient?.id||'');if(activeTab==='resources')operations.refreshExternal();
+}).catch(e=>{$('operationsDetail').textContent='업무 기록 도구를 불러오지 못했습니다: '+e.message;notice('통화·계측·외부 유입 기록 도구를 불러오지 못했습니다. '+e.message,true);});
 loadHospitals().then(() => { poll(); setInterval(poll, POLL_MS); });
 </script>
 </body>

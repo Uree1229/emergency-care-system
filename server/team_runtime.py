@@ -24,6 +24,7 @@ from .inquiry_worker import InquiryWorker
 from .system_status import RuntimeStatus
 from .travel import TravelEstimator
 from .team_runtime_profile import verify_profile
+from .team_release_info import release_info, check_dependencies
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT/'data/team-common.db'
@@ -217,6 +218,8 @@ class CommonRuntime(AbstractContextManager):
         self._started_workers = []
         self.base_url = None
         self.profile = None
+        self.release = None
+        self.dependencies = None
         self.runtime = RuntimeStatus()
 
     def start(self):
@@ -225,6 +228,8 @@ class CommonRuntime(AbstractContextManager):
         self.profile = verify_profile(self.mode, self.allow_environment_difference)
         if not self.profile['ok']:
             raise ValueError('실행 기준 검사 실패: '+json.dumps(self.profile['issues'], ensure_ascii=False))
+        self.release = release_info()
+        self.dependencies = check_dependencies(self.mode)
         inspect_database(self.path)
         estimator = TravelEstimator(use_kakao=False)
         parent = make_handler(self.path, estimator, cors_origin=None, runtime=self.runtime)
@@ -269,15 +274,16 @@ class CommonRuntime(AbstractContextManager):
             raise
 
     def info(self):
-        links = dict(voice='/paramedic/', voice_test='/paramedic/quick-test.html',
+        links = dict(home='/', voice='/paramedic/', voice_test='/paramedic/quick-test.html',
                      transport='/patient/', hospital='/hospital/?hid=H01',
                      status='/api/system/status', runtime='/api/team-runtime')
         return dict(revision=REVISION, mode=self.mode, synthetic=True, baseline_id=BASELINE_ID,
             solver_seconds=3 if self.mode == 'full' else None, inquiry_policy='fixed_3',
             travel_provider='synthetic', external_hospital_messages=False, profile=self.profile,
+            release=self.release, dependency_environment=self.dependencies,
             database=inspect_database(self.path), workers=self.runtime.snapshot()['workers'],
             links={key:(self.base_url or '')+value for key,value in links.items()},
-            note='화면은 기존 파일을 제공합니다. 최신 추천·음성 검토 UI 연결은 별도 담당 작업입니다.')
+            note='메인 음성·이송 진행·병원 검토·추천·중요 알림을 같은 서버와 DB로 제공합니다. 수용·목적지는 담당자가 확정합니다.')
 
     def close(self):
         # Stop accepting HTTP writes before releasing workers and the DB lease.

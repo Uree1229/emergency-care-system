@@ -1,5 +1,7 @@
 # 구급대원 음성 입력 API
 
+배정 입력 재확인 표시: [분류 기준·읽기 API·UI 연결 계약](ALLOCATION_INPUT_REVIEW_API_20261030.md). 후보·추천 결과의 `input_review`와 전용 `GET /api/patients/{pid}/input-review`에서 배정 관련 명시적 미확정 항목과 선택 미측정 정보를 분리한다. 표시 전용이며 기존 수용·추천 점수·배정 확정을 바꾸지 않는다. `allocation_input_review_revision: allocation-input-review-20261030-v1`로 지원 여부를 확인한다.
+
 치료조건 검토 연결: [변경안 미리보기·명시 적용·배정 재평가 API](VOICE_TREATMENT_REVIEW_API_20261030.md). 기존 환자 음성 초안 응답에 `session.treatment_review`를 추가했다. `/treatment-review`, `/treatment-review/preview`, `/treatment-review/apply`로 기존 유지·서버 제안·담당자 직접 조건을 검토하고 적용한다. 초안 확인과 치료조건 승인은 별도이며 값·조건·기존 수용·배정 입력 변경을 원자적으로 처리한다. 목적지 확정 전만 지원하고 기존 submit 호환 계약은 유지한다. 관련461개 회귀·초안12단계·가상 병원11단계 통과.
 
 UI 핸드오프 5.1·5.5 반영: [조사 오인식 방지·자연스러운 질문 답변·검증 결과](VOICE_UI_HANDOFF_SERVER_FIX_20261030.md). `capabilities.handoff_parser_revision: "voice-ui-handoff-20261030-v1"`. 기존 `voice_revision`과 요청 형식은 유지한다. 질문 문맥의 `분당 20분`·`37도 2`·`30분 전쯤`처럼 의미를 보완한 답변에는 `answer.review_required`, `answer.interpretation_notes`와 해당 `field_metadata`의 같은 검토 표시를 제공한다. 실제 인식 원문은 발화와 근거에 보존하며, 이 표시는 미응답 재질문이나 수용·이송 판단을 뜻하지 않는다.

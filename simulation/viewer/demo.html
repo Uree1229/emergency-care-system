@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>응급이송 시연 정리 · 저장 기록과 연구 결과</title>
+  <link rel="stylesheet" href="demo.css">
+  <script src="demo_casebook_20261030.js" defer></script>
+  <script src="demo.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 이동</a>
+  <header class="site-header">
+    <div class="header-inner"><a class="brand" href="#"><span class="brand-symbol" aria-hidden="true">＋</span>응급이송 시연 정리</a><nav aria-label="시연 안내"><a href="#map-section">기능 흐름</a><a href="#research-section">개선과 악화</a><a href="#cohort-section">전체 결과</a><a href="#limits-section">한계</a></nav><span class="header-state">저장 기록</span></div>
+  </header>
+  <main id="main">
+    <section class="intro" aria-labelledby="intro-title">
+      <p class="eyebrow">CAPSTONE · DEMO CASEBOOK</p>
+      <div class="intro-heading"><h1 id="intro-title">동작한 흐름과<br>남아 있는 한계를 함께 봅니다.</h1><div class="intro-aside"><span class="pill">알고리즘 실험 종료</span><p>기존 기록을 읽는 시연입니다.<br>최종 발표 자료는 이후에 정리합니다.</p></div></div>
+      <p class="intro-description">정상 이송, 조건 변경, 미배정 기록을 확인한 뒤 같은 환자의 개선과 악화를 비교합니다. 이 화면은 솔버나 실험을 실행하지 않습니다.</p>
+      <div class="policy-strip"><span class="status-dot" aria-hidden="true"></span><strong>운영 기준 유지</strong><span>고정 3곳 문의 + CP-SAT <code>severity_first</code> · 3초</span><span class="policy-note">H1·W1은 별도 연구 정책 · W1 미채택</span></div>
+    </section>
+
+    <section id="map-section" class="section" aria-labelledby="map-title">
+      <div class="section-heading"><div><p class="eyebrow">01 / FUNCTIONAL FLOW</p><h2 id="map-title">저장된 지도 기록 세 가지</h2></div><p>링크는 별도 탭에서 기존 지도 뷰어를 엽니다.</p></div>
+      <div class="map-cards">
+        <article class="map-card"><span class="card-number">01</span><div class="card-top"><h3>정상 수용 → 도착</h3><span class="badge success">기능 기록</span></div><p>병원 수용, 서버 추천, 담당자 확정과 출발을 구분합니다.</p><ol><li>처음부터 수용 응답을 확인</li><li>사람이 확정한 뒤 출발</li><li>끝 <b>#46</b>에서 H1 도착 기록 확인</li></ol><a class="map-link" data-map-scenario="voice-road-normal_arrival" target="_blank" rel="noopener">정상 이송 기록 열기 <span aria-hidden="true">↗</span></a></article>
+        <article class="map-card"><span class="card-number">02</span><div class="card-top"><h3>조건 변경 → 대체 수용</h3><span class="badge caution">사람의 판단</span></div><p>대체 수용을 확보해도 사람이 바꾸기 전까지 원래 목적지를 유지합니다.</p><ol><li><b>#66</b> 새 수용 확보 · H1 유지</li><li><b>#72</b> 명시적 목적지 변경 · H2</li><li>끝 <b>#82</b>에서 H2 도착 기록 확인</li></ol><a class="map-link" data-map-scenario="voice-road-enroute_resource_reroute" target="_blank" rel="noopener">조건 변경 기록 열기 <span aria-hidden="true">↗</span></a></article>
+        <article class="map-card"><span class="card-number">03</span><div class="card-top"><h3>무응답 → 미배정</h3><span class="badge neutral">실패도 보존</span></div><p>응답이 없으면 수용·도착을 만들어 넣지 않습니다.</p><ol><li>문의가 전달된 기록 확인</li><li>끝 <b>#31</b>에서 자동 문의 종료</li><li>WAITING · 목적지 없음 확인</li></ol><a class="map-link" data-map-scenario="voice-road-no_hospital_response" target="_blank" rel="noopener">무응답 기록 열기 <span aria-hidden="true">↗</span></a></article>
+      </div>
+      <div class="map-note"><p><b>#번호는 사건 탐색 순서</b>입니다. 실제 경과초는 사건 상세에 따로 나옵니다. 지도는 카카오 일반 자동차 경로 스냅샷이며 환자·기관·자원·회신·시각은 합성 입력입니다.</p><p id="connection-note"></p><details><summary>지도 실행과 오프라인 안내</summary><p>저장소 루트에서 Python 3.12로 실행합니다. <code>--reuse-data</code>가 기존 기록을 그대로 사용하도록 합니다.</p><pre><code>python -m simulation.viewer_server --port 18045 --reuse-data --no-browser</code></pre><p>지도 배경에 연결되지 않으면 뷰어에서 <b>간략지도</b>를 선택하세요. 이 안내의 연구 사례·표는 인터넷 없이도 열립니다. 기록을 새로 생성하는 명령은 필요하지 않습니다.</p></details></div>
+    </section>
+
+    <section id="research-section" class="section" aria-labelledby="research-title">
+      <div class="section-heading"><div><p class="eyebrow">02 / PAIRED CASES</p><h2 id="research-title">개선된 환자와 늦어진 환자</h2></div><p>아래 사례는 이미 관측한 개발 자료입니다.<br>전체 성과를 대신하는 대표 표본은 아닙니다.</p></div>
+      <div id="data-error" class="data-error" role="alert" hidden></div>
+      <div id="case-tabs" class="case-tabs" role="tablist" aria-label="연구 사례 선택"></div>
+      <section id="case-panel" class="case-panel" role="tabpanel" tabindex="0"><p>저장된 사례를 불러오는 중입니다.</p></section>
+      <p class="research-footnote">H1·W1은 현재 수용 응답과 자원으로 판단하는 연구 정책입니다. 운영 서버의 CP-SAT과 목적·모형·예산이 달라 같은 문제의 승패로 비교하지 않습니다.</p>
+    </section>
+
+    <section id="cohort-section" class="section" aria-labelledby="cohort-title">
+      <div class="section-heading"><div><p class="eyebrow">03 / COHORTS KEPT SEPARATE</p><h2 id="cohort-title">사례 뒤의 전체 결과</h2></div><p>개발과 새 검증의 환자 수·성과를 합치지 않습니다.</p></div>
+      <div id="cohort-content"><p>코호트 집계를 불러오는 중입니다.</p></div>
+    </section>
+
+    <section id="limits-section" class="section" aria-labelledby="limits-title">
+      <div class="section-heading"><div><p class="eyebrow">04 / LIMITS & CHECKS</p><h2 id="limits-title">시연 전에 확인할 것</h2></div></div>
+      <div class="limit-grid"><article><h3>기록과 실제 현장을 구분</h3><p>지도 움직임은 실제 GPS·우선주행·지속 갱신 교통이 아닙니다. 병원 수용은 합성 역할 입력이며 실제 기관에 문의하지 않았습니다.</p></article><article><h3>평균만으로 개선 판정하지 않기</h3><p>개인 지연, 기존 성공 기록 상실과 미도착을 함께 봅니다. 제한시간 차이가 0이어도 도착과 치료 시작 성공은 다를 수 있습니다.</p></article><article><h3>연구 수치를 임상 기준으로 부르지 않기</h3><p>우선군 4·2·1과 30/60/120분 기준은 실험 설정입니다. 임상 골든타임·안전성·생존 개선을 검증하지 않았습니다.</p></article><article><h3>사용성 측정과 구분</h3><p>문의 수는 업무 부담의 간접 지표입니다. 실제 참여자의 수동·음성 입력시간과 병원 검토시간 비교는 아직 완료되지 않았습니다.</p></article></div>
+      <div class="checklist"><h3>화면 확인 순서</h3><ul><li>정상·변경·무응답 기록을 각각 열기</li><li>조건 변경 #66과 #72에서 목적지가 다른지 확인</li><li>연구 사례의 비교 방향과 같은 환자 ID 확인</li><li>미도착의 빗금 막대와 성공 상태 확인</li><li>새 검증의 902명 도착·85명 미도착을 함께 설명</li></ul></div>
+      <details class="source-details"><summary>자료 출처와 보존 범위</summary><div id="source-content"></div><p>이 허브는 별도로 발췌한 표시 자료만 읽습니다. 원본 압축 기록·기준·정책·실험 결과는 수정하지 않습니다. 이미 관측한 검증 자료는 이후 연구의 새로운 독립 검증으로 재사용할 수 없습니다.</p></details>
+    </section>
+  </main>
+  <footer><span>캡스톤 디자인 · 저장 기록 시연</span><span>기능 검사 통과와 정책 채택은 별개입니다.</span></footer>
+</body>
+</html>

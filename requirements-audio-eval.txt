@@ -1,0 +1,2 @@
+# Optional offline waveform experiment dependency; not required by the API server.
+numpy==2.3.5

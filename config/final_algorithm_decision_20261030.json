@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "decision_id": "final-algorithm-decision-20261030-v1",
+  "decision_date": "2026-10-30",
+  "decision_stage": "posthoc_evidence_based_retention",
+  "prespecified_adoption_test": false,
+  "automatic_runtime_switch": false,
+  "operational_policy": {
+    "action": "retain_existing",
+    "inquiry": "fixed_3",
+    "assignment": "CP-SAT",
+    "solver_policy": "severity_first",
+    "budget_seconds": 3,
+    "baseline_id": "server-allocation-baseline-20261030-v1",
+    "baseline_manifest_sha256": "642e0cf3b18c9129a3ac17af9cbc7d04e9cda12d47093a5af1b773b03290ac0d",
+    "evidence_scope": "reproducible current implementation retained; superiority over research H1/R1 is not claimed"
+  },
+  "research_candidate": {
+    "H1": {
+      "adopted": false,
+      "comparison_reference_retained": "R1",
+      "reference_is_operational_policy": false,
+      "reasons": ["individual arrival worsening up to 67 minutes", "priority-weight-4 worsening up to 51 minutes", "one R0 arrival/treatment success lost", "no consistent descriptive time benefit across profiles"],
+      "verdict_scope": "insufficient adoption evidence and observed tradeoffs; not a universal inferiority test",
+      "maximum_delay_resolved": false
+    },
+    "G2": {"adopted_in_server": false, "status": "separate research reference; retain its original study decision only"},
+    "G3_G4": {"adopted_in_server": false, "status": "not selected; recorded assignment or priority/outcome preservation failures"},
+    "G5": {"adopted_in_server": false, "status": "preservation research candidate; small effect does not justify default replacement"},
+    "QI_QJ": {"adopted_in_server": false, "status": "selected_id null; no eligible candidate, no fresh validation"},
+    "EAT": {"adopted_in_server": false, "status": "separate inquiry/operations experiments; effects are not H1 or current server effects"}
+  },
+  "evidence_directory": "outputs/final_evaluation_20261030/holdout-v1",
+  "causal_case_document": "outputs/algorithm_decision_20261030/analysis_v1/cases.md",
+  "pinned_evidence": {
+    "outputs/final_evaluation_20261030/holdout-v1/report.json": "7402a49dce6d060cfd2aac144c3c0dba17b31fad28e240ce326733e52d4f2199",
+    "outputs/final_evaluation_20261030/holdout-v1/execution-lock.json": "05566cdfddad1193fdfa3ab2735f1f7c5f0885217f4b3486fa2c4757a504e402",
+    "outputs/final_evaluation_20261030/holdout-v1/independent-metrics-verification.json": "85d47da11d62246e2aab7a5a82971341e612b1d88fdd02fff7e97934b6e66ecd",
+    "outputs/algorithm_decision_20261030/analysis_v1/evidence.json": "9580ab7b9c35cdfeb28ba1cad48347e0257434d8b9fac6f005a87b430b592285",
+    "outputs/algorithm_decision_20261030/analysis_v1/cases.md": "0ed1a6e7ca394cfca0a599e9a88e4563a28773696b25eb9f26f3ff0832f52216",
+    "outputs/algorithm_decision_20261030/analysis_v1/verification.json": "e65a7991120bee622ba00dbed9c7a26daa718a96ef7c5c91947c262943051a4e",
+    "outputs/final_evaluation_20261030/posthoc_decision_review_v2/report.json": "42b9a8c6976bbabdb05d89566dea86179dd585b10fae1d1d48e3a39ae9275061"
+  },
+  "limitations": [
+    "Existing evaluation has already been observed; this is post-hoc retention, not a new independent evaluation or a prespecified adoption test.",
+    "603 patients are nested in 36 synthetic environments, three environments per profile; no pooled real-world efficacy estimate or independent-patient significance claim.",
+    "Equal capped arrival time can hide a success loss. Selection, arrival and treatment transitions are reported separately.",
+    "Research H1 uses weighted unassigned sum then weighted travel, 2048 evaluations and a 10-second technical guard. The server uses lexicographic priority counts and integer treatment schedules with a 3-second CP-SAT budget.",
+    "The current-snapshot resource audit is not full resource-history reconstruction, global online optimality, future outcome protection or clinical safety validation.",
+    "Future waiting-aware fairness rules are unvalidated candidates. New objectives, permitted deterioration and failure rules must be frozen before unused evaluation data.",
+    "The 67-minute research worsening remains unresolved. Retaining the current server policy does not make that experimental result disappear."
+  ]
+}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A1016">
+  <title>이송 실험실 · 새 화면</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="lab.css">
+  <script src="basemap.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="lab.js" defer></script>
+</head>
+<body data-view="replay">
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="지도 재생 처음으로"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 17h6l3-8 4 15 3-7h6"/></svg></span><span>이송 실험실<small>TRANSFER LAB</small></span></a>
+    <nav class="topnav" aria-label="화면 전환" role="tablist">
+      <button type="button" role="tab" id="tab-replay" data-view="replay" aria-selected="true" aria-controls="view-replay">지도 재생</button>
+      <button type="button" role="tab" id="tab-compare" data-view="compare" aria-selected="false" aria-controls="view-compare" tabindex="-1">결과 비교</button>
+      <button type="button" role="tab" id="tab-story" data-view="story" aria-selected="false" aria-controls="view-story" tabindex="-1">발표</button>
+    </nav>
+    <div class="scenario-control"><label for="scenario-select"><span>실험 시나리오</span><span id="scenario-total">불러오는 중</span></label><select id="scenario-select" disabled><option>시뮬레이션 불러오는 중…</option></select></div>
+    <span class="environment-label"><i></i><span id="environment-description">실제 병원 위치 · 가상 상황</span></span>
+  </header>
+  <main>
+    <div id="load-error" class="error-banner" hidden role="alert"></div>
+
+    <section id="view-replay" class="view view-replay" role="tabpanel" aria-labelledby="tab-replay">
+      <div id="workspace" class="workspace replay-grid">
+        <div class="rail rail-left">
+          <section class="scenario-strip" aria-label="선택한 시나리오">
+            <div class="scenario-summary"><span class="section-index">CASE</span><div><h2 id="scenario-title">준비 중</h2><p id="scenario-description">저장된 실험 기록을 불러오고 있습니다.</p></div></div>
+            <div class="scenario-meta"><span id="patient-count">—명</span><span id="hospital-count">—개 병원</span><span id="seed-label">SEED —</span></div>
+          </section>
+          <aside class="branch-panel" aria-label="알고리즘별 현재 상태"><div class="branch-panel-head"><div class="section-heading"><div><span class="eyebrow">POLICY MONITOR</span><h2>알고리즘별 진행</h2></div><span id="branch-count" class="count-badge">—</span></div><div class="patient-selector"><label for="patient-select">환자 선택</label><select id="patient-select"><option value="all">전체 환자</option></select></div></div><div id="branch-cards"></div><details class="branch-disclosure"><summary>기록을 읽기 전에</summary><p class="branch-note">의료진 판단을 재현하지 않습니다. 각 분기는 동일한 가상 사건을 독립적으로 처리한 기록입니다. 적응형 정책의 문의 수와 근거는 재생 시각까지 관측한 회신·대기 기록으로 표시합니다.</p></details></aside>
+        </div>
+
+        <div class="map-panel" id="map-panel">
+          <div class="map-toolbar"><div class="map-heading"><span class="live-dot"></span><strong>이송 경로</strong><span id="map-layer-status">지도 준비 중</span></div><label class="basemap-control" for="basemap-select">지도<select id="basemap-select" aria-label="지도 배경 선택"><option value="osm">일반지도</option><option value="plain">간략지도</option></select></label><button id="map-expand" class="map-expand-button" aria-expanded="false" aria-controls="map-expanded-dialog">크게 보기</button><span id="playback-state" class="playback-state">재생 준비</span></div>
+          <div id="map-patient-slot" class="map-patient-slot" hidden></div>
+          <div id="map-shell" class="map-shell">
+            <svg id="replay-map" viewBox="0 0 1000 720" role="img" aria-label="실제 병원 위치와 알고리즘별 구급차 이동 지도"><defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#cbd0c7" stroke-width="0.5" opacity=".45"/></pattern></defs><rect class="map-ground" width="1000" height="720" fill="#edf0ea"/><g id="map-viewport"><rect class="map-grid" x="-2000" y="-2000" width="5000" height="5000" fill="url(#grid)"/><g id="geography-layer"></g><g id="basemap-layer" pointer-events="none"></g><g id="region-label-layer"></g><g id="route-layer"></g><g id="inquiry-layer"></g><g id="hospital-layer"></g><g id="ambulance-layer"></g><g id="patient-layer"></g></g><g id="scale-layer"></g></svg>
+            <div class="map-clock" aria-hidden="true"><span id="map-clock-label">경과 시간</span><strong id="map-clock-time">00:00</strong><small id="map-clock-phase">재생 준비</small></div>
+            <div id="basemap-status" class="basemap-status" hidden role="status"></div>
+            <div id="map-tooltip" class="map-tooltip" hidden></div>
+            <div class="map-tools" aria-label="지도 조작"><button id="zoom-in" title="지도 확대" aria-label="지도 확대">+</button><button id="zoom-out" title="지도 축소" aria-label="지도 축소">−</button><button id="fit-map" title="지도 전체 보기" aria-label="지도 전체 보기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4M9 12h6m-3-3v6"/></svg></button></div>
+            <div class="map-attribution">경계: geoBoundaries / citypopulation.de · CC BY 3.0 · 2020</div>
+          </div>
+          <div class="map-context">
+            <div class="map-policy-key"><span class="map-caption">정책</span><div id="map-policy-legend" aria-label="지도에서 강조할 알고리즘"></div></div>
+            <div class="map-context-actions"><button id="map-focus-patient" title="선택 환자의 발생지와 현재 이동 위치를 함께 보기">환자 위치 보기</button><button id="map-detail-toggle" aria-pressed="false">상세 표시</button></div>
+            <div class="map-key"><span><i class="key-patient"></i>환자 발생지</span><span><i class="key-hospital">+</i>병원</span><span class="details-key" hidden><i class="key-inquiry"></i>문의</span><span><i class="key-route"></i><span id="route-key-label">이송</span></span><span id="fallback-route-key" hidden><i class="key-fallback"></i>접속·직선 추정</span></div>
+          </div>
+          <div class="playback">
+            <div class="playback-buttons"><button id="reset" class="control-button" title="처음으로" aria-label="처음으로">↺</button><button id="play" class="play-button" disabled>▶ 재생</button><button id="finish" class="control-button" title="끝으로" aria-label="끝으로">⇥</button><label class="speed-label" for="speed">배속</label><select id="speed" aria-label="재생 속도"><option value="1">1×</option><option value="12">12×</option><option value="30">30×</option><option value="60" selected>60×</option><option value="120">120×</option></select></div>
+            <div class="clock-readout"><span class="clock-label">경과 시간</span><strong id="current-time">00:00</strong><span> / <span id="duration">00:00</span></span></div>
+            <input id="timeline" type="range" min="0" max="1" step="0.05" value="0" disabled aria-label="시뮬레이션 재생 시각">
+            <div class="timeline-labels"><span id="timeline-start">환자 발생</span><span id="timeline-middle">119 도착 후 알고리즘 분기</span><span>결과</span></div>
+            <div class="event-navigation" aria-label="핵심 사건 시각으로 이동"><div class="event-navigation-buttons"><button id="previous-event" class="event-button" disabled aria-label="이전 핵심 사건으로 이동">← 이전 사건</button><button id="next-event" class="event-button" disabled aria-label="다음 핵심 사건으로 이동">다음 사건 →</button></div><p id="event-readout" class="event-readout"><time id="event-time">—</time><span id="event-summary">문의·회신·선정 시점으로 이동</span></p></div>
+          </div>
+        </div>
+
+        <div class="rail rail-right">
+          <section id="experiment-details" class="event-section" aria-labelledby="event-title"><div class="section-heading"><h2 id="event-title">사건 기록</h2><span id="event-count">0건</span></div><ol id="event-log" aria-label="현재 시각까지 발생한 사건"><li class="empty-state">재생하면 문의와 응답, 이동 기록을 시간순으로 확인할 수 있습니다.</li></ol></section>
+          <section class="assumptions-section" aria-labelledby="assumptions-title"><div class="section-heading"><h2 id="assumptions-title">이 실험의 조건</h2><span>실제 데이터와 가정 구분</span></div><ul id="assumptions"><li>재생 데이터에 기록된 도로 경로와 추정 구간을 구분해 표시합니다.</li></ul><details><summary>지도와 재생을 읽는 방법</summary><p>실선은 도로를 따라 이미 진행한 이동입니다. 긴 점선은 현장·병원과 도로 사이의 접속 또는 경로 조회 실패 시의 직선 추정 이동이고, 가는 짧은 점선은 진행 중인 문의입니다. 병원 옆 작은 색 표시는 알고리즘별 최근 응답이며 초록은 수용, 빨강은 불가입니다. 구급차 아이콘은 겹침을 피하려고 조금씩 떨어뜨려 표시합니다. 같은 알고리즘의 가까운 구급차는 숫자 배지로 묶습니다. 환자를 선택하면 개별 움직임을 볼 수 있습니다.</p><p>휠로 확대·축소하고 지도를 드래그할 수 있습니다. 시간 막대를 움직이면 어느 시점이든 다시 볼 수 있습니다. Space 키는 재생·일시정지, 좌우 방향키는 1분 이동입니다.</p></details></section>
+        </div>
+      </div>
+
+      <div class="analysis-heading" id="analysis-heading"><div><span class="eyebrow">CURRENT STATE</span><h2>재생 시각의 병원·환자 상태</h2></div><span>재생 시각까지 관측한 데이터</span></div>
+      <section id="resource-section" class="results-section" aria-labelledby="resource-title" hidden><div class="section-heading"><h2 id="resource-title">현재 병원 자원 · 가상 설정</h2><label class="resource-select-label" for="resource-select">표시 자원 <select id="resource-select"></select></label></div><div class="table-scroll"><table id="resource-table"><thead></thead><tbody></tbody></table></div><p class="resource-note">재생 시각까지 기록된 서버 상태입니다.  ‘치료’는 현재 점유, ‘이송’은 수용 확정된 도착 예정 환자, ‘대기’는 도착 후 대기 환자의 요구량입니다.  초기 점유와 시스템 밖 환자도 포함합니다.  남음이 0이 되어도 기존 이송 환자의 수용 취소를 뜻하지 않습니다. </p></section>
+      <section id="inquiry-section" class="results-section" aria-labelledby="inquiry-title" hidden><div class="section-heading"><h2 id="inquiry-title">현재 병원 문의 처리 · 가상 업무량</h2><span id="inquiry-status">재생 시각까지의 처리 상태</span></div><div class="table-scroll"><table id="inquiry-table"><thead></thead><tbody></tbody></table></div><p id="inquiry-note" class="resource-note">각 병원의 처리 중·대기·검토 완료 건수를 현재 시각 기준으로 표시합니다. 고정 외생 업무도 포함합니다. 검토 시간과 담당자 수는 합성 설정이며, 다른 병원에서 수용이 확정돼도 이미 보낸 문의의 검토는 자동 취소하지 않는 모형입니다.</p></section>
+      <section id="transport-section" class="results-section" aria-labelledby="transport-title" hidden><div class="section-heading"><h2 id="transport-title">환자별 수용 조건 · 서버 기록</h2><span id="transport-status-time"></span></div><div class="table-scroll"><table id="transport-table"><thead><tr><th>환자</th><th>현재 목적지</th><th>진행 상태</th><th>조건 재확인</th><th>대체 문의</th><th>기록된 영향 근거</th></tr></thead><tbody></tbody></table></div><p class="resource-note">현재 재생 시각까지 저장된 상태만 표시합니다. 대체 수용이 확보돼도 사람이 변경하기 전까지 기존 목적지를 유지합니다. 위험 식별은 치료 불가능 확정과 다릅니다.</p></section>
+    </section>
+
+    <section id="view-compare" class="view view-compare" role="tabpanel" aria-labelledby="tab-compare" hidden>
+      <header class="compare-head">
+        <div class="compare-head-copy"><p class="eyebrow" id="compare-meta">관측 종료 기준</p><h1 id="compare-title">결과 비교</h1><p id="compare-description" class="compare-description"></p></div>
+        <button type="button" class="primary-action" data-goto="replay">지도로 재생</button>
+      </header>
+      <section class="compare-block" aria-labelledby="multiples-title"><div class="block-heading"><h2 id="multiples-title">정책별 최종 배정</h2><span>선은 환자 발생지에서 관측 종료 시 목적지까지 그은 직선 요약입니다. 실제 이동 경로는 지도 재생에서 봅니다.</span></div><div id="compare-multiples" class="compare-multiples"></div></section>
+      <div class="compare-analysis">
+        <section class="compare-block" aria-labelledby="bars-title"><div class="block-heading"><h2 id="bars-title">핵심 지표</h2><span>막대는 같은 지표 안의 상대 크기이며 좋고 나쁨을 뜻하지 않습니다.</span></div><div id="compare-bars" class="compare-bars table-scroll"></div></section>
+        <div class="compare-side">
+          <section class="compare-why" aria-labelledby="why-title"><h2 id="why-title">왜 달라졌나</h2><p id="compare-first-split" class="first-split"></p><ul id="compare-diff-summary" class="diff-summary"></ul><p class="why-note">저장된 사건 기록에서 자동으로 뽑은 사실입니다. 원인을 추정하지 않습니다.</p></section>
+          <section class="compare-block" aria-labelledby="diff-title"><div class="block-heading"><h2 id="diff-title">환자별 최종 배정</h2><span id="compare-diff-count"></span></div><div class="table-scroll"><table id="compare-diff-table"><thead></thead><tbody></tbody></table></div></section>
+        </div>
+      </div>
+      <section id="results-panel" class="results-section" aria-labelledby="results-title"><div class="section-heading"><h2 id="results-title">전체 지표</h2><span id="results-status">완료된 사건부터 집계합니다</span></div><div class="table-scroll"><table id="results-table"><thead></thead><tbody></tbody></table></div><p class="result-note">시간은 환자 발생 기준 경과시간입니다. 실제 병원 선정·치료 성과 또는 현행 시스템의 재현 결과가 아닙니다.</p></section>
+    </section>
+
+    <section id="view-story" class="view view-story" role="tabpanel" aria-labelledby="tab-story" hidden>
+      <div class="story-grid">
+        <section class="story-steps" aria-label="단계">
+          <div><span class="story-badge">발표 모드</span><h1 id="story-title">같은 환자, 다른 배정</h1><p id="story-lead" class="story-lead"></p></div>
+          <div class="story-pair" id="story-pair"><label for="story-left">기준 정책<select id="story-left"></select></label><label for="story-right">비교 정책<select id="story-right"></select></label></div>
+          <ol id="story-step-list" class="story-step-list"></ol>
+          <div class="story-nav"><button type="button" id="story-prev">← 이전 단계</button><button type="button" id="story-next" class="primary-action">다음 단계 →</button><span id="story-counter" aria-live="polite">1 / 5</span></div>
+        </section>
+        <section class="story-stage" aria-label="단계별 지도">
+          <svg id="story-map" role="img" aria-label="단계별 이송 요약 지도" preserveAspectRatio="xMidYMid meet"></svg>
+          <div id="story-caption" class="story-caption" aria-live="polite"></div>
+          <div id="story-results" class="story-results" hidden></div>
+          <p class="story-note" id="story-note">행정경계와 병원 위치 위의 요약도입니다. 선은 직선 요약이며 실제 도로 경로는 지도 재생에서 봅니다.</p>
+        </section>
+      </div>
+    </section>
+  </main>
+  <footer>캡스톤 · 응급의료 연계 시스템 <span>관측된 실험 기록의 재생 / 임상 효과 검증 아님 · <a href="index.html">기존 화면</a></span></footer>
+  <dialog id="map-expanded-dialog" class="map-expanded-dialog" aria-label="크게 보는 이송 지도"></dialog>
+  <svg class="lab-defs" width="0" height="0" aria-hidden="true" focusable="false"><defs><g id="lab-geo"></g></defs></svg>
+</body>
+</html>

@@ -13,20 +13,25 @@ eventNames.inquiry_feedback = '회신 관측';
 Object.assign(eventNames, { review_cancelled: '검토 시작 전 문의 취소', reply_suppressed: '취소 후 회신 · 배정에 미반영', selection_deadline: '병원 선정 기한 종료 · 미선정' });
 const serverCase = () => current().server_inquiry_only === true;
 const transportCase = () => current().server_transport_replay === true;
+const voiceCase = () => current().voice_server_replay === true;
 const recordedCase = () => serverCase() || transportCase();
 const onlineCase = () => current().online_allocation_comparison === true;
 const realRoadCase = () => current().real_road_allocation === true;
-const syntheticLocations = () => recordedCase() || (onlineCase() && !realRoadCase());
+const syntheticLocations = () => (recordedCase() && !current().voice_road_replay) || (onlineCase() && !realRoadCase());
 let projection = null, basemapMode = 'osm', basemapTimer = null, basemapEpoch = 0;
 let mapBranch = 'all', mapDetails = false;
 let mapExpanded = false, mapPanelAnchor = null, patientSelectorAnchor = null, mapScrollPosition = null;
 const mapTiles = new Map();
 Object.assign(eventNames, { depart: '이송 출발', resource_update: '병원 자원 갱신', external_arrival: '시스템 밖 환자 도착', acceptance_kept: '병원 재확인 · 기존 수용 유지', conditions_restored: '수용 조건 복구', alternative_requested: '병원 조정 요청 · 대체 탐색', alternative_ready: '대체 수용 확보 · 사람의 변경 대기', alternative_exhausted: '대체 탐색 종료 · 담당자 확인 필요', inquiry_closed: '문의 종료', transport_position_updated: '현재 위치 관측', transport_baseline_captured: '수용 당시 조건 저장', transport_monitor_started: '수용 조건 모니터링 시작', transport_monitor_completed: '수용 조건 모니터링 종료', transport_inquiry_started: '대체 문의 시작', transport_inquiry_decision: '대체 문의 후보 판단', transport_inquiry_batch: '대체 문의 전송', transport_inquiry_waiting: '대체 문의 대기', adjustment_needed: '병원 조정 필요 판단', hospital_keeps: '병원 수용 유지 판단', patient_redirected_away: '기존 병원에 목적지 변경 통보' });
+Object.assign(eventNames, { voice_transcript: '합성 인식문 입력', voice_information_applied: '명시 확인한 음성 정보 적용', voice_treatment_requirements_applied: '명시 승인한 치료조건 적용', allocation_recommendation: '서버 배정 추천 계산 · 확정 아님', state_observed: 'API 응답 직후 상태 관측' });
+eventNames.inquiry_workflow_exhausted = '자동 문의 종료 · 담당자 확인 필요';
 const serverObserved = (policy) => /^(observed|v3)/.test(policy?.server_policy?.name ?? '');
 const inquiryReasons = { cold_start: '응답 이력 수집 중', slow_replies: '회신 지연 관측', fast_replies: '빠른 회신 관측', timeouts_without_slow_replies: '미응답 관측 · 후보 추가 확인', aged_pending: '오래 대기 중인 문의 관측' };
 const observedInquiryReasons = { initial_best: '관측 비용이 가장 낮은 후보에 먼저 문의', hedge_better_candidate: '기다리는 문의보다 비용이 낮은 후보 추가', wait_for_hedge: '추가 문의 전 최소 관측시간 대기', pending_preferred: '진행 중인 문의의 예상 비용이 더 낮음', concurrency_cap: '동시 문의 상한 도달', no_candidates: '추가로 문의할 후보 없음', bounded_wait_expansion: '추가 문의 대기 상한 도달 · 다음 후보 문의', fixed_wave: '고정 규모로 다음 후보 묶음 문의' };
 const KEY_EVENT_TYPES = new Set(['patient_occurs', 'request', 'ambulance_arrive', 'scene_care_complete', 'ask', 'accept', 'accepted', 'decline', 'rejected', 'commit', 'no_response', 'selection_deadline', 'redirect', 'arrive', 'transfer_search', 'transfer_depart', 'treatment_start', 'treatment_complete']);
 ['depart', 'resource_update', 'external_arrival', 'recheck', 'acceptance_kept', 'conditions_restored', 'alternative_requested', 'alternative_ready', 'alternative_exhausted'].forEach(type => KEY_EVENT_TYPES.add(type));
+['voice_transcript', 'voice_information_applied', 'voice_treatment_requirements_applied', 'allocation_recommendation', 'observation_end'].forEach(type => KEY_EVENT_TYPES.add(type));
+KEY_EVENT_TYPES.add('inquiry_workflow_exhausted');
 const PRIORITY_TIERS = [4, 2, 1];
 const priorityOrderNames = { none: '기본 처리 순서', requests: '같은 분 신규 문의를 4→2→1군 순서로 제출', all: '탐색 시작 환자의 문의·회신·재검토를 4→2→1군 순서로 처리' };
 const svg = (name, attrs = {}, text = null) => { const n = document.createElementNS(NS, name); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text != null) n.textContent = text; return n; };
@@ -37,13 +42,14 @@ const idOf = (x) => typeof x === 'object' && x ? String(x.id ?? '') : String(x ?
 const patientId = (e) => idOf(e.patient ?? e.patient_id);
 const hospitalId = (e) => idOf(e.hospital ?? e.hospital_id);
 const typeOf = (e) => String(e.type ?? e.event ?? '');
-const clock = (t) => { const sec = Math.max(0, Math.round(number(t) * 60)); return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
+const clock = (t) => { if (voiceCase()) return `#${Math.floor(number(t))}`; const sec = Math.max(0, Math.round(number(t) * 60)); return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
 const minutes = (t) => Number.isFinite(Number(t)) && t != null ? `${Number(t).toFixed(1)}분` : '—';
 const resultTime = (t, decimals = 1) => Number.isFinite(Number(t)) && t != null ? recordedCase() ? `${(Number(t) * 60).toFixed(decimals)}초` : minutes(t) : '—';
 const current = () => state.selected?.scenario ?? {};
 const patients = () => current().patients ?? [];
 const hospitals = () => current().hospitals ?? [];
 const branches = () => state.selected?.branches ?? [];
+const voiceWithoutMovement = () => voiceCase() && !branches().some(b => b.trajectories.some(tr => tr.legs?.length));
 const priorityPolicyEnabled = (policy) => (policy?.priority_order != null && policy.priority_order !== 'none') || policy?.high_priority_hedge_after != null || policy?.rule === 'R4';
 const priorityComparisonEnabled = () => current().family === 'priority_protection' || branches().some(b => priorityPolicyEnabled(b.policy));
 const hospitalById = (id) => hospitals().find(h => String(h.id) === String(id));
@@ -136,7 +142,9 @@ function prepareScenarioOptions() {
   const groups = [
     ['지도 이송·조건 변경 실험', state.scenarios.filter(s => !s.scenario.server_inquiry_only && !s.scenario.server_transport_replay && !s.scenario.online_allocation_comparison)],
     ['서버 문의 정책 검증 기록', state.scenarios.filter(s => s.scenario.server_inquiry_only === true)],
-    ['서버 조건 변경 처리 기록', state.scenarios.filter(s => s.scenario.server_transport_replay === true)],
+    ['서버 조건 변경 처리 기록', state.scenarios.filter(s => s.scenario.server_transport_replay === true && !s.scenario.voice_server_replay)],
+    ['최신 음성 → 배정 → 조건 변경 기록', state.scenarios.filter(s => s.scenario.voice_server_replay === true && !s.scenario.voice_road_replay)],
+    ['최신 음성 흐름 · 카카오 도로 결합', state.scenarios.filter(s => s.scenario.voice_road_replay === true)],
     ['CP-SAT 전체 이송 정책 비교 · 합성 좌표', state.scenarios.filter(s => s.scenario.online_allocation_comparison === true && !s.scenario.real_road_allocation)],
     ['실제 도로 · 5개 배정 정책 시연', state.scenarios.filter(s => s.scenario.real_road_allocation === true)]
   ];
@@ -158,6 +166,8 @@ async function initialise() {
     try { state.scenarios.push(...normalise(await readJson('./transport_replay_data.json'))); } catch (error) { /* optional */ }
     try { state.scenarios.push(...normalise(await readJson('./online_allocation_data.json'))); } catch (error) { /* optional */ }
     try { state.scenarios.push(...normalise(await readJson('./road_online_allocation_data.json'))); } catch (error) { /* optional */ }
+    try { state.scenarios.push(...normalise(await readJson('./voice_replay_data_20261030.json'))); } catch (error) { /* optional */ }
+    try { state.scenarios.push(...normalise(await readJson('./voice_road_replay_data_20261030.json'))); } catch (error) { /* optional */ }
     if (!state.scenarios.length) throw new Error('재생할 시나리오가 없습니다.');
     $('scenario-total').textContent = `${state.scenarios.length} CASES`;
     prepareScenarioOptions();
@@ -215,6 +225,7 @@ function selectScenario(id) {
   if (transportCase()) defaults.splice(0, defaults.length, '격리된 가상 DB에서 실제 서버 기능을 실행한 사건·상태 기록입니다. 병원·환자·자원·시각·위치는 대본상 합성 입력입니다.', '점선 이동은 기록기에 입력한 위치 관측 사이의 보간입니다. 실제 도로·차량 운행·의학적 경과를 재현하지 않습니다.', '대체 수용 응답만으로 목적지가 바뀌지 않습니다. 서버의 사람에 의한 변경 성공 사건 이후에만 새 병원으로 표시합니다.', '기능 흐름 시연이며 알고리즘 개선율 비교가 아닙니다. 도착은 대본상 확인 입력이며 치료·전원·환자 예후는 미기록입니다.');
   if (onlineCase()) defaults.splice(0, defaults.length, '병원·좌표·환자·자원·출동·응답·이동·치료는 전부 합성 입력입니다. 실제 지리·임상 경과를 재현하지 않습니다.', '5개 배정 규칙의 문의 설정과 잠재 회신 환경은 같습니다. 앞선 배정으로 자원이 달라져 실제 수용 회신까지 같지는 않습니다.', 'CP-SAT의 OPTIMAL은 그 시점의 준비 환자 배정에만 적용됩니다. 전체 이송 과정의 최적성을 뜻하지 않습니다.', '각 조건에서 가장 낮은 검증 seed를 결과와 무관하게 선택했습니다. 전체 평균 효과는 별도 보고서를 확인하세요.');
   if (realRoadCase()) defaults.splice(0, defaults.length, `실제 병원 이름·위치와 ${roadProviderLabel()} 도로 경로·예상시간을 사용해 별도로 실행한 시연입니다. 환자·병원의 역량·자원·수용 응답·진료 경과는 가상 설정이며 실제 병원 상황이 아닙니다.`, routingDescription(), '같은 도로 이동 조건과 잠재 응답 환경에서 5개 정책을 재실행했습니다. 앞선 배정으로 자원이 달라지면 이후 수용 응답도 달라집니다.', 'CP-SAT의 OPTIMAL은 현재 배정 묶음에만 적용됩니다. 별도 도로 시연이며 기존 합성 검증 결과를 대체하거나 현장 효과를 증명하지 않습니다.');
+  if (voiceCase()) defaults.splice(0, defaults.length, ...(selected.scenario.assumptions ?? []));
   if (priorityComparisonEnabled()) defaults.push('우선순위 4·2·1은 합성 실험군이며 임상 등급이 아닙니다. 미발생 환자는 정책에 제공하지 않으며, 이미 제출한 FIFO 문의와 기존 이송을 취소하거나 빼앗지 않습니다.');
   if (branches().some(b => b.policy?.rule === 'R4')) defaults.push('R4는 같은 분에 유효한 수용 응답을 확보해 확정 준비가 된 환자만 함께 비교합니다. 미래 환자나 미래 회신을 이용하는 전체 기간의 최적 배정은 아닙니다.');
   $('assumptions').replaceChildren(...defaults.map(t => node('li', '', t)));
@@ -224,7 +235,13 @@ function selectScenario(id) {
   const routing = routingInfo();
   $('environment-description').textContent = transportCase() ? '합성 위치 · 서버 조건 변경 처리 기록' : serverCase() ? '합성 병원 · 직선 추정 · 서버 문의 정책 기록' : routing.roadCount ? '실제 병원 위치 · 도로 경로 · 가상 상황' : '실제 병원 위치 · 직선 추정 · 가상 상황';
   if (onlineCase()) $('environment-description').textContent = realRoadCase() ? `실제 병원·${roadProviderLabel()} 경로 · 가상 상황` : '합성 위치·상황 · CP-SAT 전체 이송 비교';
-  $('route-key-label').textContent = routing.roadCount ? '도로 이송' : '직선 추정';
+  if (voiceCase()) {
+    $('timeline-start').textContent = '현재 #0';
+    $('timeline-middle').textContent = '사건 순서 · 실제 경과시간 축 아님';
+    $('environment-description').textContent = current().voice_road_replay ? '합성 기관·환자 · 카카오 일반차량 도로 스냅샷' : '합성 위치 · 최신 음성 서버 연결 기록 · 차량 궤적 미기록';
+    $('seed-label').textContent = selected.scenario.source?.case_pass ? '기능 검사 PASS' : '기능 검사 FAIL';
+  }
+  $('route-key-label').textContent = voiceWithoutMovement() ? '이동 기록 없음' : routing.roadCount ? '도로 이송' : '직선 추정';
   $('fallback-route-key').hidden = !routing.roadCount || !(routing.fallbackCount || routing.connectorCount || routing.evaluatedFallbackCount);
   document.getElementById('additional-assumptions')?.remove();
   const extra = node('details'); extra.id = 'additional-assumptions'; extra.append(node('summary', '', `시나리오별 세부 설정 ${claims.length}개`));
@@ -244,7 +261,9 @@ function selectScenario(id) {
 
 function prepareProjection() {
   const coords = [...hospitals().map(locOf), ...patients().flatMap(p => [locOf(p), ...(p.ambulance_origin ? [p.ambulance_origin] : [])]), ...branches().flatMap(b => b.trajectories.flatMap(tr => tr.legs.flatMap(l => legGeometry(l).points)))].filter(p => p?.length >= 2 && p.every(Number.isFinite));
-  projection = window.ReplayBasemap.createProjection(coords, syntheticLocations());
+  // Voice fixtures cover a few local streets. Fit their supplied coordinates
+  // tightly while retaining real Mercator tiles for the road-backed records.
+  projection = window.ReplayBasemap.createProjection(coords, syntheticLocations() || voiceCase());
   project = projection.project;
   renderScale();
 }
@@ -280,6 +299,7 @@ function renderGeography() {
   $('map-layer-status').textContent = recordedCase() ? '합성 병원 위치 · 직선 추정 이동' : `${boundaries.length ? '실제 행정경계' : '실제 병원 좌표'}${state.roads?.features?.length ? ' · 주요도로' : ''}${routing.roadCount ? ` · 도로 ${routing.roadCount}구간${routing.evaluatedFallbackCount ? ' · 조회 일부 추정' : ''}` : ' · 직선 추정'}`;
   if (routing.roadCount) $('map-layer-status').textContent = `${roadProviderLabel()} 도로 경로${routing.evaluatedFallbackCount ? ' · 일부 추정' : ''}`;
   if (onlineCase() && !realRoadCase()) $('map-layer-status').textContent = '합성 좌표 · 직선 추정 이동';
+  if (voiceWithoutMovement()) $('map-layer-status').textContent = current().voice_road_replay ? '카카오 ETA 입력 · 이동 기록 없음' : '합성 위치 · 이동 기록 없음';
   const attribution = document.querySelector('.map-attribution');
   const sourceLink = node('a', '', 'geoBoundaries / citypopulation.de'); sourceLink.href = 'https://www.geoboundaries.org/index.html#citation'; sourceLink.target = '_blank'; sourceLink.rel = 'noopener noreferrer';
   const licenseLink = node('a', '', 'CC BY 3.0'); licenseLink.href = 'https://creativecommons.org/licenses/by/3.0/'; licenseLink.target = '_blank'; licenseLink.rel = 'noopener noreferrer';
@@ -292,8 +312,8 @@ function renderGeography() {
       const kakao = node('a', '', '경로 © Kakao Mobility'); kakao.href = 'https://developers.kakaomobility.com/'; kakao.target = '_blank'; kakao.rel = 'noopener noreferrer'; attribution.append(document.createTextNode(' · '), kakao);
     } else attribution.append(document.createTextNode(' · 도로: '), osm, document.createTextNode(' / '), osrm);
     attribution.append(document.createTextNode(' · '), editMap);
-  } else attribution.append(document.createTextNode(' · 직선 추정 경로'));
-  if (syntheticLocations()) attribution.textContent = '합성 좌표·직선 경로 · 실제 지리 재현 아님';
+  } else attribution.append(document.createTextNode(voiceWithoutMovement() ? ' · 이동 기록 없음' : ' · 직선 추정 경로'));
+  if (syntheticLocations()) attribution.textContent = voiceWithoutMovement() ? '합성 좌표 · 이동 기록 없음 · 실제 지리 재현 아님' : '합성 좌표·직선 경로 · 실제 지리 재현 아님';
   else if (basemapMode === 'osm') {
     const osm = node('a', '', '지도 © OpenStreetMap contributors'); osm.href = 'https://www.openstreetmap.org/copyright'; osm.target = '_blank'; osm.rel = 'noopener noreferrer';
     attribution.prepend(osm, document.createTextNode(' · '));
@@ -398,6 +418,10 @@ function phaseFor(branch, patient) {
     if (!snapshot) return { label: '정보 접수 대기', hospital: null };
     const review = snapshot.transport_review?.state;
     const job = snapshot.transport_reassignment?.state;
+    if (voiceCase() && snapshot.state === 'WAITING' && !snapshot.destination_hospital_id &&
+        (snapshot.inquiry_workflow?.state === 'EXHAUSTED' || seen(branch).some(e =>
+          patientId(e) === String(patient.id) && e.server_type === 'inquiry_workflow_exhausted')))
+      return { label: '자동 문의 종료·미배정', hospital: null, monitor: review, alternative: job };
     const base = ({ WAITING: '후보 탐색·응답 대기', CONFIRMED: '수용 확정·출발 대기', IN_TRANSIT: '병원 이송 중', ARRIVED: '도착 확인 기록', COMPLETED: '이송 종료', CANCELLED: '이송 취소' })[snapshot.state] ?? snapshot.state;
     const label = snapshot.state !== 'IN_TRANSIT' ? base : review === 'RECHECK_REQUIRED' ? '병원에 수용 조건 재확인 필요' : job === 'AWAITING_CHANGE' ? '대체 수용 확보·사람의 변경 대기' : snapshot.needs_adjustment ? (job === 'EXHAUSTED' ? '대체 탐색 종료·담당자 확인 필요' : '기존 목적지 유지·대체병원 확인 중') : base;
     return { label, hospital: snapshot.destination_hospital_id, monitor: review, alternative: job };
@@ -433,7 +457,7 @@ function describe(e) {
   const pid = patientId(e), hid = hospitalId(e);
   const title = serverCase() && typeOf(e) === 'arrive' ? '예상 병원 도착' : e.server_type === 'selection_deadline' || typeOf(e) === 'selection_deadline' ? '병원 선정 기한 종료 · 미선정' : serverCase() && typeOf(e) === 'patient_occurs' ? '환자 정보 접수·탐색 시작' : eventNames[typeOf(e)] ?? typeOf(e).replaceAll('_', ' ');
   const prefix = pid ? `${pid} · ` : e.kind === 'background' ? '고정 외생 업무 · ' : '';
-  return `${prefix}${title}${hid ? ` → ${hospitalName(hid)}` : ''}`;
+  return `${prefix}${title}${hid ? ` → ${hospitalName(hid)}` : ''}${voiceCase() && e.source_elapsed_seconds != null ? ` · 원본 +${e.source_elapsed_seconds}초` : ''}`;
 }
 function inquiryPolicyDecision(branch) { return seen(branch).filter(e => typeOf(e) === 'inquiry_policy' && (state.patient === 'all' || patientId(e) === state.patient)).at(-1) ?? null; }
 function observedInquiryDecision(e) { return e?.policy_kind === 'observed'; }
@@ -458,6 +482,11 @@ function inquiryEvidence(e) {
   return parts.join(' · ');
 }
 function detail(e) {
+  if (voiceCase()) {
+    const source = `원본 epoch ${e.source_at ?? '미기록'} · ${e.stream ?? '관찰 경계'}${e.server_event_id != null ? ` · DB 사건 ${e.server_event_id}` : ''}`;
+    const solver = typeOf(e) === 'allocation_recommendation' ? `상태 ${e.payload?.status ?? '미기록'} · 대체 해 ${e.payload?.fallback ?? '미기록'} · 최적성 증명 ${e.payload?.lex_optimal ?? '미기록'}` : '';
+    return [e.reason, solver, source].filter(Boolean).join(' · ');
+  }
   if (transportCase()) {
     const parts = [e.server_event_id != null ? `서버 사건 #${e.server_event_id} · ${e.server_type}` : '재생 관찰 경계', e.actor ? `처리: ${e.actor}` : '', e.reason ?? ''];
     if (e.evidence?.length) parts.push(e.evidence.map(transportIssue).join(' / '));
@@ -655,7 +684,7 @@ function renderMap() {
     const outage = outages.get(String(h.id));
     const outageLabel = outage?.type === 'transport_review_pending' ? '해당 병원으로 이송 중인 환자의 수용 조건 확인 필요' : '현재 가상 자원 장애 발생';
     if (outage) g.append(svg('circle', { r: 12, fill: '#f9e2d9', stroke: '#d46e53', 'stroke-width': 1.3, 'stroke-dasharray': '3 2', opacity: .9 }));
-    g.append(svg('rect', { x: -5, y: -5, width: 10, height: 10, rx: 2, fill: outage ? '#fff1e9' : '#fff', stroke: outage ? '#c65d47' : usedHospitals.has(String(h.id)) ? '#607c70' : '#a3b8aa', 'stroke-width': 1.1 }), svg('path', { d: 'M-2.8 0 H2.8 M0 -2.8 V2.8', stroke: outage ? '#c65d47' : '#678376', 'stroke-width': 1.2 }), svg('title', {}, `${h.name} (${h.id})\n${syntheticLocations() ? '합성 병원 위치 / 이송 모형' : '실제 위치 / 치료 역량·자원은 시연용 가정'}${outage ? `\n${outageLabel}` : ''}`));
+    g.append(svg('rect', { x: -5, y: -5, width: 10, height: 10, rx: 2, fill: outage ? '#fff1e9' : '#fff', stroke: outage ? '#c65d47' : usedHospitals.has(String(h.id)) ? '#607c70' : '#a3b8aa', 'stroke-width': 1.1 }), svg('path', { d: 'M-2.8 0 H2.8 M0 -2.8 V2.8', stroke: outage ? '#c65d47' : '#678376', 'stroke-width': 1.2 }), svg('title', {}, `${h.name} (${h.id})\n${voiceCase() || syntheticLocations() ? '합성 병원 위치 / 이송 모형' : '실제 위치 / 치료 역량·자원은 시연용 가정'}${outage ? `\n${outageLabel}` : ''}`));
     const unique = new Map([...active].sort((a, z) => a.t - z.t).map(a => [a.branch, a]));
     if (mapDetails) [...unique.values()].forEach(a => { const cx = -9 + a.index * 9; const responseColor = ['accept', 'accepted'].includes(a.type) ? '#25896b' : ['decline', 'rejected'].includes(a.type) ? '#ce6554' : serverCase() && ['no_response', 'review_cancelled', 'reply_suppressed'].includes(a.type) ? '#9aa9a0' : '#c3a34c'; g.append(svg('circle', { cx, cy: 12, r: 3.4, fill: responseColor, stroke: a.color, 'stroke-width': 1.2 })); });
     const isDestination = branches().filter(b => mapBranch === 'all' || b.id === mapBranch).some(b => patients().filter(p => state.patient === 'all' || String(p.id) === state.patient).some(p => phaseFor(b, p).hospital === h.id));
@@ -703,7 +732,7 @@ function renderMap() {
 }
 
 function showHospital(h, responses, event) {
-  const tip = $('map-tooltip'); tip.replaceChildren(node('strong', '', h.name), node('div', '', `${h.id} · ${syntheticLocations() ? '합성 병원 위치 / 이송 모형' : '실제 위치 / 운영 자원은 가상'}`));
+  const tip = $('map-tooltip'); tip.replaceChildren(node('strong', '', h.name), node('div', '', `${h.id} · ${voiceCase() || syntheticLocations() ? '합성 병원 위치 / 이송 모형' : '실제 위치 / 운영 자원은 가상'}`));
   const caps = h.capabilities ?? []; if (caps.length) tip.append(node('div', '', `가정한 진료 역량: ${caps.join(', ')}`));
   if (h.capacity) tip.append(node('div', '', `가상 자원: ${Object.entries(h.capacity).map(([k, v]) => `${k} ${v}`).join(' · ')}`));
   const unique = new Map([...responses].sort((a, z) => a.t - z.t).map(r => [r.branch, r])); for (const r of unique.values()) tip.append(node('div', '', `${r.branch}: ${eventNames[r.type] ?? r.type}`));
@@ -805,8 +834,10 @@ function renderTransportResults() {
     ['관찰 종료 시 도착 미기록', complete ? `${patients().length - uniq('arrive')}명` : '관찰 종료 후 표시'],
     ['치료·전원·예후', '미기록'],
   ];
+  if (voiceCase()) rows.unshift(['원본 기능 검사', current().source?.case_pass ? 'PASS' : 'FAIL · 원본 오류 보존'], ['인식문 입력', `${count('voice_transcript')}건 · 합성 텍스트`], ['서버 추천 계산', `${count('allocation_recommendation')}회 · 목적지 확정과 구분`]);
   $('results-table').querySelector('tbody').replaceChildren(...rows.map(([name, value]) => { const tr = node('tr'); tr.append(node('th', '', name), node('td', '', value)); return tr; }));
   document.querySelector('.result-note').textContent = '가상 입력을 실제 서버 기능으로 처리한 기능 시연입니다. 도착은 대본상 확인 입력이며 위치는 합성 관측값의 보간입니다. 알고리즘 간 성능 비교, 현행 체계 재현 또는 임상 효과 검증 결과가 아닙니다. 목적지는 대체 수용 확보 후 사람이 변경한 사건에서만 바뀝니다.';
+  if (voiceCase()) document.querySelector('.result-note').textContent = '최신 음성 API·배정 워커·조건 변경 처리의 기능 기록입니다. #번호는 기록 순서이며 원본 경과초는 사건 상세에 표시합니다. 합성 인식문과 역할 API 입력을 사용했습니다. 도착·치료를 ETA로 생성하지 않으며 성능 개선율이나 실제 음성 정확도 결과가 아닙니다.';
 }
 function renderTransportStatus() {
   $('transport-section').hidden = !transportCase();
@@ -945,6 +976,7 @@ function renderEventNavigation() {
 }
 
 function render() {
+  if (voiceCase()) $('timeline-start').textContent = `현재 ${clock(state.time)}`;
   if (!state.selected) return;
   $('current-time').textContent = clock(state.time); $('timeline').value = state.time; $('timeline').setAttribute('aria-valuetext', `경과 ${clock(state.time)}`); $('play').textContent = state.playing ? 'Ⅱ 일시정지' : state.time >= state.duration ? '▶ 다시 재생' : '▶ 재생';
   $('timeline').style.setProperty('--played', `${100 * state.time / state.duration}%`);

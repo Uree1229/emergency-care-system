@@ -1,0 +1,251 @@
+{
+  "kind": "independent_pre_api_annotation_audit",
+  "corpus_sha256": "56f8850006557a99ce31ea1e5b0e5765200662ec3d7cc6f1c365e0e00f692af7",
+  "product_parser_api_stt_db_calls": 0,
+  "manual_review": {
+    "boundary_text_and_expected_rows_read": 240,
+    "flow_templates_read": [
+      "F001",
+      "F002",
+      "F003",
+      "F012",
+      "F013",
+      "F024"
+    ],
+    "corrections_before_api": [
+      "B229 ambiguous 80+copula / 82+particle wording",
+      "B098/B171-B180 semantic correction contract separated from legacy exclusion policy",
+      "B137 other-subject symptom leakage forbidden"
+    ]
+  },
+  "automated_checks": {
+    "synthetic_label": 1,
+    "no_parser_generated_gold_label": 1,
+    "no_api_or_stt_label": 1,
+    "unique_ids": 1,
+    "long_count": 1,
+    "boundary_count": 1,
+    "flow_count": 1,
+    "text_length_1_to_4000": 516,
+    "supported_field_names": 516,
+    "supported_forbidden_names": 516,
+    "expected_forbidden_disjoint": 516,
+    "canonical_symptom_list": 1548,
+    "symptom_states_disjoint": 516,
+    "reading_parts_preserve_text": 60,
+    "reading_part_length": 60,
+    "explicit_text_span": 864,
+    "long_explicit_values_and_relative_time": 60,
+    "boundary_relative_time_arithmetic": 8,
+    "ambiguous_copula_disambiguated": 1,
+    "flow_initial_facts": 24,
+    "flow_bp_answer_scope": 24,
+    "flow_pulse_facts": 72,
+    "flow_cumulative_state_consistency": 216,
+    "flow_structured_undo_expected": 24,
+    "corpus_unchanged_during_audit": 1
+  },
+  "long_explicit_field_values_cross_checked": 780,
+  "issues": [],
+  "flow_state_protocol": [
+    {
+      "id": "F001",
+      "initial_pulse": 73,
+      "observed_pulse": 80,
+      "edited_pulse": 76,
+      "after_undo_pulse": 80,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F002",
+      "initial_pulse": 98,
+      "observed_pulse": 105,
+      "edited_pulse": 101,
+      "after_undo_pulse": 105,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F003",
+      "initial_pulse": 78,
+      "observed_pulse": 85,
+      "edited_pulse": 81,
+      "after_undo_pulse": 85,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F004",
+      "initial_pulse": 103,
+      "observed_pulse": 110,
+      "edited_pulse": 106,
+      "after_undo_pulse": 110,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F005",
+      "initial_pulse": 83,
+      "observed_pulse": 90,
+      "edited_pulse": 86,
+      "after_undo_pulse": 90,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F006",
+      "initial_pulse": 108,
+      "observed_pulse": 115,
+      "edited_pulse": 111,
+      "after_undo_pulse": 115,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F007",
+      "initial_pulse": 88,
+      "observed_pulse": 95,
+      "edited_pulse": 91,
+      "after_undo_pulse": 95,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F008",
+      "initial_pulse": 68,
+      "observed_pulse": 75,
+      "edited_pulse": 71,
+      "after_undo_pulse": 75,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F009",
+      "initial_pulse": 93,
+      "observed_pulse": 100,
+      "edited_pulse": 96,
+      "after_undo_pulse": 100,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F010",
+      "initial_pulse": 73,
+      "observed_pulse": 80,
+      "edited_pulse": 76,
+      "after_undo_pulse": 80,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F011",
+      "initial_pulse": 98,
+      "observed_pulse": 105,
+      "edited_pulse": 101,
+      "after_undo_pulse": 105,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F012",
+      "initial_pulse": 78,
+      "observed_pulse": 85,
+      "edited_pulse": 81,
+      "after_undo_pulse": 85,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F013",
+      "initial_pulse": 78,
+      "observed_pulse": 85,
+      "edited_pulse": 81,
+      "after_undo_pulse": 85,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F014",
+      "initial_pulse": 103,
+      "observed_pulse": 110,
+      "edited_pulse": 106,
+      "after_undo_pulse": 110,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F015",
+      "initial_pulse": 83,
+      "observed_pulse": 90,
+      "edited_pulse": 86,
+      "after_undo_pulse": 90,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F016",
+      "initial_pulse": 108,
+      "observed_pulse": 115,
+      "edited_pulse": 111,
+      "after_undo_pulse": 115,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F017",
+      "initial_pulse": 88,
+      "observed_pulse": 95,
+      "edited_pulse": 91,
+      "after_undo_pulse": 95,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F018",
+      "initial_pulse": 68,
+      "observed_pulse": 75,
+      "edited_pulse": 71,
+      "after_undo_pulse": 75,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F019",
+      "initial_pulse": 93,
+      "observed_pulse": 100,
+      "edited_pulse": 96,
+      "after_undo_pulse": 100,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F020",
+      "initial_pulse": 73,
+      "observed_pulse": 80,
+      "edited_pulse": 76,
+      "after_undo_pulse": 80,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F021",
+      "initial_pulse": 98,
+      "observed_pulse": 105,
+      "edited_pulse": 101,
+      "after_undo_pulse": 105,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F022",
+      "initial_pulse": 78,
+      "observed_pulse": 85,
+      "edited_pulse": 81,
+      "after_undo_pulse": 85,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F023",
+      "initial_pulse": 103,
+      "observed_pulse": 110,
+      "edited_pulse": 106,
+      "after_undo_pulse": 110,
+      "review_mutates_fields_or_version": false
+    },
+    {
+      "id": "F024",
+      "initial_pulse": 83,
+      "observed_pulse": 90,
+      "edited_pulse": 86,
+      "after_undo_pulse": 90,
+      "review_mutates_fields_or_version": false
+    }
+  ],
+  "limits": [
+    "Synthetic text and author-selected templates, not real audio/STT or clinical validation.",
+    "expected_fields is a required subset; forbidden_fields is an explicit prohibited subset.",
+    "Unlisted extra fields are not exhaustively annotated and require separate false-positive review.",
+    "Manual boundary inspection and direct textual consistency checks do not establish clinical accuracy.",
+    "Flow forbidden_fields concerns newly extracted values; undo intentionally restores prior session state."
+  ]
+}

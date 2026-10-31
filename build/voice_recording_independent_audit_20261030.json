@@ -1,0 +1,448 @@
+{
+  "kind": "independent_synthetic_control_boundary_probe",
+  "createdAt": "2026-10-30T11:03:35.833Z",
+  "source": "paramedic-ui/recording-control.mjs",
+  "sourceSha256": "d89d8fbe8322af7ba6f835f81bc24dbadfd5b05d99498889a2c8da5f60c7a43c",
+  "limitations": [
+    "No real audio or STT accuracy measurement.",
+    "No UI, microphone, external network, DB, or clinical validity checks."
+  ],
+  "limits": {
+    "toggle": 180,
+    "hold": 30,
+    "text": 4000
+  },
+  "total": 49,
+  "passed": 49,
+  "failed": 0,
+  "rows": [
+    {
+      "id": "bare_stop",
+      "text": "그만",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "그만",
+        "index": 0,
+        "end": 2
+      },
+      "ok": true
+    },
+    {
+      "id": "bare_end",
+      "text": "종료",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "종료",
+        "index": 0,
+        "end": 2
+      },
+      "ok": true
+    },
+    {
+      "id": "record_stop",
+      "text": "녹음 그만",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "녹음 그만",
+        "index": 0,
+        "end": 5
+      },
+      "ok": true
+    },
+    {
+      "id": "record_end",
+      "text": "녹음 종료",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "녹음 종료",
+        "index": 0,
+        "end": 5
+      },
+      "ok": true
+    },
+    {
+      "id": "voice_stop",
+      "text": "음성 그만",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "음성 그만",
+        "index": 0,
+        "end": 5
+      },
+      "ok": true
+    },
+    {
+      "id": "voice_end",
+      "text": "음성 종료",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "음성 종료",
+        "index": 0,
+        "end": 5
+      },
+      "ok": true
+    },
+    {
+      "id": "voice_input_end",
+      "text": "음성 입력 종료",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "음성 입력 종료",
+        "index": 0,
+        "end": 8
+      },
+      "ok": true
+    },
+    {
+      "id": "speaking_end",
+      "text": "말하기 종료",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "말하기 종료",
+        "index": 0,
+        "end": 6
+      },
+      "ok": true
+    },
+    {
+      "id": "polite_end",
+      "text": "종료해 주세요",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "종료해 주세요",
+        "index": 0,
+        "end": 7
+      },
+      "ok": true
+    },
+    {
+      "id": "polite_stop",
+      "text": "그만 해줘",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "그만 해줘",
+        "index": 0,
+        "end": 5
+      },
+      "ok": true
+    },
+    {
+      "id": "direct_end",
+      "text": "종료해",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "종료해",
+        "index": 0,
+        "end": 3
+      },
+      "ok": true
+    },
+    {
+      "id": "direct_stop",
+      "text": "그만해",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "그만해",
+        "index": 0,
+        "end": 3
+      },
+      "ok": true
+    },
+    {
+      "id": "terminal_prefix",
+      "text": "혈압 120에 80. 종료",
+      "expectedPrefix": "혈압 120에 80.",
+      "result": {
+        "prefix": "혈압 120에 80.",
+        "command": "종료",
+        "index": 12,
+        "end": 14
+      },
+      "ok": true
+    },
+    {
+      "id": "explicit_terminal_prefix",
+      "text": "47세 남성. 음성 입력 종료",
+      "expectedPrefix": "47세 남성.",
+      "result": {
+        "prefix": "47세 남성.",
+        "command": "음성 입력 종료",
+        "index": 8,
+        "end": 16
+      },
+      "ok": true
+    },
+    {
+      "id": "unicode_punctuation",
+      "text": "맥박 90회。 종료！",
+      "expectedPrefix": "맥박 90회。",
+      "result": {
+        "prefix": "맥박 90회。",
+        "command": "종료",
+        "index": 8,
+        "end": 10
+      },
+      "ok": true
+    },
+    {
+      "id": "punctuation_only_command",
+      "text": "  종료。  ",
+      "expectedPrefix": "",
+      "result": {
+        "prefix": "",
+        "command": "종료",
+        "index": 2,
+        "end": 4
+      },
+      "ok": true
+    },
+    {
+      "id": "plain_clinical",
+      "text": "환자 47세 남성, 흉통 있음.",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "similar_word",
+      "text": "통증이 그만큼 심합니다.",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "compound_noun",
+      "text": "처치 종료시각은 14시입니다.",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "clinical_after",
+      "text": "처치 종료 후 혈압 120에 80.",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "clinical_bare",
+      "text": "처치 종료",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "clinical_particle",
+      "text": "처치를 종료",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "resuscitation_particle",
+      "text": "심폐소생술을 종료",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "clinical_polite",
+      "text": "치료 종료해 주세요",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "clinical_declarative",
+      "text": "처치 종료합니다",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "cpr_declarative",
+      "text": "CPR 종료합니다",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "cpr_intention",
+      "text": "CPR 종료 하겠습니다",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "negative_end",
+      "text": "종료하지 마",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "negative_record_end",
+      "text": "녹음 종료하지 마",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "negative_stop",
+      "text": "그만하지 마세요",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "negative_end_with_instruction",
+      "text": "종료하지 말고 기록하세요",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "reported_suffix",
+      "text": "환자가 종료라고 말함",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "reported_bare",
+      "text": "환자가 그만",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "reported_with_adverb",
+      "text": "환자가 이제 그만",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "reported_speaking",
+      "text": "환자가 말하기를 그만",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "reported_statement",
+      "text": "환자 진술 그만",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "quoted_curly",
+      "text": "환자가 “그만”이라고 말함",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "quoted_ascii",
+      "text": "환자가 \"종료\"",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "open_quote",
+      "text": "환자가 “종료",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "quoted_corner",
+      "text": "환자가 「종료」라고 말함",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "clinical_explicit_end",
+      "text": "처치는 종료, 녹음 종료",
+      "expectedPrefix": "처치는 종료,",
+      "result": {
+        "prefix": "처치는 종료,",
+        "command": "녹음 종료",
+        "index": 8,
+        "end": 13
+      },
+      "ok": true
+    },
+    {
+      "id": "end_followed_by_clinical",
+      "text": "종료 후 혈압 측정합니다.",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "quoted_command_word",
+      "text": "“녹음 종료”",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "empty",
+      "text": "",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "non_string",
+      "text": 123,
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "null",
+      "text": null,
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "interim_종료",
+      "text": "종료",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "interim_그만",
+      "text": "그만",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    },
+    {
+      "id": "interim_혈압 120에 80. 종료",
+      "text": "혈압 120에 80. 종료",
+      "expectedPrefix": null,
+      "result": null,
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "final-evaluation-20261030-v1",
+  "purpose": "Prespecified synthetic distribution-shift sensitivity evaluation; no model selection or operational adoption",
+  "seed_namespace": "capstone-final-evaluation-20261030-v1-unseen-distribution-shift",
+  "seed_formula": "2**512 + int(sha512(namespace|profile|replicate),16)",
+  "replicates": 3,
+  "observation_minutes": 180,
+  "profiles": [
+    {"id":"reference", "hospital_count":7, "radius_scale":1, "silence":0.2, "delay":[1,5], "arrival":"stream", "capacity_scale":1, "change":"none"},
+    {"id":"sparse", "hospital_count":3, "radius_scale":2, "silence":0.2, "delay":[1,5], "arrival":"stream", "capacity_scale":1, "change":"none"},
+    {"id":"dense", "hospital_count":10, "radius_scale":0.5, "silence":0.2, "delay":[1,5], "arrival":"stream", "capacity_scale":1, "change":"none"},
+    {"id":"high_silence", "hospital_count":7, "radius_scale":1, "silence":0.6, "delay":[1,5], "arrival":"stream", "capacity_scale":1, "change":"none"},
+    {"id":"slow_reply", "hospital_count":7, "radius_scale":1, "silence":0.2, "delay":[4,10], "arrival":"stream", "capacity_scale":1, "change":"none"},
+    {"id":"simultaneous", "hospital_count":7, "radius_scale":1, "silence":0.2, "delay":[1,5], "arrival":"simultaneous", "capacity_scale":1, "change":"none"},
+    {"id":"waves", "hospital_count":7, "radius_scale":1, "silence":0.2, "delay":[1,5], "arrival":"waves", "capacity_scale":1, "change":"none"},
+    {"id":"scarce_capacity", "hospital_count":7, "radius_scale":1, "silence":0.2, "delay":[1,5], "arrival":"simultaneous", "capacity_scale":0.5, "change":"none"},
+    {"id":"outage", "hospital_count":7, "radius_scale":1, "silence":0.2, "delay":[1,5], "arrival":"simultaneous", "capacity_scale":1, "change":"outage"},
+    {"id":"arrival_condition", "hospital_count":7, "radius_scale":1, "silence":0.2, "delay":[1,5], "arrival":"stream", "capacity_scale":1, "change":"arrival_condition"},
+    {"id":"sparse_adverse", "hospital_count":3, "radius_scale":2, "silence":0.6, "delay":[4,10], "arrival":"waves", "capacity_scale":0.5, "change":"outage"},
+    {"id":"dense_adverse", "hospital_count":10, "radius_scale":0.5, "silence":0.4, "delay":[3,8], "arrival":"simultaneous", "capacity_scale":0.5, "change":"arrival_condition"}
+  ],
+  "policies": ["R0", "R1", "H1"],
+  "inquiry": "fixed_three; first_acceptance_extra_wait_two_minutes; common notification and transport rules",
+  "research_objective": "H1: unassigned priority-weight sum, then weighted travel sum; R0/R1 are prespecified sequential comparators",
+  "server_comparison": "Not executed: actual server fixed_3 + CP-SAT severity_first has different model, integer-minute treatment schedule, lexicographic priority counts and 3-second budget",
+  "budget": "H1 at most 2048 deterministic plan evaluations, 10-second technical guard; simple R0/R1 no search. Report unequal computation explicitly",
+  "threshold_minutes": [30,60,120],
+  "threshold_interpretation": "Experimental time-to-arrival thresholds; not clinically validated golden-time targets",
+  "inference": "Descriptive per-profile paired comparison only; 3 replicates cannot establish superiority or equivalence. No pooled prevalence estimate or significance/adoption rule",
+  "unavailable": {
+    "resource_update_delay":"Engine exposes complete current resources; delayed observations unsupported",
+    "exogenous_acceptance_probability":"Acceptance is endogenous to capabilities/current resources; report observed accept/(accept+decline), not an independently controlled probability",
+    "real_hospital_work_minutes":"Inquiry counts/concentration are proxies; no real staff timing",
+    "clinical_outcomes":"No clinical data or outcome model",
+    "solver_fallback_rate":"No CP-SAT arm in this research comparison; H1 baseline retention separately recorded",
+    "real_road_performance":"Synthetic routing; road integration is separate functional evidence"
+  }
+}

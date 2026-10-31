@@ -1,6 +1,8 @@
 /* Teammate entry/registration visual language adapted from 181b99a613b943eed661ec8bc0f35bf9b71814d0.
    Common server is the only patient store. No clinical form or messages are persisted locally. */
 'use strict';
+import {PatientWorkflow, validActor, resolveActor, ACTOR_REQUIREMENT} from './workflow-state.mjs';
+import {renderWorkflow, observeVisibleEvents} from './workflow-view.mjs';
 const $ = id => document.getElementById(id);
 const query = new URLSearchParams(location.search);
 const store = {get(k) {try {return localStorage.getItem(k);} catch (_) {return null;}}, set(k,v) {try {localStorage.setItem(k,v);} catch (_) {}}};
@@ -8,6 +10,24 @@ let server = normalizeServer(query.get('server') || (location.pathname.startsWit
 let pid = query.get('pid') || '';
 let generation = 0, patient = null, conversation = null, policies = [], polling = false, busy = false;
 let eventCursor = 0, messageCursor = 0, items = new Map(), pendingMessage = null, pendingAttempted = false, candidateData = null, lastCandidateAt = 0;
+function actorForServer(base, requested) {
+  const key='patient.workflow.actor:'+base;
+  const actor=resolveActor(requested,store.get(key),()=>'crew-'+(globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)+Date.now()));
+  if(validActor(actor))store.set(key,actor);return actor;
+}
+let workflowActor=actorForServer(server,query.get('actor_id')), workflowObserver,actorDraftDirty=false;
+function workflowDisplayState(state=workflow.snapshot()) {
+  const actorInvalid=!validActor($('workflow-actor').value);
+  return {...state,busy,actorInvalid,hasPatientId:!!pid,
+    actorError:actorInvalid?ACTOR_REQUIREMENT:actorDraftDirty?'새 ID를 적용하기 전까지 알림 수신·확인과 연결을 일시 중지합니다.':''};
+}
+const workflow=new PatientWorkflow({
+  request:(scope,suffix,method='GET',body)=>api(`/api/patients/${encodeURIComponent(scope.pid)}${suffix}`,method,body,scope.server),
+  isVisible:()=>!document.hidden && !$('transport-screen').hidden,
+  onChange:state=>{renderWorkflow(document,workflowDisplayState(state));workflowObserver?.update();},
+});
+workflowObserver=observeVisibleEvents(document,workflow);
+function resetWorkflow() {actorDraftDirty=false;$('workflow-actor').value=workflowActor;workflow.setContext(pid?{server,pid,actor:workflowActor}:null);}
 const ACTIVE = new Set(['CONFIRMED','IN_TRANSIT']);
 const TERMINAL = new Set(['ARRIVED','COMPLETED','CANCELLED']);
 const states = {WAITING:'병원 탐색 중',CONFIRMED:'목적지 확정',IN_TRANSIT:'이송 중',ARRIVED:'병원 도착',COMPLETED:'진료·이송 종료',CANCELLED:'이송 취소',NOT_STARTED:'아직 시작하지 않음',RUNNING:'자동 문의 중',QUEUED:'문의 준비 중',PAUSED:'일시정지',AWAITING_CONFIRMATION:'수용 응답 확보 · 사람 확정 대기',EXHAUSTED:'자동 탐색 한도 종료',ERROR:'오류 · 담당자 확인 필요',MONITORING:'확정 조건 감시 중',RECHECK_REQUIRED:'현재 병원의 조건 재확인 필요',SEARCHING:'대체병원 문의 중',AWAITING_CHANGE:'대체 수용 확보 · 사람 변경 대기',AWAITING_POSITION:'최신 관측 위치 필요',PENDING:'요청 전달됨',CHECKING:'병원 확인 중',ACCEPTED:'수용 가능 응답',DECLINED:'수용 불가 응답',EXPIRED:'응답 만료',OPEN:'진행 중',CLOSED:'종료'};
@@ -22,6 +42,8 @@ function setBusy(value) {
   busy=value;
   for(const control of document.querySelectorAll('#resume-form input,#resume-form button,#server-form input,#server-form button,#start-intake,#intake-back,#submit-intake,#discard-message'))control.disabled=value;
   $('home-link').setAttribute('aria-disabled',String(value));
+  $('workflow-actor').disabled=value;$('workflow-actor-save').disabled=value;
+  renderWorkflow(document,workflowDisplayState());
 }
 function resetPatientContext() {
   patient=null;conversation=null;items.clear();eventCursor=0;messageCursor=0;pendingMessage=null;pendingAttempted=false;candidateData=null;lastCandidateAt=0;
@@ -30,15 +52,16 @@ function resetPatientContext() {
   $('emergency-warning').hidden=true;$('workflow-state').textContent='조회 중';
   for(const control of ['auto-start','auto-pause','inquiry-policy','send-message'])$(control).disabled=true;
   renderCandidates();
+  resetWorkflow();
 }
 function path(suffix='') {return `/api/patients/${encodeURIComponent(pid)}${suffix}`;}
-async function api(endpoint,method='GET',body) {
+async function api(endpoint,method='GET',body,base=server) {
   let response;
-  try {response=await fetch(server+endpoint,{method,cache:'no-store',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});} catch (_) {throw new Error('서버 연결 실패 · 서버 실행과 주소를 확인하세요.');}
+  try {response=await fetch(base+endpoint,{method,cache:'no-store',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});} catch (_) {throw new Error('서버 연결 실패 · 서버 실행과 주소를 확인하세요.');}
   let result; try {result=await response.json();} catch (_) {throw new Error('서버가 JSON 응답을 반환하지 않았습니다. 연결 주소를 확인하세요.');}
   if(!response.ok) {const error=new Error(result.message || result.error || `HTTP ${response.status}`); error.code=result.error; error.status=response.status; throw error;} return result;
 }
-function saveRoute() {const url=new URL(location.href); url.search=''; if(pid) url.searchParams.set('pid',pid); if(server!==location.origin) url.searchParams.set('server',server); history.replaceState(null,'',url); store.set('patient.server',server); if(pid) store.set('patient.pid',pid); $('server-base').value=server;}
+function saveRoute() {const url=new URL(location.href); url.search=''; if(pid) {url.searchParams.set('pid',pid);url.searchParams.set('actor_id',workflowActor);} if(server!==location.origin) url.searchParams.set('server',server); history.replaceState(null,'',url); store.set('patient.server',server); if(pid) store.set('patient.pid',pid); $('server-base').value=server;}
 async function initializeServer() {
   const connectedServer=server;
   $('server-base').value=server;
@@ -61,13 +84,15 @@ function openPatient(id) {
   $('resume-pid').value=id;saveRoute();showScreen('transport');refresh(true);
 }
 async function refresh(includeCandidates=false) {
-  if(!pid || polling)return; polling=true;const current=generation;const endpoint=path();
+  if(!pid || polling?.generation===generation)return; const ticket={generation};polling=ticket;const current=generation;const endpoint=path();
   try {
-    const next=await api(endpoint); if(current!==generation)return; patient=next;renderPatient();
+    const next=await api(endpoint); if(current!==generation)return; patient=next;renderPatient();workflow.setPatient(next);
+    await workflow.refresh({recover:includeCandidates});
+    if(current!==generation)return;
     await readConversation(current,endpoint);
     if(current!==generation)return;
     if(includeCandidates || (!TERMINAL.has(patient.state) && Date.now()-lastCandidateAt>15000)) await refreshCandidates(current,endpoint);
-  } catch(error) {if(current===generation)announce(error.message,true);} finally {polling=false;}
+  } catch(error) {if(current===generation){workflow.invalidatePlan();announce(error.message,true);}} finally {if(polling===ticket)polling=false;}
 }
 async function readConversation(current=generation,endpoint=path()) {
   let more=true;
@@ -203,7 +228,7 @@ $('intake-back').addEventListener('click',()=>{if(!busy)showScreen('home');});
 $('home-link').addEventListener('click',event=>{event.preventDefault();if(busy)return;generation++;pid='';resetPatientContext();saveRoute();showScreen('home');});
 $('priority-source').addEventListener('change',()=>{$('priority').disabled=$('priority-source').value==='unknown';if($('priority').disabled)$('priority').value='';});
 $('resume-form').addEventListener('submit',event=>{event.preventDefault();if(!busy)openPatient($('resume-pid').value.trim());});
-$('server-form').addEventListener('submit',async event=>{event.preventDefault();if(busy)return;const raw=$('server-base').value.trim();if(!/^https?:\/\//.test(raw)){announce('http 또는 https 서버 주소를 입력하세요.',true);return;}generation++;server=normalizeServer(raw);resetPatientContext();saveRoute();await initializeServer();if(pid)refresh(true);});
+$('server-form').addEventListener('submit',async event=>{event.preventDefault();if(busy)return;const raw=$('server-base').value.trim();if(!/^https?:\/\//.test(raw)){announce('http 또는 https 서버 주소를 입력하세요.',true);return;}generation++;server=normalizeServer(raw);workflowActor=actorForServer(server);resetPatientContext();saveRoute();await initializeServer();if(pid)refresh(true);});
 $('intake-form').addEventListener('submit',async event=>{
   event.preventDefault();if(busy)return;const intakeGeneration=generation,intakeServer=server;setBusy(true);
   try {
@@ -234,6 +259,15 @@ $('position-form').addEventListener('submit',event=>{event.preventDefault();acti
 $('cancel-form').addEventListener('submit',event=>{event.preventDefault();const reason=$('cancel-reason').value.trim();if(reason)action(()=>api(path('/cancel'),'POST',{reason}),'이송을 취소했습니다. 기록은 읽기 전용으로 남습니다.');});
 $('message-form').addEventListener('submit',submitMessage);
 $('discard-message').addEventListener('click',()=>{pendingMessage=null;pendingAttempted=false;renderConversation();refresh(false);announce('실패한 전송 요청을 취소했습니다. 참여 병원을 확인한 뒤 새 메시지로 보내세요.');});
+$('replan-button').addEventListener('click',()=>{if(!busy)workflow.replan();});
+$('important-events').addEventListener('click',event=>{const button=event.target.closest('[data-ack-event]');if(button)workflow.acknowledge(Number(button.dataset.ackEvent));});
+$('workflow-actor').addEventListener('input',()=>{actorDraftDirty=true;workflow.setContext(null);});
+$('workflow-actor-form').addEventListener('submit',event=>{event.preventDefault();if(busy)return;const next=$('workflow-actor').value;if(!validActor(next)){actorDraftDirty=true;workflow.setContext(null);announce(ACTOR_REQUIREMENT,true);return;}workflowActor=actorForServer(server,next);resetWorkflow();if(patient)workflow.setPatient(patient);saveRoute();workflow.refresh({recover:true});});
+function restoreWorkflow() {if(document.hidden||!pid)return;workflow.invalidatePlan();workflow.refresh({recover:true});refresh(false);workflowObserver.scan();}
+document.addEventListener('visibilitychange',restoreWorkflow);
+window.addEventListener('online',restoreWorkflow);window.addEventListener('pageshow',restoreWorkflow);
+window.addEventListener('scroll',()=>workflowObserver.scan(),{passive:true});window.addEventListener('resize',()=>workflowObserver.scan());
+$('important-events').addEventListener('scroll',()=>workflowObserver.scan(),{passive:true});
 $('resume-pid').value=store.get('patient.pid')||'';
 showScreen(pid?'transport':'home');initializeServer();if(pid)openPatient(pid);
-setInterval(()=>{if(pid&&!busy&&!document.hidden)refresh(false);},3000);
+setInterval(()=>{if(pid&&!busy&&!document.hidden){renderWorkflow(document,workflowDisplayState());refresh(false);}},3000);

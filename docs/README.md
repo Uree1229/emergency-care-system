@@ -1,5 +1,19 @@
 # 문서 안내
 
+최근 완료: [메인 음성·이송과 검토·추천·중요 알림 연결](MAIN_UI_INTEGRATION_20261030.md). 관련 101개 회귀와 합성 환자의 등록→같은 ID 도착·명시 적용·알림 기록을 확인했다.
+
+현재 잔여 작업: [최종발표 제외 — 실제 기기·사용성·공유 실행본](CURRENT_REMAINING_WORK_20261030.md). 1·2번은 로컬 구현·합성 검증 완료로 갱신했고 실제 마이크·휴대폰·사람 측정은 남아 있다.
+
+현재 작업: [시연 안내](DEMO_RUNBOOK_20261030.md), [정상·변경·실패와 연구 사례 안내 화면](http://127.0.0.1:18045/demo.html). 알고리즘 추가 개선은 종료하고 운영 고정3 문의·CP-SAT을 유지한다. 최종발표 제작은 보류했다.
+
+직전 연구: [대기 보호 W1 구현·기존 36/새 60환경 검증과 미채택 근거](WAITING_PROTECTION_20261030.md). 한 67분 지연을 줄였지만 다른 환자는 최대 83분 지연됐고, 새 987명에서는 H1 대비 개선이 없었다.
+
+알고리즘 최종 선택: [고정3 문의·CP-SAT 유지, H1 미채택 근거와 개선·악화·제한값 동일 사례](FINAL_ALGORITHM_DECISION_20261030.md). 시간차 0의 도착 기록 상실도 별도로 구분한다.
+
+2026-10-30 운영 후속: [여섯 항목 결과](OPERATIONS_FOLLOWUP_PROGRESS_20261030.md), [이송 중 환자 변경](ENROUTE_PATIENT_CHANGE_20261030.md), [자료 출처·자원 범위](DATA_AND_RESOURCE_SCOPE_20261030.md), [병원 통화·계측·외부 유입](HOSPITAL_OPERATIONS_20261030.md), [배포·복구 검증](RECOVERY_AND_RELEASE_20261030.md).
+
+2026-10-30 알고리즘·최종 발표 후속: [일곱 항목 진행 결과](FINAL_READINESS_PROGRESS_20261030.md), [새 환경 평가](FINAL_EVALUATION_20261030.md), [최신 음성 지도](VOICE_MAP_REPLAY_20261030.md), [카카오 도로 통합](VOICE_ROAD_VERIFICATION_20261030.md), [사용성 실험 준비](USABILITY_EVALUATION_20261030.md), [발표·시연 대본](FINAL_PRESENTATION_AND_DEMO_20261030.md).
+
 화면 개발자는 [화면과 서버 통합 개발 기준](TEAM_IMPLEMENTATION.md)에서 담당 작업과 완료 기준을 먼저 확인하세요. 전체 배경은 [루트 README](../README.md) → [현재 상태](PROJECT_STATUS.md), 요청·응답 형식은 [API 명세](API.md)를 참고하세요.
 
 이번 설계 논의는 [문제 정의와 해결방안 초안](design/문제정의와_해결방안_초안.md) → [배정 알고리즘 초안](design/배정알고리즘_초안.md) 순서로 진행합니다.

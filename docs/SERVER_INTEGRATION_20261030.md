@@ -1,5 +1,7 @@
 # 서버 전용 통합 실행본
 
+> 적용 범위: 원격 서버 전용 `main` 통합 작업의 기록이다. 이번 `team-common` 통합본은 구급대원·환자 진행·병원 화면 3개를 포함한다. 현재 통합본의 버전·실행·검증 기준은 [TEAM_RELEASE_20261030.md](TEAM_RELEASE_20261030.md)를 우선하며, 아래의 `/paramedic/` 미포함 설명은 원격 서버 전용 작업본에만 적용된다.
+
 main 분리 준비 브랜치: `codex/server-main-ready-20261030`. 원본 검증 서버 스냅샷은 `codex/server-integration-20261030`의 `cb6ab97`입니다.
 
 새 main 기준 작업에서는 기존 main UI를 유지하고 서버·설정·API 검증 도구만 추출했습니다. 화면 없는 `/paramedic/` 링크를 서버 제공 기능으로 세지 않습니다. 현재 팀원 시작 절차는 [11월 2일 준비](TEAM_START_20261102.md), 휴대폰 접속은 [HTTPS 안내](TEAM_LAN_20261102.md)를 따릅니다.
