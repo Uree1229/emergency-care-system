@@ -33,6 +33,11 @@ usb_import_backups/
 # 서버 실행 DB·API 수집 원본
 data/
 
+# 초기 환자 앱의 로컬 실행 DB (구형 업로드 DB를 다시 추적하지 않음)
+/emergency-app/*.db
+/emergency-app/*.db-wal
+/emergency-app/*.db-shm
+
 # 도로 snapshot은 재현용으로 보관하되 수집 잠금·실행 시각은 제외
 simulation/route_cache/.request_lock/
 simulation/route_cache/.last_request.json

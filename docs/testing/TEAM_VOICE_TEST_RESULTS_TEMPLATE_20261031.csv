@@ -1,0 +1,1 @@
+tester_id,date,git_commit,screen,case_id,attempt,attempt_id,input_mode,noise,speaking_style,mask,microphone_distance_cm,read_as_written,expected_action,actual_action,recognition_status,field_check_status,error_kind,observed_elapsed_seconds,voice_session_id,zip_file,raw_transcript,server_payload,observed_fields,notes
