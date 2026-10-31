@@ -1,4 +1,5 @@
 /** Local practice audio only. MediaRecorder bytes are never transcoded or sent. */
+import {normalizeCommandTrace} from './command-trace.mjs';
 export const PRACTICE_AUDIO_DB='paramedic-command-practice-audio-v1';
 export const PRACTICE_AUDIO_STORE='recordings';
 export const PRACTICE_AUDIO_LIMITS=Object.freeze({durationMs:180000,trialBytes:20*1024*1024,totalBytes:150*1024*1024,stopTimeoutMs:5000});
@@ -40,7 +41,8 @@ function times(startedAt=null,endedAt=null){
 }
 function captureCode(value){if(typeof value!=='string'||!/^[A-Za-z0-9_-]{0,80}$/u.test(value))invalid();return value;}
 function jsonSnapshot(value,attemptId){
-  shape(value,SNAPSHOT_FIELDS,['expectedAction']);
+  shape(value,SNAPSHOT_FIELDS,['expectedAction','commandTrace']);
+  const commandTrace=own(value,'commandTrace')?normalizeCommandTrace(value.commandTrace):null;
   let nodes=0;const seen=new Set();
   function visit(item,depth=0){
     if(++nodes>12000||depth>12)invalid();
@@ -48,11 +50,12 @@ function jsonSnapshot(value,attemptId){
     if(typeof item==='string'){if(item.length>16000)invalid();return item;}
     if(typeof item==='number'){if(!Number.isFinite(item))invalid();return item;}
     if(typeof item!=='object'||seen.has(item))invalid();seen.add(item);let result;
-    if(Array.isArray(item)){dense(item,256);result=item.map(child=>visit(child,depth+1));}
+    if(Array.isArray(item)){dense(item,item===value.commandTrace?.events?600:256);result=item.map(child=>visit(child,depth+1));}
     else{if(!plain(item))invalid();const keys=Reflect.ownKeys(item);if(keys.length>64)invalid();result={};for(const key of keys){const d=Object.getOwnPropertyDescriptor(item,key);if(typeof key!=='string'||['__proto__','prototype','constructor'].includes(key)||!d?.enumerable||!own(d,'value'))invalid();Object.defineProperty(result,key,{value:visit(d.value,depth+1),enumerable:true,writable:true,configurable:true});}}
     seen.delete(item);return result;
   }
   const result=visit(value);
+  if(commandTrace)result.commandTrace=commandTrace;
   if(!plain(result)||result.id!==attemptId||result.source!=='human_voice'||result.actualAudioSaved!==false||typeof result.rawText!=='string'||!Array.isArray(result.fragments))invalid();
   for(const fragment of result.fragments)if(typeof fragment!=='string')invalid();
   shape(result.timing,['startedAt','endedAt']);times(result.timing.startedAt,result.timing.endedAt);

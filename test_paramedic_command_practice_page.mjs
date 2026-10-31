@@ -38,6 +38,9 @@ function memoryStorage(){
 }
 function harness(t,{storage=memoryStorage()}={}){
   const elements={},events={},recognizers=[],downloads=[],blobs=new Map(),requests=[];
+  let clock=Date.now(),timerId=0;const timers=new Map();
+  class TestDate extends Date{static now(){return clock;}}
+  const schedule=(callback,delay=0)=>{const id=++timerId;timers.set(id,{at:clock+delay,callback});return id;};
   for(const tag of html.matchAll(/<([a-z][a-z0-9-]*)\b([^>]*\bid="([^"]+)"[^>]*)>/gi)){
     const el=new Element(tag[1]);elements[tag[3]]=el;
     for(const name of ['hidden','checked','readonly','disabled'])if(new RegExp('\\s'+name+'(?:[\\s=>]|$)').test(tag[2]))el[name==='readonly'?'readOnly':name]=true;
@@ -68,7 +71,7 @@ function harness(t,{storage=memoryStorage()}={}){
     const el=new Element(tag);if(tag==='a')el.click=()=>{assert.ok(blobs.has(el.href));downloads.push({filename:el.download,blob:blobs.get(el.href)});};return el;
   }};
   const context=vm.createContext({...bindings,document,window,navigator,localStorage:storage,fetch:forbiddenFetch,
-    URL:DownloadURL,Blob,queueMicrotask,console,setInterval:callback=>callback,clearInterval(){},setTimeout:()=>0,clearTimeout(){}});
+    URL:DownloadURL,Blob,Date:TestDate,queueMicrotask,console,setInterval:callback=>callback,clearInterval(){},setTimeout:schedule,clearTimeout:id=>timers.delete(id)});
   vm.runInContext(source,context,{filename:'command-practice.js'});
   const read=expression=>vm.runInContext(expression,context),el=id=>elements['practice-'+id];
   const h={el,read,storage,recognizers,downloads,requests,data:()=>copy(read('dataset')),last:()=>copy(read('dataset.attempts.at(-1)')),
@@ -78,6 +81,7 @@ function harness(t,{storage=memoryStorage()}={}){
     async start(){await h.click('record');assert.equal(read('capture.active'),true);return recognizers.at(-1);},
     async finish(rec){const pending=h.click('record');assert.equal(rec.stops,1);rec.end();await pending;await flush();},
     async simulate(text){await h.input('manual',text);await h.click('simulate');await flush();},
+    async advance(ms){const target=clock+ms;let count=0;while(true){const next=[...timers].filter(([,timer])=>timer.at<=target).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;assert.ok(++count<1000,'Bounded virtual timers');timers.delete(next[0]);clock=next[1].at;next[1].callback();await flush();}clock=target;await flush();},
     async event(name){for(const callback of events[name]||[])await callback({preventDefault(){}});await flush();},
   };
   t.after(async()=>{try{await h.event('pagehide');assert.equal(requests.length,0,'No UI or imported module API requests');}finally{globalThis.fetch=oldFetch;if(oldWindow)Object.defineProperty(globalThis,'window',oldWindow);else delete globalThis.window;}});
@@ -94,11 +98,53 @@ test('button stop drains late final, preserves prefix/suffix, and performs no co
   assert.equal(item.actualAudioSaved,false);assert.equal(item.stopReason,'button');assert.equal(h.data().attempts.length,1);
 });
 
-test('auto-stop retains provisional command but late final negation controls final verdict',async t=>{
+test('deferred auto-stop cancels on later negative context while recognition continues',async t=>{
   const h=harness(t);await h.custom('종료 하지 마','none');h.el('autostop').checked=true;const rec=await h.start();
-  rec.final('종료');assert.equal(rec.stops,1);rec.final('하지 마');rec.end();await flush();
+  rec.final('종료');assert.equal(rec.stops,0);await h.advance(300);rec.interim('하지 마');await h.advance(1000);assert.equal(rec.stops,0);rec.final('하지 마');rec.end();await flush();
   assert.equal(h.last().rawText,'종료 하지 마');assert.equal(h.last().provisionalTriggerText,'종료');
-  assert.equal(h.last().parserResult,null);assert.equal(h.last().expectedAction,null);assert.equal(h.last().stopReason,'trigger');
+  assert.equal(h.last().parserResult,null);assert.equal(h.last().expectedAction,null);assert.equal(h.last().stopReason,'natural');
+  assert.equal(h.last().commandTrace.events.some(event=>event.type==='commit'),false);
+});
+
+test('immediate comparison preserves the original stop-and-drain baseline explicitly',async t=>{
+  const h=harness(t);await h.custom('종료 하지 마','none');h.el('autostop').checked=true;h.el('command-policy').value='immediate';const rec=await h.start();
+  rec.final('종료');assert.equal(rec.stops,1);rec.final('하지 마');rec.end();await flush();
+  assert.equal(h.last().rawText,'종료 하지 마');assert.equal(h.last().commandTrace.policy,'immediate');assert.equal(h.last().stopReason,'trigger');
+});
+
+for(const [command,action]of [['녹음 종료','stop'],['병원 추천해줘','recommend'],['새 환자 시작','new_patient'],['이전 환자로 돌아가','previous_patient'],['인계 요약해줘','handoff_summary']])test(`deferred command commits once after the quiet window: ${action}`,async t=>{
+  const h=harness(t);await h.custom(command,action);h.el('autostop').checked=true;const rec=await h.start();rec.final(command);
+  await h.advance(799);assert.equal(rec.stops,0);await h.advance(1);assert.equal(rec.stops,1);rec.end();await flush();
+  const item=h.last(),commits=item.commandTrace.events.filter(event=>event.type==='commit');assert.equal(commits.length,1);assert.equal(commits[0].action,action);assert.equal(commits[0].atMs,800);assert.equal(item.commandTrace.events.some(event=>event.type==='capture'&&event.reason==='stop_requested'),true);
+});
+
+test('observe records hypothetical early stop without losing late time context',async t=>{
+  const h=harness(t);await h.custom('종료 시각과 발생 시각은 다릅니다','none');h.el('command-policy').value='observe';h.el('autostop').checked=true;const rec=await h.start();
+  rec.final('종료');await h.advance(1200);assert.equal(rec.stops,0);rec.final('시각과 발생 시각은 다릅니다');rec.end();await flush();
+  const item=h.last();assert.equal(item.parserResult,null);assert.equal(item.commandTrace.policy,'observe');assert.equal(item.commandTrace.events.filter(event=>event.type==='would_commit').length,1);assert.equal(item.autoStop,false);
+});
+
+test('pending timer cannot stop a later recording after abort',async t=>{
+  const h=harness(t);h.el('autostop').checked=true;let rec=await h.start();rec.final('종료');await h.advance(300);await h.click('abort');await flush();
+  rec=await h.start();rec.final('합성 관찰입니다');await h.advance(1000);assert.equal(rec.stops,0);await h.finish(rec);assert.equal(h.data().attempts.length,2);
+});
+
+test('a natural recognizer end waits for the pending decision before saving',async t=>{
+  const h=harness(t);h.el('autostop').checked=true;const rec=await h.start();rec.final('종료');rec.end();await flush();assert.equal(h.data().attempts.length,0);
+  await h.advance(800);assert.equal(h.data().attempts.length,1);assert.equal(h.last().commandTrace.events.filter(event=>event.type==='commit').length,1);assert.equal(rec.stops,0,'Recognizer had already ended; gate commit is distinct from a stop request');
+});
+
+test('observe uses the same quiet window after natural end instead of committing early',async t=>{
+  const h=harness(t);h.el('command-policy').value='observe';const rec=await h.start();rec.final('종료');await h.advance(100);rec.end();await flush();assert.equal(h.data().attempts.length,0);
+  await h.advance(699);assert.equal(h.data().attempts.length,0);await h.advance(1);assert.equal(h.last().commandTrace.events.find(event=>event.type==='would_commit').atMs,800);assert.equal(rec.stops,0);
+});
+
+for(const policy of ['deferred','observe'])for(const wait of ['', '5001','800.5'])test(`invalid wait is rejected before a microphone attempt: ${policy}/${wait}`,async t=>{
+  const h=harness(t);h.el('command-policy').value=policy;h.el('command-wait').value=wait;await h.click('record');
+  assert.equal(h.recognizers.length,0);assert.equal(h.data().attempts.length,0);assert.equal(h.read('active'),null);assert.match(h.el('error').textContent,/100~5000/);
+});
+test('zero wait is used only by the explicitly selected immediate comparison',async t=>{
+  const h=harness(t);h.el('command-policy').value='immediate';h.el('command-wait').value='';h.el('autostop').checked=true;const rec=await h.start();rec.final('종료');assert.equal(rec.stops,1);rec.end();await flush();assert.equal(h.last().commandTrace.waitMs,0);
 });
 
 test('idle before recognition error records failure and retains preceding final',async t=>{
