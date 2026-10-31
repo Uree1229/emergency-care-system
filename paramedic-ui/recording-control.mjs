@@ -16,6 +16,10 @@ const META_BEFORE = /(?:명령어|트리거|단어|문구|표현|버튼)(?:가|�
 const NEGATIVE_BEFORE = /(?:아직(?:은)?|절대(?:로)?|함부로|임의로)\s*$/u;
 const NOT_CONTROL_AFTER = /^(?:하지|하진|하지는|하지도|하시면|하면|하라는|하라고|하고|해도|해서|해\s*주지|주지|주시|주셔|주실|달라|말고|말라|마세요|마십시오|아니라|안\s*(?:해|하)|않|라고|이라고|라는|이라며|이라면서|했|하였|되|됐|됨|된|요청|보고|기록|표시|언급|의미|발언)/u;
 const CLINICAL_AFTER = /^(?:후에?|뒤에?|이후|전에?|부터|까지|때|시각|시간|일시|여부|예정|상태)(?=$|[\s,，.。!！?？;；:：은는이가을를])/u;
+// Consume complete attached particles, not just their first character:
+// "종료 시각과 ..." is narrative, while "종료 시각화면 ..." must not
+// be rejected merely because an unrelated following word starts with 시각.
+const CLINICAL_NOUN_PARTICLE_AFTER = new RegExp(String.raw`^(?:시각|시간|일시|여부|예정|상태)(?:밖에|에서|으로|부터|까지|보다|처럼|이랑|하고|마다|조차|랑|과|와|도|만|의|에|로)(?:은|는|도|만|의)?(?=$|${BOUNDARY})`,'u');
 const PATIENT_DESCRIPTION_AFTER = /^(?:(?:해\s*)?달라|지\s*마|안\s*(?:돼|되)|(?:시각|시간|일시|여부|예정|상태|명령어?|버튼|단어|문구|표현)(?=$|[\s,，.。!！?？;；:：은는이가을를입였되]))/u;
 const OPEN_QUOTES = new Map([['“','”'],['‘','’'],['「','」'],['『','』'],['〈','〉'],['《','》'],['"','"'],["'","'"]]);
 
@@ -33,7 +37,7 @@ function insideQuote(text, end) {
  * the caller: save prefix first, and preserve suffix as unapplied speech.
  * This parser only classifies text; it never saves, submits, or runs an action.
  */
-export function findVoiceTrigger(value, {isFinal=true}={}) {
+function classifyVoiceTrigger(value, {isFinal=true}={}, guardTimeParticles=true) {
   if(!isFinal||typeof value!=='string')return null;
   // A fresh iterator avoids mutable lastIndex leaking between STT callbacks.
   for(const match of value.matchAll(new RegExp(TRIGGER,'gu'))) {
@@ -47,10 +51,26 @@ export function findVoiceTrigger(value, {isFinal=true}={}) {
     const following=suffix.replace(/^[\s,，.。!！?？;；:：]+/u,'');
     if(NOT_CONTROL_AFTER.test(following))continue;
     if((action==='new_patient'||action==='previous_patient')&&PATIENT_DESCRIPTION_AFTER.test(following))continue;
-    if(/^(?:종료|중단|그만)/u.test(command)&&(CLINICAL_END.test(preceding)||CLINICAL_AFTER.test(following)))continue;
+    if(/^(?:종료|중단|그만)/u.test(command)&&(CLINICAL_END.test(preceding)||CLINICAL_AFTER.test(following)||guardTimeParticles&&CLINICAL_NOUN_PARTICLE_AFTER.test(following)))continue;
     return {action,prefix,command,suffix,index,end};
   }
   return null;
+}
+
+export function findVoiceTrigger(value, options={}) {
+  return classifyVoiceTrigger(value,options);
+}
+
+/** Validate stored observations without reclassifying historical failures.
+ * Only exact results of the current or pre-time-particle grammar are accepted.
+ * This boolean validator cannot return an old command for live execution.
+ */
+export function matchesRecordedVoiceTrigger(value, recorded) {
+  const fields=['action','prefix','command','suffix','index','end'];
+  if(recorded!==null&&(!recorded||typeof recorded!=='object'||Reflect.ownKeys(recorded).length!==fields.length))return false;
+  const same=reference=>reference===null?recorded===null:
+    recorded!==null&&fields.every(key=>Object.getOwnPropertyDescriptor(recorded,key)?.value===reference[key]);
+  return same(classifyVoiceTrigger(value))||same(classifyVoiceTrigger(value,{},false));
 }
 
 /** Compatibility API: terminal stop commands only, with the original shape. */
