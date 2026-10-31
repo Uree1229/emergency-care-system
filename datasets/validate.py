@@ -25,8 +25,19 @@ def validate_record(record):
             raise ValueError('solver expects minute slots')
         if [p['id'] for p in record['observed']['patients']] != [p['id'] for p in record['actual']['patients']]:
             raise ValueError('observed and actual patients mismatch')
-        if record['kind'] == 'allocation' and record['evaluation']['oracle_label'] is not None:
-            raise ValueError('random cases must not claim an optimal label')
+        if record['kind'] == 'allocation':
+            if record['evaluation']['oracle_label'] is not None:
+                raise ValueError('random cases must not claim an optimal label')
+            rows = record['patient_metadata']
+            metadata = {row['id']: row for row in rows}
+            if len(metadata) != len(rows) or set(metadata) != {p['id'] for p in record['observed']['patients']}:
+                raise ValueError('metadata patients mismatch')
+            for p in record['observed']['patients']:
+                row = metadata[p['id']]
+                if sorted(row['accepted_hospitals']) != sorted(p['eligible']):
+                    raise ValueError('metadata current acceptances mismatch')
+                if not set(row['accepted_hospitals']) <= set(row['compatible_hospitals']):
+                    raise ValueError('accepted hospital is not compatible')
     elif record['kind'] == 'episode':
         hs, ps, walkins = world_from_episode(record)
         ids = [p.id for p in ps]
@@ -38,6 +49,9 @@ def validate_record(record):
         request_ids = [e['patient_id'] for e in events if e['type'] == 'patient_request']
         if sorted(request_ids) != sorted(ids):
             raise ValueError('request events do not match patients')
+        request_times = {p.id: p.t_req for p in ps}
+        if any(e['at'] != request_times[e['patient_id']] for e in events if e['type'] == 'patient_request'):
+            raise ValueError('request event time does not match requested_at')
         cfg = episode_config(record)
         hospitals = {h.id: h for h in hs}
         if len(hospitals) != len(hs):

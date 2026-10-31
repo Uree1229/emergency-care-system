@@ -120,6 +120,36 @@ class PlanningFlow(Base):
         self.assertEqual((r['status'], r['hospital_id']), ('NEEDS_REVIEW', 'H1'))
         self.assertEqual(service.patient_view(self.conn, 'A', T0 + 22)['state'], 'IN_TRANSIT')
 
+    def test_destination_capability_loss_flags_only_affected_patient_and_preserves_lock(self):
+        self.patient(required_capabilities=['소아청소년과'])
+        iid = self.accepted('A', 'H1')
+        service.confirm_destination(self.conn, T0 + 16, 'A', iid)
+        service.depart(self.conn, T0 + 17, 'A', EST)
+        self.patient(pid='B', required_capabilities=['소아청소년과'])
+        self.accepted('B', 'H2')
+        hospital = service._hospital(self.conn, 'H1')
+        hospital['capabilities'] = ['응급의학']
+        service.upsert_hospital(self.conn, hospital)
+        self.assertTrue(self.run_plan())
+        a = planning.patient_result(self.conn, T0 + 20, 'A')['result']
+        b = planning.patient_result(self.conn, T0 + 20, 'B')['result']
+        self.assertEqual((a['status'], a['hospital_id'], a['destination_locked']),
+                         ('NEEDS_REVIEW', 'H1', True))
+        self.assertIn('DESTINATION_CAPABILITY_MISSING', a['warnings'])
+        self.assertEqual(a['missing_capabilities'], ['소아청소년과'])
+        self.assertIsNotNone(a['planned_start_at'])
+        self.assertEqual((b['status'], b['hospital_id']), ('RECOMMENDED', 'H2'))
+        self.assertTrue(b['confirmable_now'])
+        self.assertEqual(service.patient_view(self.conn, 'A', T0 + 20)['destination_hospital_id'], 'H1')
+        self.assertEqual(service.expected_demand(self.conn, 'H1'), {'ed_bed': 1})
+        hospital['capabilities'].append('소아청소년과')
+        service.upsert_hospital(self.conn, hospital)
+        self.assertTrue(self.run_plan(T0 + 21))
+        restored = planning.patient_result(self.conn, T0 + 21, 'A')['result']
+        self.assertEqual((restored['status'], restored['hospital_id']), ('DESTINATION_HELD', 'H1'))
+        self.assertNotIn('DESTINATION_CAPABILITY_MISSING', restored['warnings'])
+        self.assertEqual(restored['missing_capabilities'], [])
+
     def test_destination_restriction_requires_review_and_arrival_ends_planning(self):
         self.patient()
         iid = self.accepted('A', 'H1')

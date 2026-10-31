@@ -166,4 +166,3 @@ class EvaluationIntegrity(unittest.TestCase):
         self.write(path, package)
         with self.assertRaisesRegex(ValueError, 'QA-only'):
             runner.observations(path, self.data)
-

@@ -67,7 +67,8 @@ def make_case(profile, description, changes, seed):
             p['eligible'] = sorted(set(p['eligible']) | {h})
             data['destination_locks'][p['id']] = h
             rows[-1].update(state='IN_TRANSIT', confirmed_hospital=h,
-                            compatible_hospitals=sorted(set(compatible) | {h}))
+                            compatible_hospitals=sorted(set(compatible) | {h}),
+                            accepted_hospitals=list(p['eligible']))
             p['arrivals'] = [now + t for t in p['travel']]
             if mode == 'locked_overdue':
                 p.update(release=0, deadline=5)
@@ -76,7 +77,7 @@ def make_case(profile, description, changes, seed):
         p = data['patients'][0]
         p['eligible'] = [0]
         data['destination_locks'][p['id']] = 0
-        rows[0].update(state='IN_TRANSIT', confirmed_hospital=0, compatible_hospitals=[0])
+        rows[0].update(state='IN_TRANSIT', confirmed_hospital=0, compatible_hospitals=[0], accepted_hospitals=[0])
         data['capacities'][0] = [0, 0]
         data['blocks'] = [b for b in data['blocks'] if b['h'] != 0]
     if mode == 'known_release':
@@ -86,7 +87,7 @@ def make_case(profile, description, changes, seed):
         p = data['patients'][0]
         p.update(eligible=[0], release=now - 10, deadline=180, special=False, demands=[1, 0], travel=[0] * n)
         data['fixed'][p['id']] = dict(h=0, start=now - 5)
-        rows[0].update(state='TREATING', confirmed_hospital=0, compatible_hospitals=[0])
+        rows[0].update(state='TREATING', confirmed_hospital=0, compatible_hospitals=[0], accepted_hospitals=[0])
         data['capacities'][0][0] = max(1, data['capacities'][0][0])
         data['blocks'] = [b for b in data['blocks'] if b['h'] != 0]
     actual = copy.deepcopy(data)

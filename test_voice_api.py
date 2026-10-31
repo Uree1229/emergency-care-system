@@ -148,4 +148,3 @@ class VoiceHttp(Base):
         status, events = self.call('GET', '/api/hospitals/H1/patients/A/important-events?actor_id=desk-1')
         self.assertEqual(status, 200, events)
         self.assertTrue(any(event['type'] == 'patient_information_amended' for event in events['items']))
-

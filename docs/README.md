@@ -44,12 +44,12 @@
 | 실험 권역과 치료조건 데이터 | [경기 남부와 충남 북부 수집 결과](research/경기남부_데이터확보_결과_20261011.md), [치료조건 카탈로그](research/치료조건_카탈로그_20261011.md), [권역 설정](../config/experiment_region.json), [조건 설정](../config/treatment_requirements.json) |
 | API 추가 수집과 치료조건 판정 | [34기관·12종·메시지·후보/배정 연결 결과](research/API추가수집_치료조건판정연결_20261011.md) |
 | 분만실 Y/N과 심평원 연계 | [처리 결과·신청 상태·실행 방법](research/분만실_YN_심평원_연계_20261011.md) |
-| 가상 실험의 비교 결과 | [B0/B1 결과](../simulation_results/summary.md), [솔버 결과 설명](../optimization_results/README.md) |
+| 가상 실험의 비교 결과 | [B0/B1 결과](../simulation_results/summary.md), [초기 솔버 실험 결과(보관)](../archive/early_optimization/optimization_results/README.md) |
 | 지도 실험·문의 부하 검증 | [도로 입력 개발 비교](../simulation_results/map_comparison.md), [대기열·조건변경 검증](../simulation_results/workload_validation.md), [관측형 문의 V1](../simulation_results/adaptive_inquiry.md), [병원별 관측 문의 V2](../simulation_results/observed_inquiry.md), [작업 핸드오프](HANDOFF_20261011.md) |
 | 우선순위 보호 정책 비교 | [우선순위·공동 배정 검증](../simulation_results/priority_protection_corrected.md), [개발 잠금](../simulation_results/priority_protection_corrected_development.md), [독립 감사](../simulation_results/priority_protection_corrected_audit.json), [앞선 실행 중단 기록](../simulation_results/priority_protection_interrupted.json) |
 | 문제 배경·제안서 | [최적화 문제 정의](design/최적화_문제정의_v1.md), [현재 제안서](proposals/current/캡스톤_프로젝트_제안서_병원응답보강_20260923.docx), [이전 제안서](proposals/archive/) |
 | 원인 조사와 검토 자료 | [호남권 이송체계 공개정보 정리](research/호남권_이송체계_공개정보_정리.md), [이송체계 전국 확대의 남은 문제와 해결방안](research/이송체계_전국확대_문제점과_해결방안.md), [시범사업 문제점과 솔버 실험](research/응급의료_시범사업_문제점과_솔버실험.md), `research/`의 Word 조사자료 |
 | 제출 산출물 | [멘토링 보고서](reports/캡스톤_멘토링_보고서_작성본.docx), [최종보고서 뼈대](reports/캡스톤_최종보고서_뼈대.docx) |
-| USB 백업에서 작업할 때 | [USB 시작 안내](../USB_시작안내.md), [로컬 작업환경](../LOCAL_SETUP.md) |
+| 이전 USB 작업 방식(보관) | [USB 시작 안내](../archive/usb_transfer/USB_시작안내.md), [로컬 작업환경](../archive/usb_transfer/LOCAL_SETUP.md) |
 
-같은 주제의 예전 제안서는 `proposals/archive/`에 보관했습니다. 날짜가 있는 조사·제안서와 현재 구현 상태는 다를 수 있으므로, 진행 상황은 [현재 상태](PROJECT_STATUS.md)와 코드를 기준으로 확인하세요. 문서 생성용 `build_*.py`는 제안서·보고서 재생성 도구이며 서버 실행에는 필요하지 않습니다.
+같은 주제의 예전 제안서는 `proposals/archive/`에 보관했습니다. 날짜가 있는 조사·제안서와 현재 구현 상태는 다를 수 있으므로, 진행 상황은 [현재 상태](PROJECT_STATUS.md)와 코드를 기준으로 확인하세요. 문서 생성용 `build_*.py`는 [`archive/early_documents/`](../archive/early_documents/)로 옮겼습니다. 서버 실행에는 필요하지 않습니다.

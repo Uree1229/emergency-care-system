@@ -313,5 +313,3 @@ class VoiceWorkflow(Base):
         s = self.create()
         self.assertEqual(self.code(voice.edit, self.conn, self.now, s['id'], self.common(s,
             changes={'onset_at': self.now + 1}, change_kind='correction')), 'INVALID_VOICE_FIELDS')
-
-

@@ -2,6 +2,29 @@
 
 현재 팀 통합·시연은 **`team-common-20261030-v1.1` 공통 실행 묶음**을 사용합니다. v1의 PC 전체 흐름·복구 검사에서 발견한 병원 담당자 재시도 범위를 보완했습니다. [PC 검증 범위·미실행 항목](docs/DEVICE_FLOW_PC_VALIDATION_20261030.md), [고정 실행본의 설치·실행 기준](outputs/team_release_20261030/team-common-20261030-v1.1/source/docs/TEAM_RELEASE_20261030.md)을 따릅니다. `source/TEAM_START.ps1`로 실행하고 `http://127.0.0.1:18033/`에서 버전·DB·두 워커를 확인합니다. 아래 기존 개별 시연 명령과 구분합니다.
 
+## 11월 2일 연결 시험용 서버
+
+최신 서버는 `server.team_runtime`의 full 모드를 사용합니다. [11월 2일 시작·역할별 API 연결](docs/TEAM_START_20261102.md), [같은 Wi-Fi의 PC·휴대폰 HTTPS 접속](docs/TEAM_LAN_20261102.md)을 먼저 확인하세요. 기존 main의 화면은 유지하며 Claude 음성 UI와 팀원의 새 화면 파일은 이번 서버 변경에 포함하지 않습니다.
+
+```powershell
+python -m pip install --target .solver_deps -r requirements-server.txt
+python -m server.team_runtime prepare --db data/team-common-20261102.db
+python -m server.team_runtime serve --db data/team-common-20261102.db --port 18033
+```
+
+배정 기준 환경·명시적 환경 차이 허용은 [서버 통합 안내](docs/SERVER_INTEGRATION_20261030.md)를 따릅니다. 시험 직전에 새 가상 이송을 생성하며, 미리 만든 문의·수용의 유효기간을 늘리지 않습니다.
+
+
+## 이전 팀원 연결본 실행
+
+[설치와 전체 흐름 테스트 가이드](docs/TEAM_TEST_GUIDE.md)를 먼저 확인하세요. API 키 없이 실제 서울 병원20곳의 저장 정보를 사용해 환자·병원 화면을 함께 테스트할 수 있습니다.
+
+```powershell
+python -m server.team_demo --db data/team-demo.db --port 18027 --scenario normal
+```
+
+브라우저에서 <http://127.0.0.1:18027/public-flow-demo.html>을 엽니다. 병원 문의·응답·채팅은 로컬 DB에서만 처리되며 실제 병원에는 전송되지 않습니다. 원본 환자 입력 앱 실행과 조건 변경 테스트는 가이드에 있습니다. 기존 테스트 DB는 재시작해도 초기화하지 않습니다.
+
 캡스톤 디자인 시연 프로젝트입니다. 환자·이송자가 필요한 진료 조건을 입력하면 후보 병원을 찾고, 병원에 환자별 수용 여부를 문의한 뒤 목적지 확정을 돕습니다. 이동 중 병원에 다른 환자가 유입되면 영향을 받는 예정 환자를 표시하고 병원 판단을 받아 조정할 수 있습니다.
 
 병원 기본·등록 정보와 공개 가용 관측은 공공 API에서 수집하고 있습니다. 환자·병원 운영 자원·응답·이송 시나리오는 가상이며, 실제 병원·119 운영 시스템과 연결된 서비스가 아닙니다. 의료적 진단이나 이송 지시를 제공하지 않습니다.
@@ -47,7 +70,7 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m simulation.run --seeds 30 --sensitivity
 ```
 
-솔버 데모는 `.\.venv\Scripts\python.exe solver_improved.py`로 실행할 수 있습니다. 화면 프로토타입은 [`prototype/index.html`](prototype/index.html)을 열어 볼 수 있으며, 서버와 데이터가 자동으로 동기화되지는 않습니다. 기존 `SETUP_WINDOWS.cmd`, `TEST_WINDOWS.cmd`, `RUN_EXPERIMENTS_WINDOWS.cmd`는 USB의 `portable-runtime.zip`을 사용하는 이전 방식입니다. 일반 GitHub 클론에는 ZIP이 포함되지 않습니다.
+솔버 데모는 `.\.venv\Scripts\python.exe solver_improved.py`로 실행할 수 있습니다. 화면 프로토타입은 [`prototype/index.html`](prototype/index.html)을 열어 볼 수 있으며, 서버와 데이터가 자동으로 동기화되지는 않습니다. USB의 `portable-runtime.zip`을 쓰던 이전 실행 스크립트(`SETUP_WINDOWS.cmd` 등), 초기 최적화 실험, 제안서 생성 도구는 [`archive/`](archive/)로 옮겼습니다.
 
 ## 프로젝트 구조
 
@@ -61,6 +84,7 @@ py -3 -m venv .venv
 | `prototype/` | 독립형 화면 프로토타입 |
 | `docs/` | API 명세, 현재 상태, 문서 안내 |
 | `solver_improved.py` | CP-SAT 배정 솔버 실험 |
+| `archive/` | 이전 USB 실행 방식, 초기 최적화 실험, 제안서·보고서 생성 도구 보관 |
 | `test_*.py` | 서버·솔버·시뮬레이션 테스트 |
 | `docs/design/캡스톤_전체구현기능_롱리스트.*` | 핵심 100개·선택 12개 기능 목록 |
 

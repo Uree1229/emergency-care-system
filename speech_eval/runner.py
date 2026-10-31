@@ -413,4 +413,3 @@ def main(argv=None):
                 'human_speech_status': report['human_speech_status']}, ensure_ascii=False))
     except (ValueError, OSError, KeyError) as error:
         parser.error(str(error))
-
