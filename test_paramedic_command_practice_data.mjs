@@ -30,8 +30,8 @@ test('dedicated key and bounded local schema cannot collide with patient recover
   assert.deepEqual(PRACTICE_LIMITS,{attempts:500,bytes:4194304,attemptBytes:131072,text:16000,fragments:256,notes:2000});
   assert.deepEqual(emptyPracticeDataset(),{schema:1,purpose:'synthetic_command_practice',actualAudioSaved:false,attempts:[]});
 });
-test('60 frozen case labels are authored independently and contain every command and negative family',()=>{
-  assert.equal(PRACTICE_CASES.length,60);assert.ok(Object.isFrozen(PRACTICE_CASES));assert.ok(PRACTICE_CASES.every(Object.isFrozen));assert.equal(new Set(PRACTICE_CASES.map(value=>value.id)).size,60);
+test('96 frozen case labels are authored independently and contain every command and negative family',()=>{
+  assert.equal(PRACTICE_CASES.length,96);assert.ok(Object.isFrozen(PRACTICE_CASES));assert.ok(PRACTICE_CASES.every(Object.isFrozen));assert.equal(new Set(PRACTICE_CASES.map(value=>value.id)).size,96);
   assert.deepEqual(PRACTICE_CASES.find(value=>value.id==='STOP-01'),{id:'STOP-01',family:'stop',title:'짧은 종료',referenceText:'종료',expectedAction:'stop'});
   for(const family of ['stop','recommend','new_patient','previous_patient','handoff_summary','negation','quoted_reported','clinical_overlap','multiple','late_final','long'])assert.ok(PRACTICE_CASES.some(value=>value.family===family));
 });
@@ -44,18 +44,18 @@ for(const [id,reference,expectedAction]of [
   const row=PRACTICE_CASES.find(value=>value.id===id);assert.equal(row.referenceText,reference);assert.equal(row.expectedAction,expectedAction);
 });
 test('long prompts span commands, no-command clinical language and hesitation without copying clinical records',()=>{
-  const rows=PRACTICE_CASES.filter(value=>value.family==='long');assert.equal(rows.length,4);assert.ok(rows.every(value=>value.referenceText.length>100));assert.ok(rows.every(value=>/연습|합성/u.test(value.referenceText)));assert.ok(rows.some(value=>value.expectedAction===null));
+  const rows=PRACTICE_CASES.filter(value=>value.family==='long');assert.equal(rows.length,40);assert.ok(rows.every(value=>value.referenceText.length>100));assert.ok(rows.every(value=>/연습|합성/u.test(value.referenceText)));assert.ok(rows.some(value=>value.expectedAction===null));
 });
 test('filters operate on fixed family, action-none alias and substring search',()=>{
   assert.equal(selectPracticeCases({group:'stop'}).length,6);assert.ok(selectPracticeCases({action:'none'}).every(value=>value.expectedAction===null));
-  assert.deepEqual(selectPracticeCases({search:'CPR 종료 후'}).map(value=>value.id),['CLIN-01','LONG-03']);
+  assert.deepEqual(selectPracticeCases({search:'CPR 종료 후'}).map(value=>value.id),['CLIN-01','LONG-03','LONG-20','LONG-28','LONG-38']);
   assert.deepEqual(selectPracticeCases({family:'multiple',action:'stop'}).map(value=>value.id),['MULTI-01']);
 });
 test('failed retry selection is explicit and an empty failed list cannot silently start the whole bank',()=>{
-  assert.deepEqual(selectPracticeCases({failedCaseIds:[]}),[]);assert.deepEqual(selectPracticeCases({failedCaseIds:['REC-02','STOP-01']}).map(value=>value.id),['STOP-01','REC-02']);assert.equal(selectPracticeCases({failedCaseIds:undefined}).length,60);
+  assert.deepEqual(selectPracticeCases({failedCaseIds:[]}),[]);assert.deepEqual(selectPracticeCases({failedCaseIds:['REC-02','STOP-01']}).map(value=>value.id),['STOP-01','REC-02']);assert.equal(selectPracticeCases({failedCaseIds:undefined}).length,96);
 });
 test('seeded shuffle is repeatable, does not drop cases and cannot mutate the bank',()=>{
-  const before=JSON.stringify(PRACTICE_CASES),left=selectPracticeCases({shuffleSeed:42}),right=selectPracticeCases({shuffleSeed:42});assert.deepEqual(left,right);assert.notDeepEqual(left.map(value=>value.id),selectPracticeCases().map(value=>value.id));assert.equal(new Set(left.map(value=>value.id)).size,60);left[0].title='changed';assert.equal(JSON.stringify(PRACTICE_CASES),before);
+  const before=JSON.stringify(PRACTICE_CASES),left=selectPracticeCases({shuffleSeed:42}),right=selectPracticeCases({shuffleSeed:42});assert.deepEqual(left,right);assert.notDeepEqual(left.map(value=>value.id),selectPracticeCases().map(value=>value.id));assert.equal(new Set(left.map(value=>value.id)).size,96);left[0].title='changed';assert.equal(JSON.stringify(PRACTICE_CASES),before);
 });
 for(const options of [{group:3},{action:'diagnose'},{search:null},{failedCaseIds:['bad id']},{shuffleSeed:-1},{shuffleSeed:0x100000000},{shuffleSeed:1.5}])test(`filter rejects malformed values ${JSON.stringify(options)}`,()=>invalid(()=>selectPracticeCases(options)));
 

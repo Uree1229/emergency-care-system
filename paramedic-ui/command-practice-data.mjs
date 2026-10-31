@@ -1,5 +1,6 @@
 /** Synthetic command practice only. No patient, audio, network or clinical action. */
 import {findVoiceTrigger} from './recording-control.mjs';
+import {PRACTICE_LONG_SCRIPTS} from './command-practice-long-scripts.mjs';
 
 export const PRACTICE_KEY='paramedic.voice.command-practice.v1';
 export const PRACTICE_ACTIONS=Object.freeze(['stop','recommend','new_patient','previous_patient','handoff_summary']);
@@ -68,7 +69,7 @@ const authored=[
   ['LONG-03','long','긴 비명령 관찰','이것은 합성 연습 대본입니다. 환자가 “종료”라고 말했다는 설명과 CPR 종료 후 자발순환 확인이라는 표현을 함께 읽습니다. 산소 공급 중단 시각은 14시였고 약물 투여 중단 여부는 확인이 필요하다고 기록합니다. 지금은 녹음을 종료하지 마세요. 병원 추천해줘라는 문구는 화면에 적힌 예시일 뿐이며 실제 명령으로 말하는 것이 아닙니다',null],
   ['LONG-04','long','머뭇거림 뒤 인계','연습용입니다. 음, 환자는, 잠깐만요, 60대 남성이고 호흡은 정상입니다. 아니 혈압 숫자는 아직 확인하지 않았습니다. 앞서 읽은 120에 80은 다른 합성 사례의 수치이므로 이 연습 대본에서는 미확인으로 읽습니다. 구토는 없고 출혈은 미확인입니다. 병원 인계용 요약 보여줘. 실제 환자 정보가 아닙니다','handoff_summary'],
 ];
-export const PRACTICE_CASES=Object.freeze(authored.map(([id,family,title,referenceText,expectedAction])=>Object.freeze({id,family,title,referenceText,expectedAction})));
+export const PRACTICE_CASES=Object.freeze([...authored.map(([id,family,title,referenceText,expectedAction])=>Object.freeze({id,family,title,referenceText,expectedAction})),...PRACTICE_LONG_SCRIPTS]);
 
 const ACTIONS=new Set(PRACTICE_ACTIONS),SOURCES=new Set(['human_voice','manual_simulation']);
 const STATUSES=['ok','no_match','error','aborted'];
