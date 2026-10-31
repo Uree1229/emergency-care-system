@@ -1,6 +1,6 @@
 # 구급대원 음성 기록 — 팀원 체험 안내
 
-2026-10-30 · 브랜치 `codex/voice-toggle-20261030`
+2026-10-31 갱신 · 현재 `main` 기준. 긴 문장을 한 번에 읽고 녹음·인식 결과를 모으려면 [긴 대본과 팀원 테스트 방법](TEAM_VOICE_TEST_GUIDE_20261031.md)을 먼저 사용한다. 아래는 간편 음성 화면의 개별 기능 체험 예시다.
 
 **구급대원 음성 기록 화면**은 버튼을 한 번 눌러 환자 상태를 말하고, 다시 누르거나 음성 종료 명령으로 마치면 초안을 만드는 시연 화면이다. 설정에서 기존 누르는 동안 말하기도 고를 수 있다. 토글은 `quick-test.html`에서 사용하며, 메인 이송 노트(`/paramedic/`)에는 별도로 로컬 WAV·PCM 설정 비교 시험을 제공한다.
 
@@ -20,26 +20,27 @@
 
 ## 2 실행(5분)
 
-저장소를 이미 받았다면 브랜치만 바꾼다.
+별도 시험 폴더에 변경사항이 없다면 최신 main을 받는다. 작업 중인 폴더라면 새 폴더에 clone한다.
 
 ```bash
 git fetch origin
-git switch codex/voice-toggle-20261030
+git switch main
+git pull --ff-only
 ```
 
 처음 받는다면 다음과 같이 받는다.
 
 ```bash
-git clone -b codex/voice-toggle-20261030 https://github.com/Uree1229/emergency-care-system.git
+git clone -b main https://github.com/Uree1229/emergency-care-system.git
 ```
 
-저장소 루트에서 서버를 켠다. **`--seed`는 지정한 DB를 새로 만들므로 처음 한 번만 쓴다.**
+저장소 루트에서 음성 전용 서버를 켠다. 새 DB도 보존 초기화되므로 **`--seed`를 사용하지 않는다.**
 
 ```powershell
-python -m server.app --db data/voice-tryout.db --seed --port 8000 --no-planner --no-inquiry-worker
+python -m server.app --db data/voice-tryout.db --port 8000 --no-planner --no-inquiry-worker
 ```
 
-다음부터는 `--seed`를 빼고 같은 명령으로 켠다.
+다음에도 같은 명령으로 켠다.
 
 ```powershell
 python -m server.app --db data/voice-tryout.db --port 8000 --no-planner --no-inquiry-worker
@@ -121,7 +122,7 @@ python -m server.app --db data/voice-tryout.db --port 8000 --no-planner --no-inq
 
 - 마이크는 버튼으로 시작한 뒤 선택한 방식의 종료·취소·브라우저 종료까지 열린다. 브라우저 음성 인식은 제공사의 온라인 서비스로 음성을 보낼 수 있다.
 - 말하기 기록의 `인식 원문 · API 전송 본문`에서 종료어를 포함한 확정 인식 원문과 실제 API 본문을 구분한다. 서버 로컬 DB(`data/voice-tryout.db`)에는 전송한 본문과 초안만 저장한다. 원본 음성이나 종료어를 포함한 전체 원문을 서버에 저장한다고 표시하지 않는다. DB 파일은 Git에 올리지 않는다.
-- 화면의 인식 원문·종료 후 미반영 문장은 새로고침하면 사라진다. 이 시험 화면은 새로고침 후 이전 초안도 자동 복원하지 않는다.
+- 같은 서버 원점·작업자·로컬 기록의 초안과 미확인 요청은 현재 복구 기능의 범위에서 다시 불러올 수 있다. 새로고침만으로 마이크나 저장 요청이 자동 실행되지는 않는다. 이 복구와 외부 녹음 파일 보관은 별개이므로 원본 수집은 명령 연습 화면의 ZIP으로 보관한다. [복구 범위](VOICE_DRAFT_RECOVERY_20261030.md)를 따른다.
 - 12항목 질문은 시연용 입력 체크리스트다. 임상 필수 항목이나 환자 등록 가능 판정이 아니다.
 
 ## 7 문제 해결
