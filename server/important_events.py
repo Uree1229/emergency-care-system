@@ -5,6 +5,7 @@ GET은 전달·확인을 만들지 않는다. 클라이언트가 해당 사건�
 변경을 뜻하지 않는다. actor_id는 현 시연 서버의 클라이언트 선언 식별자이며
 로그인·사용자 인증을 대신하지 않는다.
 """
+import json
 import re
 
 from . import db, service
@@ -46,10 +47,36 @@ SUMMARIES = {
     'transport_alternative_requested': '병원 판단에 따라 대체병원 탐색이 요청됐습니다.',
     'transport_inquiry_ready': '대체병원의 유효한 수용 응답이 있어 담당자 판단이 필요합니다.',
     'transport_inquiry_exhausted': '대체병원 자동 탐색이 종료되어 담당자 판단이 필요합니다.',
+    'enroute_patient_change_requested': '구급대원이 이송 중 환자 상태·치료조건 변경안을 보냈습니다. 현재 병원의 검토가 필요합니다.',
+    'enroute_patient_change_decided': '현재 병원이 이송 중 환자 상태·치료조건 변경안을 검토했습니다. 판단 결과를 확인하세요.',
 }
 EVENT_TYPES = tuple(SUMMARIES)
 INQUIRY_TYPES = ('inquiry_cancelled', 'inquiry_closed', 'inquiry_expired', 'inquiry_question',
                  'patient_information_amended')
+
+
+def event_summary(event):
+    """Human-readable notice; never expose the proposal, actor or free-text reason.
+
+    These transport-change events deliberately remain outside INQUIRY_TYPES:
+    a hospital sees them only inside its confirmed conversation participation.
+    """
+    if event['type'] == 'enroute_patient_change_decided':
+        data = event.get('data', {})
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except (ValueError, TypeError):
+                data = {}
+        decision = data.get('decision') if isinstance(data, dict) else None
+        summaries = {
+            'keep': '현재 병원이 변경안을 반영하고 기존 수용을 유지했습니다. 목적지는 유지됩니다.',
+            'adjust': '현재 병원이 변경안을 반영하고 대체병원 탐색을 요청했습니다. 새 병원 확정 전까지 목적지는 유지됩니다.',
+            'reject': '현재 병원이 변경안 반영을 승인하지 않았습니다. 기존 환자정보와 목적지는 유지됩니다.',
+        }
+        if isinstance(decision, str) and decision in summaries:
+            return summaries[decision]
+    return SUMMARIES[event['type']]
 
 
 def _integer(value, field, minimum=0, maximum=MAX_ID):
@@ -119,7 +146,7 @@ def _item(event, receipt=None):
     acknowledged = receipt.get('acknowledged_at')
     return dict(event_id=event['id'], type=event['type'], at=event['at'],
                 patient_id=event['patient_id'], hospital_id=event['hospital_id'],
-                summary=SUMMARIES[event['type']], delivered_at=delivered,
+                summary=event_summary(event), delivered_at=delivered,
                 acknowledged_at=acknowledged,
                 delivery_delay_seconds=None if delivered is None else delivered - event['at'],
                 acknowledgement_delay_seconds=None if acknowledged is None else acknowledged - event['at'])

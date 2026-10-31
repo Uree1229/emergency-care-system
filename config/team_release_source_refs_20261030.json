@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "label": "team-common-20261030-v1",
+  "remote_observed_at_utc": "2026-10-30T14:12:56.210389+00:00",
+  "repository": "Uree1229/emergency-care-system",
+  "upstream_main": "c0a53f916ec0a9ee0ea4c563802b1b53dcce02e1",
+  "upstream_server_ready": "1d9dfabfcbb31ca22a627aec74c189d3251bbd68",
+  "upstream_server_integration": "cb6ab970504725a9a8bfd8d306ead94e0eb4eba5",
+  "upstream_voice": "396d5701351f57d6efc99728915b1ba139c126c0",
+  "original_workspace_head": "38d21447918b7ebd7db0999e274c945ffa269230",
+  "composition": [
+    "Current local main voice, patient progress, hospital workflow and operations UI retained",
+    "Voice critical readback and draft recovery retained; newer local patient-record and spoken-clause fixes retained",
+    "Upstream main event summaries, provenance read snapshot, opt-in LAN and readiness tools included",
+    "New release verifier, startup identity, PowerShell launchers and common home page included"
+  ],
+  "identity": "Exact source bytes are pinned by the adjacent release-manifest.json. This composition is not identical to any one upstream commit.",
+  "operating_policy": "fixed_3 + CP-SAT severity_first, 3 seconds; original 21-file baseline unchanged",
+  "publication": "Local source artifact; no upstream branch or main replacement is claimed."
+}

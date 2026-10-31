@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "dataset_id": "paramedic-speech-dev-20261030-v1",
+  "description": "Handwritten simulated recognizer outputs. These are NOT actual speech recordings, and no times were measured.",
+  "recordings": [
+    {
+      "recording_id": "EX-001",
+      "case_id": "V009",
+      "source": "synthetic_corruption",
+      "engine": "handwritten-example",
+      "condition": "simulated-number-substitution",
+      "status": "ok",
+      "hypothesis": "혈압 90에 60.",
+      "timing": {}
+    },
+    {
+      "recording_id": "EX-002",
+      "case_id": "V041",
+      "source": "synthetic_corruption",
+      "engine": "handwritten-example",
+      "condition": "simulated-negation-loss",
+      "status": "ok",
+      "hypothesis": "흉통 있음.",
+      "timing": {}
+    },
+    {
+      "recording_id": "EX-003",
+      "case_id": "V090",
+      "source": "synthetic_corruption",
+      "engine": "handwritten-example",
+      "condition": "simulated-command-loss",
+      "status": "ok",
+      "hypothesis": "맥박 92.",
+      "timing": {}
+    },
+    {
+      "recording_id": "EX-004",
+      "case_id": "V033",
+      "source": "synthetic_corruption",
+      "engine": "handwritten-example",
+      "condition": "simulated-no-match",
+      "status": "no_match",
+      "hypothesis": "",
+      "timing": {}
+    }
+  ],
+  "corpus_sha256": "c222b42098df623f437cd6088eaf5aeb765aefab063cb2606c28a341920c4e7f"
+}

@@ -1,5 +1,36 @@
 """화면 연결용 추천 응답. 계산 결과 신선도와 워커 가동 상태를 분리한다."""
-from . import planning, service
+from contextlib import contextmanager
+import uuid
+
+from . import planning, service, allocation_input_review
+
+
+@contextmanager
+def _read_snapshot(conn):
+    """One deferred read snapshot; do not acquire an IMMEDIATE write lock."""
+    name = 'allocation_input_view_' + uuid.uuid4().hex
+    conn.execute('SAVEPOINT ' + name)
+    try:
+        yield
+    except BaseException:
+        conn.execute('ROLLBACK TO ' + name)
+        raise
+    finally:
+        conn.execute('RELEASE ' + name)
+
+
+def patient_input_review(conn, now, pid):
+    with _read_snapshot(conn):
+        patient = service._patient(conn, pid)
+        return dict(patient_id=pid, patient_version=patient['version'], patient_state=patient['state'],
+                    input_review=allocation_input_review.assess(patient, now))
+
+
+def candidates(conn, now, pid, estimator):
+    with _read_snapshot(conn):
+        result = service.candidates(conn, now, pid, estimator)
+        patient = service._patient(conn, pid)
+        return dict(result, input_review=allocation_input_review.assess(patient, now))
 
 
 def availability(runtime=None):
@@ -11,12 +42,21 @@ def availability(runtime=None):
 
 
 def patient_result(conn, now, pid, runtime=None):
-    return dict(planning.patient_result(conn, now, pid), availability=availability(runtime))
+    with _read_snapshot(conn):
+        result = planning.patient_result(conn, now, pid)
+        patient = service._patient(conn, pid)
+        # Top-level is current input guidance, including when no fresh plan is
+        # available. The saved worker result stays an unmodified snapshot.
+        return dict(result, input_review=allocation_input_review.assess(patient, now),
+                    availability=availability(runtime))
 
 
 def hospital_results(conn, now, hid, runtime=None, observed=None):
     observed = availability(runtime) if observed is None else observed
-    return [dict(result, availability=dict(observed)) for result in planning.hospital_results(conn, now, hid)]
+    with _read_snapshot(conn):
+        return [dict(result, availability=dict(observed),
+                     input_review=allocation_input_review.assess(service._patient(conn, result['patient_id']), now))
+                for result in planning.hospital_results(conn, now, hid)]
 
 
 def request(conn, now, pid, runtime=None):
@@ -27,4 +67,5 @@ def request(conn, now, pid, runtime=None):
     service._require(observed['accepting_requests'] is not False, observed['reason_code'],
                      '현재 서버의 배정 계산이 비활성 또는 중단 상태입니다. 서버 담당자가 실행 상태를 확인해야 합니다.',
                      409, availability=observed)
-    return dict(planning.request(conn, now, pid), availability=observed)
+    planning.request(conn, now, pid)
+    return patient_result(conn, now, pid, runtime)

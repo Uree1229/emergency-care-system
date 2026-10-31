@@ -1,0 +1,118 @@
+{
+  "kind": "independent_read_only_runtime_artifact_audit",
+  "run": "C:\\Users\\PC\\Documents\\ChatGPT\\캡스톤 디자인\\.codex-build\\voice-toggle-stress-20261030\\corpus-run-002",
+  "product_service_parser_stt_http_calls": 0,
+  "sqlite_access": "immutable read-only replay artifact",
+  "corpus_sha256": "56f8850006557a99ce31ea1e5b0e5765200662ec3d7cc6f1c365e0e00f692af7",
+  "steps": 516,
+  "passed_steps": 202,
+  "groups": {
+    "long_cases": {
+      "steps": 60,
+      "passed_steps": 0,
+      "cases": 60,
+      "passed_cases": 0
+    },
+    "boundary_cases": {
+      "steps": 240,
+      "passed_steps": 178,
+      "cases": 240,
+      "passed_cases": 178
+    },
+    "flows": {
+      "steps": 216,
+      "passed_steps": 24,
+      "cases": 24,
+      "passed_cases": 0
+    }
+  },
+  "assertions_recalculated": 5258,
+  "passed_assertions": 4607,
+  "failed_assertions": {
+    "expected_field": 183,
+    "forbidden_field": 24,
+    "expected_state": 384,
+    "request_accepted": 24,
+    "intent": 36
+  },
+  "failed_fields_by_group": {
+    "long_cases": {
+      "('expected_field', 'temperature')": 60,
+      "('expected_field', 'age')": 12,
+      "('expected_field', 'sex')": 1,
+      "('expected_field', 'symptoms')": 5,
+      "('expected_field', 'consciousness')": 1,
+      "('expected_field', 'breathing')": 1,
+      "('expected_field', 'systolic_bp')": 1,
+      "('expected_field', 'diastolic_bp')": 1,
+      "('expected_field', 'pulse')": 1,
+      "('expected_field', 'spo2')": 1,
+      "('expected_field', 'respiratory_rate')": 1,
+      "('expected_field', 'glucose')": 1,
+      "('expected_field', 'onset_at')": 1
+    },
+    "boundary_cases": {
+      "('expected_field', 'sex')": 6,
+      "('expected_field', 'pulse')": 6,
+      "('expected_field', 'temperature')": 3,
+      "('expected_field', 'onset_at')": 2,
+      "('expected_field', 'age')": 6,
+      "('expected_field', 'symptoms')": 6,
+      "('expected_field', 'denied_symptoms')": 3,
+      "('expected_field', 'breathing')": 4,
+      "('expected_field', 'consciousness')": 1,
+      "('forbidden_field', 'age')": 3,
+      "('forbidden_field', 'sex')": 2,
+      "('forbidden_field', 'systolic_bp')": 3,
+      "('forbidden_field', 'diastolic_bp')": 3,
+      "('forbidden_field', 'symptoms')": 2,
+      "('forbidden_field', 'breathing')": 1,
+      "('forbidden_field', 'temperature')": 3,
+      "('forbidden_field', 'spo2')": 3,
+      "('expected_field', 'systolic_bp')": 3,
+      "('expected_field', 'diastolic_bp')": 2,
+      "('expected_field', 'spo2')": 2,
+      "('expected_field', 'glucose')": 2,
+      "('expected_field', 'respiratory_rate')": 1,
+      "('expected_field', 'uncertain_symptoms')": 1,
+      "('forbidden_field', 'pulse')": 1,
+      "('forbidden_field', 'respiratory_rate')": 1,
+      "('forbidden_field', 'glucose')": 1,
+      "('forbidden_field', 'denied_symptoms')": 1
+    },
+    "flows": {
+      "('expected_field', 'systolic_bp')": 24,
+      "('expected_field', 'diastolic_bp')": 24,
+      "('expected_state', 'systolic_bp')": 192,
+      "('expected_state', 'diastolic_bp')": 192,
+      "('request_accepted', None)": 24,
+      "('intent', None)": 36
+    }
+  },
+  "database_counts": {
+    "patients": 0,
+    "inquiries": 0,
+    "hospitals": 0,
+    "voice_sessions": 324,
+    "voice_utterances": 492,
+    "voice_revisions": 480
+  },
+  "production_errors": [
+    {
+      "status": 422,
+      "error": "VOICE_COMMAND_UNSUPPORTED",
+      "count": 24
+    }
+  ],
+  "source_changes_between_run001_and_run002": [
+    "voice_lab\\evaluate_stress_corpus_20261030.py"
+  ],
+  "issues": [],
+  "interpretation": [
+    "202/516 is full satisfaction of every scored expectation in each planned synthetic stress step; it is not STT accuracy.",
+    "Long 0/60 is affected by a shared unparsed Celsius wording in all 60; the sample does not isolate text-length effects.",
+    "Flow 24/216 includes dependent cumulative-state failures from the same 24 rejected compound BP answers, not 192 independent fresh errors.",
+    "Run002 records 24 actual production VOICE_COMMAND_UNSUPPORTED responses; run001 probe-block responses are retained separately.",
+    "Unannotated additional fields are not comprehensively scored by the required-subset oracle."
+  ]
+}

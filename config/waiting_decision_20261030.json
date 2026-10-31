@@ -1,0 +1,740 @@
+{
+  "schema_version": 1,
+  "id": "waiting-protection-decision-20261030-v1",
+  "created_at_utc": "2026-10-30T12:47:35.160853+00:00",
+  "candidate": "W1",
+  "status": "not_adopted",
+  "selected_candidate": null,
+  "research_recommendation_eligible": false,
+  "operational_adoption": false,
+  "operational_policy_changed": false,
+  "retained_operating_policy": {
+    "inquiry": "fixed_3",
+    "assignment": "CP-SAT",
+    "mode": "severity_first",
+    "budget_seconds": 3
+  },
+  "decision_basis": "Apply unchanged pre-results research gates to each completed fixed cohort. No post-validation tuning.",
+  "technical_audit_passed": true,
+  "new_policy_executions_during_review": 0,
+  "source_files_unchanged": 59,
+  "frozen_server_files_unchanged": 21,
+  "unit_tests_passed": 37,
+  "phases": {
+    "development_known": {
+      "environments": 36,
+      "patients_per_policy": 603,
+      "research_gate_passed": false,
+      "failed_checks": [
+        {
+          "name": "all_reference_success_ids_preserved",
+          "passed": false
+        },
+        {
+          "name": "no_individual_capped_delay_shift_vs_H1",
+          "passed": false,
+          "maximum_positive_minutes": 83
+        },
+        {
+          "name": "profile_priority_mean_nonworsening_vs_H1",
+          "passed": false,
+          "profile": "sparse",
+          "priority": 2,
+          "metric": "mean",
+          "H1": 69.28571428571429,
+          "W1": 72.0952380952381,
+          "denominator": 21
+        },
+        {
+          "name": "profile_priority_mean_nonworsening_vs_H1",
+          "passed": false,
+          "profile": "sparse",
+          "priority": 1,
+          "metric": "mean",
+          "H1": 52.75,
+          "W1": 52.916666666666664,
+          "denominator": 12
+        },
+        {
+          "name": "profile_priority_mean_nonworsening_vs_H1",
+          "passed": false,
+          "profile": "sparse_adverse",
+          "priority": 2,
+          "metric": "mean",
+          "H1": 131.13636363636363,
+          "W1": 132.1818181818182,
+          "denominator": 22
+        }
+      ],
+      "counts": {
+        "R0": {
+          "patients": 603,
+          "unassigned": 23,
+          "not_arrived": 39,
+          "treatment_not_started": 39,
+          "priority4_unassigned": 7,
+          "priority4_not_arrived": 10,
+          "mean_arrival_capped_minutes": 49.04809286898839
+        },
+        "R1": {
+          "patients": 603,
+          "unassigned": 23,
+          "not_arrived": 40,
+          "treatment_not_started": 40,
+          "priority4_unassigned": 7,
+          "priority4_not_arrived": 10,
+          "mean_arrival_capped_minutes": 48.995024875621894
+        },
+        "H1": {
+          "patients": 603,
+          "unassigned": 23,
+          "not_arrived": 40,
+          "treatment_not_started": 40,
+          "priority4_unassigned": 7,
+          "priority4_not_arrived": 10,
+          "mean_arrival_capped_minutes": 48.72636815920398
+        },
+        "W1": {
+          "patients": 603,
+          "unassigned": 23,
+          "not_arrived": 40,
+          "treatment_not_started": 40,
+          "priority4_unassigned": 7,
+          "priority4_not_arrived": 10,
+          "mean_arrival_capped_minutes": 48.865671641791046
+        }
+      },
+      "paired_W1_vs": {
+        "R0": {
+          "earlier": 73,
+          "later": 52,
+          "equal": 478,
+          "maximum_positive_minutes": 67,
+          "success_ids_lost": {
+            "selected": 0,
+            "arrived": 1,
+            "treated": 1
+          }
+        },
+        "R1": {
+          "earlier": 24,
+          "later": 34,
+          "equal": 545,
+          "maximum_positive_minutes": 67,
+          "success_ids_lost": {
+            "selected": 0,
+            "arrived": 0,
+            "treated": 0
+          }
+        },
+        "H1": {
+          "earlier": 3,
+          "later": 5,
+          "equal": 595,
+          "maximum_positive_minutes": 83,
+          "success_ids_lost": {
+            "selected": 0,
+            "arrived": 0,
+            "treated": 0
+          }
+        }
+      },
+      "maximum_regret": {
+        "all": {
+          "H1_vs_R1": 67,
+          "W1_vs_R1": 67
+        },
+        "4": {
+          "H1_vs_R1": 51,
+          "W1_vs_R1": 51
+        },
+        "2": {
+          "H1_vs_R1": 60,
+          "W1_vs_R1": 28
+        },
+        "1": {
+          "H1_vs_R1": 67,
+          "W1_vs_R1": 67
+        }
+      }
+    },
+    "validation_new": {
+      "environments": 60,
+      "patients_per_policy": 987,
+      "research_gate_passed": false,
+      "failed_checks": [
+        {
+          "name": "all_reference_success_ids_preserved",
+          "passed": false
+        },
+        {
+          "name": "at_least_one_strict_actual_arrival_capped_improvement_vs_H1",
+          "passed": false,
+          "count": 0
+        }
+      ],
+      "counts": {
+        "R0": {
+          "patients": 987,
+          "unassigned": 52,
+          "not_arrived": 85,
+          "treatment_not_started": 85,
+          "priority4_unassigned": 8,
+          "priority4_not_arrived": 18,
+          "mean_arrival_capped_minutes": 53.353596757852074
+        },
+        "R1": {
+          "patients": 987,
+          "unassigned": 55,
+          "not_arrived": 85,
+          "treatment_not_started": 85,
+          "priority4_unassigned": 11,
+          "priority4_not_arrived": 20,
+          "mean_arrival_capped_minutes": 52.963525835866264
+        },
+        "H1": {
+          "patients": 987,
+          "unassigned": 50,
+          "not_arrived": 85,
+          "treatment_not_started": 85,
+          "priority4_unassigned": 6,
+          "priority4_not_arrived": 14,
+          "mean_arrival_capped_minutes": 53.06382978723404
+        },
+        "W1": {
+          "patients": 987,
+          "unassigned": 50,
+          "not_arrived": 85,
+          "treatment_not_started": 85,
+          "priority4_unassigned": 6,
+          "priority4_not_arrived": 14,
+          "mean_arrival_capped_minutes": 53.06382978723404
+        }
+      },
+      "paired_W1_vs": {
+        "R0": {
+          "earlier": 163,
+          "later": 94,
+          "equal": 730,
+          "maximum_positive_minutes": 124,
+          "success_ids_lost": {
+            "selected": 8,
+            "arrived": 12,
+            "treated": 12
+          }
+        },
+        "R1": {
+          "earlier": 66,
+          "later": 57,
+          "equal": 864,
+          "maximum_positive_minutes": 124,
+          "success_ids_lost": {
+            "selected": 9,
+            "arrived": 13,
+            "treated": 13
+          }
+        },
+        "H1": {
+          "earlier": 0,
+          "later": 0,
+          "equal": 987,
+          "maximum_positive_minutes": 0,
+          "success_ids_lost": {
+            "selected": 0,
+            "arrived": 0,
+            "treated": 0
+          }
+        }
+      },
+      "maximum_regret": {
+        "all": {
+          "H1_vs_R1": 124,
+          "W1_vs_R1": 124
+        },
+        "4": {
+          "H1_vs_R1": 112,
+          "W1_vs_R1": 112
+        },
+        "2": {
+          "H1_vs_R1": 124,
+          "W1_vs_R1": 124
+        },
+        "1": {
+          "H1_vs_R1": 87,
+          "W1_vs_R1": 87
+        }
+      }
+    }
+  },
+  "known_case_cards": [
+    {
+      "raw_path": "raw/003.json.gz",
+      "profile": "sparse",
+      "patient_id": "P02",
+      "policies": {
+        "R0": {
+          "priority": 1,
+          "first_commit_t": 19,
+          "final_arrive_t": 29,
+          "treatment_start_t": 29,
+          "arrival_capped_minutes": 26,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 1,
+          "first_commit_t": 19,
+          "final_arrive_t": 29,
+          "treatment_start_t": 29,
+          "arrival_capped_minutes": 26,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 1,
+          "first_commit_t": 86,
+          "final_arrive_t": 96,
+          "treatment_start_t": 96,
+          "arrival_capped_minutes": 93,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 1,
+          "first_commit_t": 19,
+          "final_arrive_t": 29,
+          "treatment_start_t": 29,
+          "arrival_capped_minutes": 26,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    },
+    {
+      "raw_path": "raw/003.json.gz",
+      "profile": "sparse",
+      "patient_id": "P05",
+      "policies": {
+        "R0": {
+          "priority": 1,
+          "first_commit_t": 69,
+          "final_arrive_t": 77,
+          "treatment_start_t": 77,
+          "arrival_capped_minutes": 65,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 1,
+          "first_commit_t": 69,
+          "final_arrive_t": 77,
+          "treatment_start_t": 77,
+          "arrival_capped_minutes": 65,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 1,
+          "first_commit_t": 19,
+          "final_arrive_t": 27,
+          "treatment_start_t": 27,
+          "arrival_capped_minutes": 15,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 1,
+          "first_commit_t": 45,
+          "final_arrive_t": 53,
+          "treatment_start_t": 53,
+          "arrival_capped_minutes": 41,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    },
+    {
+      "raw_path": "raw/016.json.gz",
+      "profile": "simultaneous",
+      "patient_id": "P05",
+      "policies": {
+        "R0": {
+          "priority": 1,
+          "first_commit_t": 8,
+          "final_arrive_t": 15,
+          "treatment_start_t": 15,
+          "arrival_capped_minutes": 15,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 1,
+          "first_commit_t": 8,
+          "final_arrive_t": 15,
+          "treatment_start_t": 15,
+          "arrival_capped_minutes": 15,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 1,
+          "first_commit_t": 75,
+          "final_arrive_t": 82,
+          "treatment_start_t": 82,
+          "arrival_capped_minutes": 82,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 1,
+          "first_commit_t": 75,
+          "final_arrive_t": 82,
+          "treatment_start_t": 82,
+          "arrival_capped_minutes": 82,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    },
+    {
+      "raw_path": "raw/016.json.gz",
+      "profile": "simultaneous",
+      "patient_id": "P17",
+      "policies": {
+        "R0": {
+          "priority": 2,
+          "first_commit_t": 47,
+          "final_arrive_t": 53,
+          "treatment_start_t": 53,
+          "arrival_capped_minutes": 53,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 2,
+          "first_commit_t": 47,
+          "final_arrive_t": 53,
+          "treatment_start_t": 53,
+          "arrival_capped_minutes": 53,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 2,
+          "first_commit_t": 8,
+          "final_arrive_t": 14,
+          "treatment_start_t": 14,
+          "arrival_capped_minutes": 14,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 2,
+          "first_commit_t": 8,
+          "final_arrive_t": 14,
+          "treatment_start_t": 14,
+          "arrival_capped_minutes": 14,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    },
+    {
+      "raw_path": "raw/021.json.gz",
+      "profile": "scarce_capacity",
+      "patient_id": "P17",
+      "policies": {
+        "R0": {
+          "priority": 4,
+          "first_commit_t": 83,
+          "final_arrive_t": 92,
+          "treatment_start_t": 92,
+          "arrival_capped_minutes": 92,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 4,
+          "first_commit_t": 83,
+          "final_arrive_t": 92,
+          "treatment_start_t": 92,
+          "arrival_capped_minutes": 92,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 4,
+          "first_commit_t": 9,
+          "final_arrive_t": 15,
+          "treatment_start_t": 15,
+          "arrival_capped_minutes": 15,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 4,
+          "first_commit_t": 9,
+          "final_arrive_t": 15,
+          "treatment_start_t": 15,
+          "arrival_capped_minutes": 15,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    },
+    {
+      "raw_path": "raw/021.json.gz",
+      "profile": "scarce_capacity",
+      "patient_id": "P04",
+      "policies": {
+        "R0": {
+          "priority": 4,
+          "first_commit_t": 9,
+          "final_arrive_t": 16,
+          "treatment_start_t": 16,
+          "arrival_capped_minutes": 16,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 4,
+          "first_commit_t": 9,
+          "final_arrive_t": 16,
+          "treatment_start_t": 16,
+          "arrival_capped_minutes": 16,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 4,
+          "first_commit_t": 55,
+          "final_arrive_t": 67,
+          "treatment_start_t": 67,
+          "arrival_capped_minutes": 67,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 4,
+          "first_commit_t": 55,
+          "final_arrive_t": 67,
+          "treatment_start_t": 67,
+          "arrival_capped_minutes": 67,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    },
+    {
+      "raw_path": "raw/027.json.gz",
+      "profile": "arrival_condition",
+      "patient_id": "P19",
+      "policies": {
+        "R0": {
+          "priority": 1,
+          "first_commit_t": 64,
+          "final_arrive_t": 180,
+          "treatment_start_t": 180,
+          "arrival_capped_minutes": 126,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 1,
+          "first_commit_t": 64,
+          "final_arrive_t": null,
+          "treatment_start_t": null,
+          "arrival_capped_minutes": 126,
+          "selected": true,
+          "arrived": false,
+          "treated": false
+        },
+        "H1": {
+          "priority": 1,
+          "first_commit_t": 64,
+          "final_arrive_t": null,
+          "treatment_start_t": null,
+          "arrival_capped_minutes": 126,
+          "selected": true,
+          "arrived": false,
+          "treated": false
+        },
+        "W1": {
+          "priority": 1,
+          "first_commit_t": 64,
+          "final_arrive_t": null,
+          "treatment_start_t": null,
+          "arrival_capped_minutes": 126,
+          "selected": true,
+          "arrived": false,
+          "treated": false
+        }
+      }
+    },
+    {
+      "raw_path": "raw/031.json.gz",
+      "profile": "sparse_adverse",
+      "patient_id": "P12",
+      "policies": {
+        "R0": {
+          "priority": 2,
+          "first_commit_t": 141,
+          "final_arrive_t": 160,
+          "treatment_start_t": 160,
+          "arrival_capped_minutes": 154,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 2,
+          "first_commit_t": 141,
+          "final_arrive_t": 160,
+          "treatment_start_t": 160,
+          "arrival_capped_minutes": 154,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 2,
+          "first_commit_t": 59,
+          "final_arrive_t": 78,
+          "treatment_start_t": 78,
+          "arrival_capped_minutes": 72,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 2,
+          "first_commit_t": 142,
+          "final_arrive_t": 161,
+          "treatment_start_t": 161,
+          "arrival_capped_minutes": 155,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    },
+    {
+      "raw_path": "raw/031.json.gz",
+      "profile": "sparse_adverse",
+      "patient_id": "P05",
+      "policies": {
+        "R0": {
+          "priority": 2,
+          "first_commit_t": 59,
+          "final_arrive_t": 79,
+          "treatment_start_t": 79,
+          "arrival_capped_minutes": 76,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "R1": {
+          "priority": 2,
+          "first_commit_t": 59,
+          "final_arrive_t": 79,
+          "treatment_start_t": 79,
+          "arrival_capped_minutes": 76,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "H1": {
+          "priority": 2,
+          "first_commit_t": 119,
+          "final_arrive_t": 139,
+          "treatment_start_t": 139,
+          "arrival_capped_minutes": 136,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        },
+        "W1": {
+          "priority": 2,
+          "first_commit_t": 59,
+          "final_arrive_t": 79,
+          "treatment_start_t": 79,
+          "arrival_capped_minutes": 76,
+          "selected": true,
+          "arrived": true,
+          "treated": true
+        }
+      }
+    }
+  ],
+  "reasons": [
+    "Known sparse case P02 improved by 67 minutes versus H1, while other patients were delayed; observed maximum W1-minus-H1 increase is 83 minutes.",
+    "New validation has zero strict arrival improvements versus H1 and does not preserve every R0/R1 success ID.",
+    "Known cross-priority 67-minute delay remains; new validation maximum H1/W1-minus-R1 regret is 124 minutes (priority4:112)."
+  ],
+  "unseen_validation_reusable": false,
+  "limitations": [
+    "Recorded current resources and event endpoints; not full independent resource-history reconstruction.",
+    "96 synthetic environments; development 36 already observed, new validation 60, five per profile.",
+    "Individual patients are nested in environments; no independent-patient inference or clinical safety claim.",
+    "Finite-cohort predeclared research protection; all observed results become seen data for future candidates."
+  ],
+  "references": [
+    {
+      "path": "outputs/waiting_protection_20261030/study-v1/report.json",
+      "sha256": "8ae84f394be70971ef5ee7da52c097685426ac5b798369d2fa542c22d309a232"
+    },
+    {
+      "path": "outputs/waiting_protection_20261030/study-v1/execution-lock.json",
+      "sha256": "9780253ef1a731a3c35df0679d8d4722e1daeda457a0bb72a326599e2fbcf8bf"
+    },
+    {
+      "path": "outputs/waiting_protection_20261030/study-v1/verification.json",
+      "sha256": "bc16aabd704d44d8c1455c86be37e471da225e1a9f7908a661d164ab1b17de23"
+    },
+    {
+      "path": "outputs/waiting_protection_20261030/independent-audit-v1/receipt.json",
+      "sha256": "4531a00be5f9ae69dc2054c0004631cb008330da62d87dc88c5559b63b950769"
+    },
+    {
+      "path": "config/waiting_protocol_20261030.json",
+      "sha256": "9e25c19894dc02b6eb09b2c6a6925c2c09f7b6f2f0620b8972bd0f8b4d0822de"
+    },
+    {
+      "path": "config/final_algorithm_decision_20261030.json",
+      "sha256": "245f6251f96a1a3dc842112278ebfb4b95868ae104ccb35ef1a6db6655350b36"
+    },
+    {
+      "path": ".codex-build/waiting-protection-20261030/preflight.json",
+      "sha256": "d9bfbf770ef334ef6d557a14f07e83ea470527b12e5c1306dca63feb7dca9cf8"
+    },
+    {
+      "path": ".codex-build/waiting-protection-20261030/postflight.json",
+      "sha256": "3b5c3e96df4dfdf158387af957d62803d24c5eacf5c972363d00f12454b53a0b"
+    }
+  ]
+}

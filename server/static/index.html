@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>팀 공통 실행본</title>
+  <style>
+    :root{font-family:system-ui,sans-serif;color:#142536;background:#f1f5f9}body{max-width:850px;margin:40px auto;padding:20px}h1{font-size:1.7rem}section{background:white;border:1px solid #d6e0e8;border-radius:12px;padding:22px;margin:16px 0}a{color:#075c8b}nav{display:flex;flex-wrap:wrap;gap:14px}dt{font-weight:700;margin-top:12px}dd{margin:4px 0;overflow-wrap:anywhere}input{padding:9px;max-width:90%;font:inherit}button{padding:9px;font:inherit}p{line-height:1.6}.error{color:#a32323}code{overflow-wrap:anywhere}
+  </style>
+</head>
+<body>
+  <h1>팀 공통 실행본</h1>
+  <p>같은 서버에서 음성 입력·이송 진행·병원 검토를 연결합니다. 합성 시연이며 병원 수용과 목적지 확정은 담당자가 수행합니다.</p>
+  <section aria-labelledby="state-title">
+    <h2 id="state-title">현재 실행 상태</h2>
+    <p id="status" role="status">실행본 확인 중…</p>
+    <dl id="details"></dl>
+    <nav><a href="/api/team-runtime" target="_blank" rel="noopener">버전·DB·워커 원문</a><a href="/api/system/status" target="_blank" rel="noopener">서버 상태</a></nav>
+  </section>
+  <section><h2>역할 화면</h2>
+    <nav><a href="/paramedic/">구급대 음성 메인</a><a href="/paramedic/quick-test.html">간편 음성 시험</a><a href="/hospital/?hid=H01">병원 H01</a></nav>
+    <p>환자 등록 후 반환된 이송 ID로 진행 화면에 연결합니다. 다른 서버에서 만든 ID는 이 DB에 없을 수 있습니다.</p>
+    <form id="patient-form"><label for="patient-id">이송 ID </label><input id="patient-id" required autocomplete="off"><button>이송 진행 열기</button></form>
+  </section>
+  <p>자료가 오래되면 병원이 자원을 다시 확인하거나 서버를 종료한 뒤 합성 자원을 명시적으로 갱신하세요. 재시작으로 기록이나 수용 기한을 초기화하지 않습니다.</p>
+  <script type="module" src="team-release.js"></script>
+</body></html>
