@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>음성 명령 연습·데이터 수집</title><link rel="stylesheet" href="./command-practice.css"><script type="module" src="./command-practice.js"></script></head>
 <body><main class="practice-shell">
-  <header><a href="./quick-test.html">← 음성 기록</a><span class="badge">연습 전용 · 환자에게 적용하지 않음</span><h1>음성 명령 연습·데이터 수집</h1><p>같은 문장을 여러 조건으로 읽거나 자유롭게 말해 보세요. 명령을 판별해 보여주며, 환자 등록·전환·병원 문의는 실행하지 않습니다.</p></header>
+  <header><a href="./quick-test.html">← 음성 기록</a> · <a href="./noise-compare.html">원본·소음 억제 비교</a><span class="badge">연습 전용 · 환자에게 적용하지 않음</span><h1>음성 명령 연습·데이터 수집</h1><p>같은 문장을 여러 조건으로 읽거나 자유롭게 말해 보세요. 명령을 판별해 보여주며, 환자 등록·전환·병원 문의는 실행하지 않습니다.</p></header>
   <p id="practice-error" class="error" role="alert" hidden></p><p id="practice-status" class="notice" role="status">연습 화면 준비 중</p>
   <section class="stats" aria-label="수집 현황"><div><strong id="practice-counts-total">0</strong><span>전체 시도</span></div><div><strong id="practice-counts-human">0</strong><span>마이크 경로</span></div><div><strong id="practice-counts-manual">0</strong><span>수동 모의</span></div><div><strong id="practice-counts-failed">0</strong><span>오류·무인식·중단</span></div></section>
   <div class="practice-grid">
