@@ -1,6 +1,7 @@
 /** Synthetic command practice only. No patient, audio, network or clinical action. */
 import {findVoiceTrigger,matchesRecordedVoiceTrigger} from './recording-control.mjs';
 import {PRACTICE_LONG_SCRIPTS} from './command-practice-long-scripts.mjs';
+import {normalizeCommandTrace} from './command-trace.mjs';
 
 export const PRACTICE_KEY='paramedic.voice.command-practice.v1';
 export const PRACTICE_ACTIONS=Object.freeze(['stop','recommend','new_patient','previous_patient','handoff_summary']);
@@ -133,7 +134,7 @@ function normalizeAudio(value){
   return {status:value.status,contentType,extension,byteLength,sha256:value.sha256,startedAt,endedAt,errorCode:text(value.errorCode,120)};
 }
 function normalizeAttempt(value,{now=Number.MAX_SAFE_INTEGER}={}){
-  integer(now);shape(value,FIELDS,['expectedAction','audio']);
+  integer(now);shape(value,FIELDS,['expectedAction','audio','commandTrace']);
   if(!SOURCES.has(value.source)||!STATUSES.includes(value.status)||!REASONS.has(value.stopReason)||typeof value.actualAudioSaved!=='boolean')invalid();
   const caseSnapshot=snapshot(value.caseSnapshot),caseId=ident(value.caseId,80,true);
   if((caseSnapshot===null&&caseId!=='')||(caseSnapshot!==null&&caseSnapshot.id!==caseId))invalid();
@@ -154,6 +155,7 @@ function normalizeAttempt(value,{now=Number.MAX_SAFE_INTEGER}={}){
     parserResult:parserResult(value.parserResult,rawText),actualAudioSaved:value.actualAudioSaved});
   if(own(value,'audio')){result.audio=normalizeAudio(value.audio);if(result.actualAudioSaved!==(result.audio.status==='stored')||(result.source!=='human_voice'&&result.audio.status!=='not_recorded'))invalid();}
   else if(result.actualAudioSaved)invalid();
+  if(own(value,'commandTrace'))result.commandTrace=normalizeCommandTrace(value.commandTrace);
   if(result.referenceConfirmed&&!result.referenceText.trim())invalid();
   if(bytes(JSON.stringify(result))>PRACTICE_LIMITS.attemptBytes)limit();return result;
 }
@@ -164,7 +166,7 @@ function normalizeDataset(value){
   array(value.attempts,PRACTICE_LIMITS.attempts);const ids=new Set(),attempts=[];
   for(const valueAttempt of value.attempts){const attempt=normalizeAttempt(valueAttempt);if(ids.has(attempt.id))invalid();ids.add(attempt.id);attempts.push(attempt);}
   const saved=attempts.some(attempt=>attempt.actualAudioSaved);
-  if(value.actualAudioSaved!==saved||(value.schema===1&&(saved||attempts.some(attempt=>own(attempt,'audio')))))invalid();
+  if(value.actualAudioSaved!==saved||(value.schema===1&&(saved||attempts.some(attempt=>own(attempt,'audio')||own(attempt,'commandTrace')))))invalid();
   const result={schema:value.schema,purpose:'synthetic_command_practice',actualAudioSaved:saved,attempts};serialize(result);return result;
 }
 
@@ -185,7 +187,7 @@ export function emptyPracticeDataset(){return {schema:1,purpose:'synthetic_comma
 
 /** Classify the completed, unedited final text; provisional auto-stop text stays separate. */
 export function createPracticeAttempt(input,{now=Date.now()}={}){
-  integer(now);shape(input,['id','source','trialNo','rawText','fragments','status','timing'],FIELDS.filter(key=>!['id','source','trialNo','rawText','fragments','status','timing','parserResult','actualAudioSaved'].includes(key)).concat('expectedAction'));
+  integer(now);shape(input,['id','source','trialNo','rawText','fragments','status','timing'],FIELDS.filter(key=>!['id','source','trialNo','rawText','fragments','status','timing','parserResult','actualAudioSaved'].includes(key)).concat('expectedAction','commandTrace'));
   const value={imported:false,pairId:'',caseId:'',caseSnapshot:null,referenceText:'',referenceConfirmed:false,errorCode:'',stopReason:input.source==='manual_simulation'?'manual':'natural',speakerId:'',device:'',browser:'',condition:{noiseKind:'quiet',mask:'unknown',distanceCm:null,style:'normal'},autoStop:false,provisionalTriggerText:null,notes:'',...input,parserResult:findVoiceTrigger(input.rawText),actualAudioSaved:false};
   // Imports use a separate explicit path; locally collected provenance cannot be upgraded.
   if(value.imported!==false)invalid();return normalizeAttempt(value,{now});
@@ -193,7 +195,7 @@ export function createPracticeAttempt(input,{now=Date.now()}={}){
 
 export function appendPracticeAttempt(dataset,attempt){
   const result=normalizeDataset(dataset),normalized=normalizeAttempt(attempt);if(result.attempts.some(value=>value.id===normalized.id))invalid();
-  result.attempts.push(normalized);if(own(normalized,'audio'))result.schema=2;result.actualAudioSaved=result.attempts.some(item=>item.actualAudioSaved);return normalizeDataset(result);
+  result.attempts.push(normalized);if(own(normalized,'audio')||own(normalized,'commandTrace'))result.schema=2;result.actualAudioSaved=result.attempts.some(item=>item.actualAudioSaved);return normalizeDataset(result);
 }
 
 /** Audio availability is distinct from the immutable captured text and labels. */
@@ -260,7 +262,9 @@ const CSV_FIELDS=['id','source','imported','trialNo','pairId','caseId','caseFami
 function actionCell(value,hasValue){return !hasValue?'unlabelled':value===null?'no_command':value;}
 function csvCell(value){let textValue=value===null||value===undefined?'':String(value);if(/^[\s\u0000-\u001f\u007f\uFEFF]*[=+\-@]/u.test(textValue)||/^[\t\r\n]/u.test(textValue))textValue="'"+textValue;return '"'+textValue.replace(/"/gu,'""')+'"';}
 export function exportPracticeCSV(dataset){
-  const normalized=normalizeDataset(dataset),rows=[normalized.schema===2?[...CSV_FIELDS,'audioStatus','audioContentType','audioBytes','audioSHA256']:CSV_FIELDS];
+  const normalized=normalizeDataset(dataset),withTrace=normalized.attempts.some(item=>own(item,'commandTrace')),header=normalized.schema===2?[...CSV_FIELDS,'audioStatus','audioContentType','audioBytes','audioSHA256']:CSV_FIELDS;
+  const rows=[withTrace?[...header,'commandPolicy','commandWaitMs','commandEventCount','commandDropped','commandTraceLimited']:header];
   for(const value of normalized.attempts){const c=value.caseSnapshot,p=value.parserResult;rows.push([value.id,value.source,value.imported,value.trialNo,value.pairId,value.caseId,c?.family??'',c?.title??'',c?.referenceText??'',actionCell(c?.expectedAction,!!c&&own(c,'expectedAction')),value.referenceText,value.referenceConfirmed,actionCell(value.expectedAction,own(value,'expectedAction')),value.rawText,JSON.stringify(value.fragments),value.status,value.errorCode,value.stopReason,value.timing.startedAt,value.timing.endedAt,value.speakerId,value.device,value.browser,value.condition.noiseKind,value.condition.mask,value.condition.distanceCm,value.condition.style,value.autoStop,value.provisionalTriggerText,value.notes,p?.action??'no_command',p?.prefix,p?.command,p?.suffix,p?.index,p?.end,value.actualAudioSaved,...(normalized.schema===2?[value.audio?.status??'not_recorded',value.audio?.contentType??'',value.audio?.byteLength??0,value.audio?.sha256??'']:[])]);}
+  if(withTrace)normalized.attempts.forEach((value,index)=>rows[index+1].push(value.commandTrace?.policy??'',value.commandTrace?.waitMs??'',value.commandTrace?.events.length??'',value.commandTrace?.dropped??'',value.commandTrace?.limited??''));
   return '\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n';
 }

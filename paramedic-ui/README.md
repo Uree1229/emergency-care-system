@@ -101,3 +101,7 @@ ELECTRON_RUN_AS_NODE=1 "$LOCALAPPDATA/Programs/Microsoft VS Code/Code.exe" --tes
 토글·저장 확인·입력 프로필·소음 조건·로컬 WAV·중간 명령·동일 초안 복원·중간 저장·복창 확인·환자별 전환은 회귀 검사 대상이다. 병원 인계용 요약은 `node --test test_paramedic_hospital_handoff.mjs test_paramedic_quick_page.mjs test_paramedic_recording_control.mjs test_paramedic_draft_recovery.mjs`로 추가 검사한다. Node 시험은 가짜 캡처·가짜 서버 등으로 이벤트 흐름을 검사한다. 실제 handler·분리한 새 SQLite를 사용하는 HTTP 통합도 수행한다. DOM과 `SpeechRecognition`은 모의 처리하므로 실제 브라우저·마이크·STT 정확도 측정과 구분한다. 병원 인계용 요약의 최종 검증 수치는 [검증 기록](../docs/VOICE_HOSPITAL_HANDOFF_20261030.md#검증)에 기록한다.
 
 API 계약·Speech 키 설정: [음성 입력 API](../docs/VOICE_INPUT_API.md). 실제 마이크로 녹음한 한국어의 인식 정확도와 현장 편의성은 별도 평가가 필요하다.
+
+## 낭독 스튜디오 · 음성 테스트
+
+`python paramedic-ui/preview.py`로 실행하고 `http://127.0.0.1:18044/command-practice.html`을 연다. 대본·녹음 버튼 중심의 화면이며 기존 수집 기록과 원본 음성 보관을 유지한다. [실행·사용·기록 형식 안내](../docs/VOICE_READING_STUDIO_20261031.md)를 참고한다.

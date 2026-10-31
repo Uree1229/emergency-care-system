@@ -4,6 +4,7 @@ import {findVoiceTrigger} from './recording-control.mjs';
 import {PRACTICE_KEY,PRACTICE_CASES,selectPracticeCases,createPracticeAttempt,emptyPracticeDataset,appendPracticeAttempt,scorePracticeAttempts,readPracticeDataset,writePracticeDataset,importPracticeJSON,exportPracticeJSON,exportPracticeCSV,mergePracticeDatasets,annotatePracticeAttempt,attachPracticeAudio} from './command-practice-data.mjs';
 import {PracticeAudioCapture,makePracticeAudioStore,describePracticeAudio} from './practice-audio.mjs';
 import {buildPracticeAudioBundle} from './practice-audio-bundle.mjs';
+import {CommandCommitGate} from './command-commit.mjs';
 
 const $=id=>document.getElementById(id);
 const ACTIONS={stop:'녹음 종료',recommend:'병원 추천',new_patient:'새 환자',previous_patient:'이전 환자',handoff_summary:'인계 요약'};
@@ -34,10 +35,10 @@ function backedUp(){return hasAudio()?archiveReceipt?.revision===mutationRevisio
 function selected(){return dataset.attempts.find(item=>item.id===selectedId)||null;}
 function controls(){
   const busy=locked(),blocked=storageFailed||storageInvalid;
-  for(const id of ['group','action','search','case','failed-only','shuffle','next','repeat','custom-enabled','reference','expected','speaker','device','noise','style','mask','distance','pair','autostop','manual','fill-manual','import','audio-enabled'])$('practice-'+id).disabled=busy;
+  for(const id of ['group','action','search','case','failed-only','shuffle','next','repeat','custom-enabled','reference','expected','speaker','device','noise','style','mask','distance','pair','autostop','manual','fill-manual','import','audio-enabled','command-policy','command-wait'])$('practice-'+id).disabled=busy;
   $('practice-reference').readOnly=!$('practice-custom-enabled').checked;
   $('practice-record').disabled=stopping||audioBusy||blocked||(!active&&audioStorageFailed&&$('practice-audio-enabled').checked)||(!active&&dataset.attempts.length>=500)||(!active&&!VoiceCapture.capabilities().browser)||(!active&&!current&&!$('practice-custom-enabled').checked);
-  $('practice-record').textContent=active?'말하기 마치기':'말하기 시작';
+  $('practice-record').textContent=active?'녹음 마치기':'녹음 시작';
   $('practice-abort').disabled=!active;
   $('practice-simulate').disabled=busy||blocked||dataset.attempts.length>=500||(!current&&!$('practice-custom-enabled').checked);
   for(const id of ['json','csv'])$('practice-'+id).disabled=busy||(!dataset.attempts.length&&!storageInvalid)||(id==='csv'&&storageInvalid)||(id==='json'&&storageInvalid&&typeof storageRaw!=='string');
@@ -49,6 +50,7 @@ function controls(){
   $('practice-audio-cleanup').disabled=busy||!hasAudio();
   $('practice-audio-download').disabled=busy||!audioAssets.get(selectedId)?.blob;
   $('practice-raw-export').disabled=busy||!$('practice-raw').value;
+  $('practice-trace-export').disabled=busy||!selected()?.commandTrace;
   $('practice-annotation-save').disabled=busy||blocked||!selected();
   $('practice-verify-next').disabled=busy||blocked||!selected()?.referenceText||selected()?.referenceConfirmed===true;
   $('practice-verify-next').textContent=selected()?.source==='manual_simulation'?'모의 정답 확인 후 다음':'대본대로 말함·정답 확인 후 다음';
@@ -85,7 +87,25 @@ function contextInput(source){
   return {id:'CP-'+requestId(),source,trialNo:dataset.attempts.filter(item=>item.caseId===caseId&&item.speakerId===speakerId&&item.pairId===pairId&&item.source===source).length+1,
     pairId,caseId,caseSnapshot:snapshot,referenceText:reference,referenceConfirmed:false,...(expected===undefined?{}:{expectedAction:expected}),
     speakerId,device:$('practice-device').value,browser:(navigator.userAgent||'').slice(0,512),condition:{noiseKind:$('practice-noise').value,mask:$('practice-mask').value,distanceCm:$('practice-distance').value===''?null:Number($('practice-distance').value),style:$('practice-style').value},
-    autoStop:$('practice-autostop').checked,provisionalTriggerText:null,notes:''};
+    autoStop:$('practice-autostop').checked&&$('practice-command-policy').value!=='observe',provisionalTriggerText:null,notes:''};
+}
+function renderCommandTrace(trace,pending=null){
+  const last=trace?.events.findLast(event=>event.type==='commit'||event.type==='would_commit');
+  $('practice-command-status').textContent=pending?`${labelAction(pending.trigger.action)} 후보 · ${pending.blocked?'후속 발화가 확정되기를 기다립니다.':'후속 문맥을 기다립니다. 녹음은 계속됩니다.'}`:last?`${last.type==='would_commit'?'가상 처리만 기록':'녹음 종료 요청 확정'} · ${labelAction(last.action)} · 시작 요청 후 ${last.atMs}ms`:'보류 중인 명령 후보 없음';
+  $('practice-command-log').textContent=trace?`방식 ${trace.policy} · 대기 설정 ${trace.waitMs}ms · 수신 시점 기록 ${trace.events.length}개${trace.dropped?' · 생략 '+trace.dropped+'개':''}${trace.limited?' · 길이 제한':''}\n`+trace.events.slice(-16).map(event=>`${event.atMs}ms ${event.type}${event.action?' '+labelAction(event.action):''}${event.reason?' ('+event.reason+')':''}`).join('\n'):'새 녹음부터 명령 후보·취소·확정과 인식 조각의 수신 시점을 기록합니다.';
+}
+function practiceCommandSettings(){
+  const requested=$('practice-command-policy').value,raw=$('practice-command-wait').value.trim(),waitMs=requested==='immediate'?0:Number(raw);
+  if(!['deferred','immediate','observe'].includes(requested)||requested!=='immediate'&&(!raw||!Number.isInteger(waitMs)||waitMs<100||waitMs>5000))throw new Error('보류 시간은 100~5000ms의 정수로 입력하세요. 0ms는 즉시 처리 비교 모드에서만 사용합니다.');
+  return {requested,waitMs};
+}
+function makePracticeGate(owner,{requested,waitMs}){
+  const mode=owner.input.autoStop?requested:'observe';
+  return new CommandCommitGate({mode,waitMs,now:()=>Date.now(),setTimer:(callback,ms)=>setTimeout(callback,ms),clearTimer:timer=>clearTimeout(timer),
+    onEvent(){if(active===owner&&!owner.finalized&&owner.gate)renderCommandTrace(owner.gate.snapshot(),owner.gate.pending);},
+    onCommit(payload){if(active!==owner||owner.finalized||owner.disposed||stopping)return;owner.committedTrigger=payload.trigger;
+      if(capture.active)void stopPractice('trigger');}
+  });
 }
 function preview(raw,early=null,caseId=active?.input.caseId,recordedResult=undefined){
   $('practice-raw').value=raw;const currentResult=findVoiceTrigger(raw),stored=recordedResult!==undefined,result=stored?recordedResult:currentResult,title=stored?'보관 당시 판정':'최종 판정';
@@ -98,7 +118,7 @@ function preview(raw,early=null,caseId=active?.input.caseId,recordedResult=undef
 function renderDataset(){
   const summary=scorePracticeAttempts(dataset.attempts);
   for(const name of ['total','human','manual','failed'])$('practice-counts-'+name).textContent=String(summary[name]);
-  $('practice-coverage').textContent=`발화 유형 ${summary.coverage.length}개 수집 · 마이크 경로 정답 확인 ${summary.bySource.human_voice.verified}건 중 명령 일치 ${summary.bySource.human_voice.matched}건 · 수동 모의 정답 확인 ${summary.bySource.manual_simulation.verified}건 중 명령 일치 ${summary.bySource.manual_simulation.matched}건 · 가져온 자료 ${summary.imported}건은 원래 출처 집계에 포함됩니다. 오류·무인식·중단도 전체 시도에 포함합니다.`;
+  $('practice-coverage').textContent=`발화 유형 ${summary.coverage.length}개 수집 · 마이크 경로 정답 확인 ${summary.bySource.human_voice.verified}건 중 최종 텍스트 판정 일치 ${summary.bySource.human_voice.matched}건 · 수동 모의 정답 확인 ${summary.bySource.manual_simulation.verified}건 중 최종 텍스트 판정 일치 ${summary.bySource.manual_simulation.matched}건 · 가져온 자료 ${summary.imported}건은 원래 출처 집계에 포함됩니다. 오류·무인식·중단도 전체 시도에 포함합니다. 이 집계는 명령 결정·실행 시점의 정확도와 다르며 이벤트 기록과 따로 검토해야 합니다.`;
   $('practice-records').replaceChildren();
   for(const item of [...dataset.attempts].reverse().slice(0,80)){
     const row=node('article',undefined,'record'),body=node('div');body.append(node('strong',`${item.caseId||'자유 발화'} · ${item.source==='human_voice'?'마이크 경로':'수동 모의'}${item.imported?' · 가져온 자료':''} · ${STATUSES[item.status]} · ${item.trialNo}회차`),
@@ -111,6 +131,7 @@ function selectAttempt(id){
   if(locked())return;const item=dataset.attempts.find(record=>record.id===id);if(!item)return;selectedId=id;
   preview(item.rawText,item.provisionalTriggerText,item.caseId,item.parserResult);$('practice-selected').textContent=`${item.id} · ${item.source==='human_voice'?'마이크 경로':'수동 모의'} · ${STATUSES[item.status]}`;
   $('practice-annotation-action').value=toSelect(item.expectedAction);$('practice-annotation-verified').checked=item.referenceConfirmed;$('practice-annotation-note').value=item.notes;
+  renderCommandTrace(item.commandTrace);
   refreshAudioPlayer();controls();
 }
 function annotateSelected(advance=false){
@@ -131,8 +152,8 @@ function refreshAudioPlayer(){
   $('practice-audio-status').textContent=asset?.blob?`음성 ${asset.byteLength}바이트 · ${asset.contentType} · ${asset.durable?'IndexedDB 보관 검증됨':'화면 메모리만 보관 · ZIP을 먼저 내려받으세요'}${item?.audio?.errorCode?' · 불완전 녹음 경고: '+item.audio.errorCode:''}`:item?.audio?`음성 상태: ${item.audio.status}${item.audio.errorCode?' · '+item.audio.errorCode:''} · 재생 가능한 파일 없음`:'선택한 시도에 녹음 파일이 없습니다. 수동 모의에는 음성을 만들지 않습니다.';
 }
 const audioCapture=new PracticeAudioCapture({onState(state){if(active?.audioRequested)$('practice-audio-status').textContent='음성 파일: '+state;},onLimit(reason){if(active&&!stopping)void stopPractice(reason==='time_limit'?'time_limit':'error');}});
-function baseAttempt(a,outcome,reason){return createPracticeAttempt({...a.input,fragments:[...a.fragments],rawText:a.fragments.join(' '),status:outcome,errorCode:a.errorCode||'',stopReason:reason,
-  provisionalTriggerText:a.provisionalTriggerText,timing:{startedAt:a.startedAt,endedAt:Date.now()}});}
+function baseAttempt(a,outcome,reason){const now=Date.now();return createPracticeAttempt({...a.input,fragments:[...a.fragments],rawText:a.fragments.join(' '),status:outcome,errorCode:a.errorCode||'',stopReason:reason,
+  provisionalTriggerText:a.provisionalTriggerText,timing:{startedAt:a.startedAt,endedAt:now},...(a.gate?{commandTrace:a.gate.snapshot()}:{})},{now});}
 function finishRecord(record,audio=null){
   let next=appendPracticeAttempt(dataset,record);if(audio)next=attachPracticeAudio(next,record.id,audio);
   selectedId=record.id;const saved=persistDataset(next);selectAttempt(record.id);
@@ -161,6 +182,7 @@ async function finishAudioPractice(a,outcome,reason){
 }
 function finalizePractice(outcome,reason){
   const a=active;if(!a||a.finalized)return; a.finalized=true;clearInterval(ticker);ticker=null;
+  a.gate?.cancel(reason);
   const raw=a.fragments.join(' ');preview(raw,a.provisionalTriggerText);
   if(a.audioRequested)return finishAudioPractice(a,outcome,reason);
   active=null;stopping=false;
@@ -170,39 +192,43 @@ function finalizePractice(outcome,reason){
   renderDataset();controls();
 }
 const capture=new VoiceCapture({
-  onInterim(text){if(active)status('듣는 중 · 임시 인식: '+text);},
+  onInterim(text){if(active&&!active.finalized){active.gate?.interim(text);status('듣는 중 · 임시 인식: '+text);}},
   onFinal(text){
     const a=active;if(!a||a.finalized)return;a.fragments.push(text);const raw=a.fragments.join(' ');
     if(a.provisionalTriggerText===null&&findVoiceTrigger(raw))a.provisionalTriggerText=raw;
     preview(raw,a.provisionalTriggerText);
-    if(!stopping&&a.input.autoStop&&a.provisionalTriggerText!==null){void stopPractice('trigger');return;}
+    a.gate?.final(text);if(a.gate)renderCommandTrace(a.gate.snapshot(),a.gate.pending);
     if(!stopping&&(raw.length>=12000||a.fragments.length>=240))void stopPractice('text_limit');
   },
   onState(state){
     if(state==='listening'&&active)status('말하는 중 · 버튼을 눌러 마치세요.');
-    if(state==='idle'){const owner=active;queueMicrotask(()=>{if(owner&&active===owner&&!stopping&&!capture.active)finalizePractice(owner.errorCode?'error':owner.fragments.length?'ok':'no_match',owner.errorCode?'error':'natural');});}
+    if(state==='idle'){const owner=active;owner?.gate?.mark('recognizer_end');queueMicrotask(async()=>{if(!owner||active!==owner||owner.finalized||stopping||capture.active)return;
+      if(owner.errorCode)owner.gate?.cancel('error');else await owner.gate?.end('natural');
+      if(active===owner&&!owner.finalized&&!stopping&&!capture.active)finalizePractice(owner.errorCode?'error':owner.fragments.length?'ok':'no_match',owner.errorCode?'error':'natural');});}
     controls();
   },
-  onError(err){if(active){active.errorCode=/^[a-zA-Z0-9_-]{1,80}$/.test(err.code||'')?err.code:'recognition-error';const owner=active;queueMicrotask(()=>{if(active===owner&&!stopping)finalizePractice('error','error');});}error('음성 인식을 완료하지 못했습니다. 전달된 확정 인식문과 실패 상태를 함께 보관합니다. '+err.message);}
+  onError(err){if(active){active.errorCode=/^[a-zA-Z0-9_-]{1,80}$/.test(err.code||'')?err.code:'recognition-error';active.gate?.cancel('error');const owner=active;queueMicrotask(()=>{if(active===owner&&!stopping)finalizePractice('error','error');});}error('음성 인식을 완료하지 못했습니다. 전달된 확정 인식문과 실패 상태를 함께 보관합니다. '+err.message);}
 });
 async function startPractice(){
   if(locked()||storageFailed||storageInvalid||dataset.attempts.length>=500||audioStorageFailed&&$('practice-audio-enabled').checked)return false;error();
+  let commandSettings;try{commandSettings=practiceCommandSettings();}catch(err){error(err.message);return false;}
   if($('practice-audio-enabled').checked&&dataset.attempts.reduce((sum,item)=>sum+(item.audio?.byteLength||0),0)+20*1024*1024>AUDIO_BATCH_LIMIT){error('현재 묶음의 음성 용량이 가득 찼습니다. ZIP 파일을 확인한 뒤 새 수집 묶음을 시작하세요.');return false;}
   let owner=null;
-  try{const input=contextInput('human_voice'),now=Date.now();createPracticeAttempt({...input,rawText:'',fragments:[],status:'no_match',stopReason:'natural',timing:{startedAt:now,endedAt:now}});
+  try{const input=contextInput('human_voice'),now=Date.now();createPracticeAttempt({...input,rawText:'',fragments:[],status:'no_match',stopReason:'natural',timing:{startedAt:now,endedAt:now}},{now});
     active={input,startedAt:now,fragments:[],provisionalTriggerText:null,errorCode:'',finalized:false,audioRequested:$('practice-audio-enabled').checked};preview('');controls();
-    owner=active;ticker=setInterval(()=>{if(active!==owner)return;const elapsed=Date.now()-owner.startedAt;if(elapsed>=180000){void stopPractice('time_limit');return;}if(capture.active) $('practice-record').textContent=`말하기 마치기 · ${Math.floor(elapsed/1000)}초`;},250);
+    owner=active;owner.gate=makePracticeGate(owner,commandSettings);renderCommandTrace(owner.gate.snapshot());ticker=setInterval(()=>{if(active!==owner)return;const elapsed=Date.now()-owner.startedAt;if(elapsed>=180000){void stopPractice('time_limit');return;}if(capture.active) $('practice-record').textContent=`녹음 마치기 · ${Math.floor(elapsed/1000)}초`;},250);
     if(owner.audioRequested){status('녹음용 마이크 권한을 확인합니다. 준비되면 음성 인식을 시작합니다.');await audioCapture.start(input.id);if(active!==owner||owner.finalized)return false;}
     await capture.start('browser',{continuous:true});return true;
   }catch(err){if(owner&&(active!==owner||owner.disposed))return false;if(active===owner&&owner){owner.errorCode=err.code||'start-failed';await finalizePractice('error','error');}error('말하기를 시작하지 못했습니다. 마이크 권한·브라우저 지원을 확인하세요. '+err.message);controls();return false;}
 }
 async function stopPractice(reason='button'){
   if(!active||stopping)return false;const owner=active;stopping=true;controls();
-  try{await capture.stop();}catch(err){if(active===owner)owner.errorCode=err.code||'stop-failed';}
-  finally{if(active===owner)await finalizePractice(owner.errorCode?'error':owner.fragments.length?'ok':'no_match',owner.errorCode?'error':reason);}
+  try{owner.gate?.mark('stop_requested');await capture.stop();owner.gate?.mark('stop_drained');}catch(err){if(active===owner)owner.errorCode=err.code||'stop-failed';}
+  finally{if(active===owner){if(owner.errorCode)owner.gate?.cancel('error');else if(reason==='button')await owner.gate?.flush('button');else if(reason!=='trigger')owner.gate?.cancel(reason);
+    if(active===owner)await finalizePractice(owner.errorCode?'error':owner.fragments.length?'ok':'no_match',owner.errorCode?'error':reason);}}
   return true;
 }
-function abortPractice(){if(!active)return false;const owner=active;owner.finalized=true;capture.abort();owner.finalized=false;if(active===owner)finalizePractice('aborted','aborted');return true;}
+function abortPractice(){if(!active)return false;const owner=active;owner.gate?.cancel('aborted');owner.finalized=true;capture.abort();owner.finalized=false;if(active===owner)finalizePractice('aborted','aborted');return true;}
 function runManualPractice(){
   if(locked()||storageFailed||storageInvalid||dataset.attempts.length>=500)return false;error();
   try{const input=contextInput('manual_simulation'),text=$('practice-manual').value,now=Date.now();
@@ -303,6 +329,7 @@ $('practice-fill-manual').onclick=()=>{if(!locked())$('practice-manual').value=$
 $('practice-annotation-save').onclick=()=>annotateSelected();$('practice-verify-next').onclick=()=>annotateSelected(true);
 $('practice-save-retry').onclick=retryAudioStorage;
 $('practice-audio-enabled').onchange=controls;
+$('practice-trace-export').onclick=()=>{const item=selected();if(!locked()&&item?.commandTrace)download(exportPracticeJSON(appendPracticeAttempt(emptyPracticeDataset(),item)),'application/json',`command-trial-${encodeURIComponent(item.id)}.json`);};
 $('practice-audio-recover').onclick=recoverAudioTrials;
 $('practice-bundle').onclick=exportAudioBundle;
 $('practice-audio-download').onclick=()=>{const asset=audioAssets.get(selectedId);if(!locked()&&asset?.blob)download(asset.blob,asset.contentType,encodeURIComponent(asset.attemptId)+'.'+asset.extension);};
@@ -312,7 +339,7 @@ $('practice-raw-export').onclick=()=>{if(!locked()&&$('practice-raw').value)down
 $('practice-import').onchange=async event=>{const file=event.target.files?.[0];if(!file||locked())return;try{if(file.size>4*1024*1024)throw Error('파일이 4MiB 상한을 넘습니다.');importDataset(await file.text());}catch(err){error(err.message);}finally{$('practice-import').value='';}};
 window.addEventListener('storage',event=>{if(event.key!==PRACTICE_KEY||event.newValue===storageRaw)return;if(active)abortPractice();storageFailed=true;error('다른 탭이 자료를 바꿔 이 탭의 보관을 멈췄습니다. 이 화면의 JSON을 내려받고 새로고침 후 합치세요.');controls();});
 window.addEventListener('beforeunload',event=>{if(active||audioBusy||(storageFailed||audioStorageFailed)&&dataset.attempts.length){event.preventDefault();event.returnValue='';}});
-window.addEventListener('pagehide',()=>{if(active){const owner=active;owner.finalized=true;owner.disposed=true;capture.abort();audioCapture.cancel();active=null;stopping=false;audioBusy=false;clearInterval(ticker);ticker=null;
+window.addEventListener('pagehide',()=>{if(active){const owner=active;owner.gate?.cancel('page_exit');owner.finalized=true;owner.disposed=true;capture.abort();audioCapture.cancel();active=null;stopping=false;audioBusy=false;clearInterval(ticker);ticker=null;
     try{if(!dataset.attempts.some(item=>item.id===owner.input.id))finishRecord(owner.record||baseAttempt(owner,'aborted','page_exit'),owner.audioRequested?audioMetadata(null,'interrupted','AUDIO_PAGE_EXIT'):null);}catch{storageFailed=true;}}
   audioCapture.cancel();capture.stopSpeaking();if(audioPlayerURL){URL.revokeObjectURL(audioPlayerURL);audioPlayerURL=null;}});
 initialize();

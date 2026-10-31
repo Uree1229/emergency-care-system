@@ -683,7 +683,8 @@ def make_handler(db_path, estimator, clock=lambda: int(time.time()), cors_origin
                 return self._send(404, {'error': 'NOT_FOUND'})
             ctype = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
                      '.mjs': 'text/javascript; charset=utf-8',
-                     '.css': 'text/css; charset=utf-8'}.get(target.suffix, 'application/octet-stream')
+                     '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml',
+                     '.woff2': 'font/woff2'}.get(target.suffix, 'application/octet-stream')
             self._send(200, target.read_bytes(), ctype)
 
         def _dispatch(self, method):
