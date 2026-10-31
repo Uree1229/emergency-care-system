@@ -1,5 +1,5 @@
 /** Synthetic command practice only. No patient, audio, network or clinical action. */
-import {findVoiceTrigger} from './recording-control.mjs';
+import {findVoiceTrigger,matchesRecordedVoiceTrigger} from './recording-control.mjs';
 import {PRACTICE_LONG_SCRIPTS} from './command-practice-long-scripts.mjs';
 
 export const PRACTICE_KEY='paramedic.voice.command-practice.v1';
@@ -110,13 +110,12 @@ function snapshot(value){
   expected(value,result);return result;
 }
 function parserResult(value,rawText){
-  const current=findVoiceTrigger(rawText);
-  if(value===null){if(current!==null)invalid();return null;}
+  if(value===null){if(!matchesRecordedVoiceTrigger(rawText,null))invalid();return null;}
   shape(value,['action','prefix','command','suffix','index','end']);
   if(value.action===null)invalid();action(value.action);
   for(const field of ['prefix','command','suffix'])text(value[field]);integer(value.index);integer(value.end);
-  if(!current||['action','prefix','command','suffix','index','end'].some(key=>value[key]!==current[key]))invalid();
-  return {...current};
+  if(!matchesRecordedVoiceTrigger(rawText,value))invalid();
+  return {...value};
 }
 const FIELDS=['id','source','imported','trialNo','pairId','caseId','caseSnapshot','referenceText','referenceConfirmed','rawText','fragments','status','errorCode','stopReason','timing','speakerId','device','browser','condition','autoStop','provisionalTriggerText','notes','parserResult','actualAudioSaved'];
 const AUDIO_STATES=new Set(['stored','memory_only','missing','failed','unavailable','empty','not_recorded','interrupted']);

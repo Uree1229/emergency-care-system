@@ -87,9 +87,10 @@ function contextInput(source){
     speakerId,device:$('practice-device').value,browser:(navigator.userAgent||'').slice(0,512),condition:{noiseKind:$('practice-noise').value,mask:$('practice-mask').value,distanceCm:$('practice-distance').value===''?null:Number($('practice-distance').value),style:$('practice-style').value},
     autoStop:$('practice-autostop').checked,provisionalTriggerText:null,notes:''};
 }
-function preview(raw,early=null,caseId=active?.input.caseId){
-  $('practice-raw').value=raw;const result=findVoiceTrigger(raw);
-  $('practice-result').textContent=(caseId===undefined?'':`${caseId||'자유 발화'} · `)+(result?`최종 판정: ${labelAction(result.action)} · “${result.command}”`:'최종 판정: 명령 없음');
+function preview(raw,early=null,caseId=active?.input.caseId,recordedResult=undefined){
+  $('practice-raw').value=raw;const currentResult=findVoiceTrigger(raw),stored=recordedResult!==undefined,result=stored?recordedResult:currentResult,title=stored?'보관 당시 판정':'최종 판정';
+  const changed=stored&&['action','prefix','command','suffix','index','end'].some(key=>result?.[key]!==currentResult?.[key]);
+  $('practice-result').textContent=(caseId===undefined?'':`${caseId||'자유 발화'} · `)+(result?`${title}: ${labelAction(result.action)} · “${result.command}”`:`${title}: 명령 없음`)+(changed?` · 현재 재판정: ${labelAction(currentResult?.action??null)}`:'');
   $('practice-prefix').textContent=result?result.prefix||'(본문 없음)':raw||'—';$('practice-suffix').textContent=result?result.suffix||'(뒤 문장 없음)':'—';
   const first=early===null?null:findVoiceTrigger(early);
   $('practice-early-result').textContent=first?`최초 명령 후보: ${labelAction(first.action)}. ${early!==raw?'종료 전 추가 인식까지 보존했으며 최종 판정은 전체 인식문 기준입니다.':'연습 화면에서는 이 명령을 환자·병원에 실행하지 않았습니다.'}`:'';
@@ -108,7 +109,7 @@ function renderDataset(){
 }
 function selectAttempt(id){
   if(locked())return;const item=dataset.attempts.find(record=>record.id===id);if(!item)return;selectedId=id;
-  preview(item.rawText,item.provisionalTriggerText,item.caseId);$('practice-selected').textContent=`${item.id} · ${item.source==='human_voice'?'마이크 경로':'수동 모의'} · ${STATUSES[item.status]}`;
+  preview(item.rawText,item.provisionalTriggerText,item.caseId,item.parserResult);$('practice-selected').textContent=`${item.id} · ${item.source==='human_voice'?'마이크 경로':'수동 모의'} · ${STATUSES[item.status]}`;
   $('practice-annotation-action').value=toSelect(item.expectedAction);$('practice-annotation-verified').checked=item.referenceConfirmed;$('practice-annotation-note').value=item.notes;
   refreshAudioPlayer();controls();
 }
