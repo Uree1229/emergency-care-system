@@ -179,7 +179,7 @@ test('import rejects fabricated parser actions, source spans, prefix/suffix and 
   for(const mutate of [value=>value.parserResult.action='recommend',value=>value.parserResult.index=1,value=>value.parserResult.prefix='edited',value=>value.parserResult=null]){const book=dataset(attempt());mutate(book.attempts[0]);invalid(()=>importPracticeJSON(JSON.stringify(book)));}
 });
 test('malformed JSON, unknown schemas, audio payloads and duplicate ids cannot mutate existing data',()=>{
-  for(const raw of ['', 'not json','null','[]',JSON.stringify({...emptyPracticeDataset(),schema:2}),JSON.stringify({...emptyPracticeDataset(),audio:'raw'}),JSON.stringify(dataset(attempt(),attempt()))])invalid(()=>importPracticeJSON(raw));
+  for(const raw of ['', 'not json','null','[]',JSON.stringify({...emptyPracticeDataset(),schema:3}),JSON.stringify({...emptyPracticeDataset(),audio:'raw'}),JSON.stringify(dataset(attempt(),attempt()))])invalid(()=>importPracticeJSON(raw));
 });
 test('merge accepts unique imports and exact duplicate imports are a no-op even when imported flag differs',()=>{
   const base=dataset(attempt()),incoming=importPracticeJSON(exportPracticeJSON(dataset(attempt(),attempt({id:'P-02',source:'manual_simulation'})))),before=JSON.stringify(base);const merged=mergePracticeDatasets(base,incoming);assert.equal(merged.attempts.length,2);assert.equal(merged.attempts[0].imported,false);assert.equal(merged.attempts[1].imported,true);assert.equal(JSON.stringify(base),before);assert.deepEqual(mergePracticeDatasets(merged,incoming),merged);

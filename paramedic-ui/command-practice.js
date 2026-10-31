@@ -1,7 +1,9 @@
 import {VoiceCapture} from './speech.mjs';
 import {requestId} from './voice-client.mjs';
 import {findVoiceTrigger} from './recording-control.mjs';
-import {PRACTICE_KEY,PRACTICE_CASES,selectPracticeCases,createPracticeAttempt,emptyPracticeDataset,appendPracticeAttempt,scorePracticeAttempts,readPracticeDataset,writePracticeDataset,importPracticeJSON,exportPracticeJSON,exportPracticeCSV,mergePracticeDatasets,annotatePracticeAttempt} from './command-practice-data.mjs';
+import {PRACTICE_KEY,PRACTICE_CASES,selectPracticeCases,createPracticeAttempt,emptyPracticeDataset,appendPracticeAttempt,scorePracticeAttempts,readPracticeDataset,writePracticeDataset,importPracticeJSON,exportPracticeJSON,exportPracticeCSV,mergePracticeDatasets,annotatePracticeAttempt,attachPracticeAudio} from './command-practice-data.mjs';
+import {PracticeAudioCapture,makePracticeAudioStore,describePracticeAudio} from './practice-audio.mjs';
+import {buildPracticeAudioBundle} from './practice-audio-bundle.mjs';
 
 const $=id=>document.getElementById(id);
 const ACTIONS={stop:'녹음 종료',recommend:'병원 추천',new_patient:'새 환자',previous_patient:'이전 환자',handoff_summary:'인계 요약'};
@@ -10,28 +12,42 @@ const FAMILIES={stop:'종료 명령',recommend:'추천 명령',new_patient:'새 
 let dataset=emptyPracticeDataset(),storageRaw=null,storageFailed=false,storageInvalid=false;
 let queue=[],current=null,selectedId=null,active=null,stopping=false,ticker=null,shuffleSeed=null;
 let mutationRevision=0,exportedRevision=-1;
+const audioAssets=new Map(),audioStore=makePracticeAudioStore();
+let audioBusy=false,audioStorageFailed=false,archiveReceipt=null,audioPlayerURL=null;
+const AUDIO_BATCH_LIMIT=128*1024*1024;
 const node=(tag,text,className)=>{const item=document.createElement(tag);if(text!==undefined)item.textContent=text;if(className)item.className=className;return item;};
 const clone=value=>JSON.parse(JSON.stringify(value));
+function audioIdentity(value){
+  const ignore=new Set(['expectedAction','referenceConfirmed','notes','imported','audio','actualAudioSaved']);
+  const stable=item=>item&&typeof item==='object'?Array.isArray(item)?item.map(stable):Object.fromEntries(Object.keys(item).sort().map(key=>[key,stable(item[key])])):item;
+  return JSON.stringify(stable(Object.fromEntries(Object.entries(value).filter(([key])=>!ignore.has(key)))));
+}
 const labelAction=action=>action===null?'명령 없음':ACTIONS[action]||'정답 미지정';
 const fromSelect=value=>value==='unlabelled'?undefined:value==='none'?null:value;
 const toSelect=value=>value===undefined?'unlabelled':value===null?'none':value;
 function error(text=''){$('practice-error').textContent=text;$('practice-error').hidden=!text;}
 function status(text){$('practice-status').textContent=text;}
 function storage(){try{return localStorage;}catch{return null;}}
-function locked(){return !!active||stopping;}
+function locked(){return !!active||stopping||audioBusy;}
+function hasAudio(){return dataset.attempts.some(item=>item.audio&&item.audio.status!=='not_recorded');}
+function backedUp(){return hasAudio()?archiveReceipt?.revision===mutationRevision:exportedRevision===mutationRevision;}
 function selected(){return dataset.attempts.find(item=>item.id===selectedId)||null;}
 function controls(){
   const busy=locked(),blocked=storageFailed||storageInvalid;
-  for(const id of ['group','action','search','case','failed-only','shuffle','next','repeat','custom-enabled','reference','expected','speaker','device','noise','style','mask','distance','pair','autostop','manual','fill-manual','import'])$('practice-'+id).disabled=busy;
+  for(const id of ['group','action','search','case','failed-only','shuffle','next','repeat','custom-enabled','reference','expected','speaker','device','noise','style','mask','distance','pair','autostop','manual','fill-manual','import','audio-enabled'])$('practice-'+id).disabled=busy;
   $('practice-reference').readOnly=!$('practice-custom-enabled').checked;
-  $('practice-record').disabled=stopping||blocked||(!active&&dataset.attempts.length>=500)||(!active&&!VoiceCapture.capabilities().browser)||(!active&&!current&&!$('practice-custom-enabled').checked);
+  $('practice-record').disabled=stopping||audioBusy||blocked||(!active&&audioStorageFailed&&$('practice-audio-enabled').checked)||(!active&&dataset.attempts.length>=500)||(!active&&!VoiceCapture.capabilities().browser)||(!active&&!current&&!$('practice-custom-enabled').checked);
   $('practice-record').textContent=active?'말하기 마치기':'말하기 시작';
   $('practice-abort').disabled=!active;
   $('practice-simulate').disabled=busy||blocked||dataset.attempts.length>=500||(!current&&!$('practice-custom-enabled').checked);
   for(const id of ['json','csv'])$('practice-'+id).disabled=busy||(!dataset.attempts.length&&!storageInvalid)||(id==='csv'&&storageInvalid)||(id==='json'&&storageInvalid&&typeof storageRaw!=='string');
-  $('practice-save-retry').hidden=!storageFailed||storageInvalid;$('practice-save-retry').disabled=busy;
-  $('practice-new-batch').disabled=busy||exportedRevision!==mutationRevision||!$('practice-export-confirmed').checked;
-  $('practice-export-confirmed').disabled=busy||exportedRevision!==mutationRevision;
+  $('practice-save-retry').hidden=!(storageFailed||audioStorageFailed)||storageInvalid;$('practice-save-retry').disabled=busy;
+  $('practice-new-batch').disabled=busy||!backedUp()||!$('practice-export-confirmed').checked;
+  $('practice-export-confirmed').disabled=busy||!backedUp();
+  $('practice-bundle').disabled=busy||storageInvalid||!dataset.attempts.length;
+  $('practice-audio-recover').disabled=busy||blocked;
+  $('practice-audio-cleanup').disabled=busy||!hasAudio();
+  $('practice-audio-download').disabled=busy||!audioAssets.get(selectedId)?.blob;
   $('practice-raw-export').disabled=busy||!$('practice-raw').value;
   $('practice-annotation-save').disabled=busy||blocked||!selected();
   $('practice-verify-next').disabled=busy||blocked||!selected()?.referenceText||selected()?.referenceConfirmed===true;
@@ -40,7 +56,7 @@ function controls(){
   if(selected()&&!selected().referenceText)$('practice-annotation-verified').disabled=true;
 }
 function persistDataset(next){
-  mutationRevision++;$('practice-export-confirmed').checked=false;
+  mutationRevision++;archiveReceipt=null;$('practice-export-confirmed').checked=false;
   dataset=next;
   try{const saved=writePracticeDataset(storage(),dataset,{expectedRaw:storageRaw});storageRaw=saved.raw;dataset=saved.dataset;storageFailed=false;error();return true;}
   catch(err){storageFailed=true;error('브라우저 보관을 확인하지 못했습니다. 새 결과는 이 화면 메모리에 유지했습니다. JSON을 먼저 내려받고 보관을 다시 시도하세요. '+err.message);return false;}
@@ -85,7 +101,7 @@ function renderDataset(){
   $('practice-records').replaceChildren();
   for(const item of [...dataset.attempts].reverse().slice(0,80)){
     const row=node('article',undefined,'record'),body=node('div');body.append(node('strong',`${item.caseId||'자유 발화'} · ${item.source==='human_voice'?'마이크 경로':'수동 모의'}${item.imported?' · 가져온 자료':''} · ${STATUSES[item.status]} · ${item.trialNo}회차`),
-      node('p',`${item.speakerId||'화자 미지정'} · ${item.condition.noiseKind} · 정답: ${labelAction(item.expectedAction)} · 판정: ${labelAction(item.parserResult?.action??null)}${item.referenceConfirmed?' · 정답 확인됨':' · 정답 미확인'}`),node('p',item.rawText.slice(0,180)||'(확정 인식문 없음)'));
+      node('p',`${item.speakerId||'화자 미지정'} · ${item.condition.noiseKind} · 정답: ${labelAction(item.expectedAction)} · 판정: ${labelAction(item.parserResult?.action??null)}${item.referenceConfirmed?' · 정답 확인됨':' · 정답 미확인'} · 음성: ${item.audio?.status||'not_recorded'}${item.audio?.errorCode?' ('+item.audio.errorCode+')':''}`),node('p',item.rawText.slice(0,180)||'(확정 인식문 없음)'));
     const open=node('button','검토');open.type='button';open.disabled=locked();open.onclick=()=>{if(!locked())selectAttempt(item.id);};row.append(body,open);$('practice-records').append(row);
   }
   if(dataset.attempts.length>80)$('practice-records').append(node('p',`최근 80건을 표시합니다. 전체 ${dataset.attempts.length}건은 내려받기에 포함됩니다.`,'help'));
@@ -94,7 +110,7 @@ function selectAttempt(id){
   if(locked())return;const item=dataset.attempts.find(record=>record.id===id);if(!item)return;selectedId=id;
   preview(item.rawText,item.provisionalTriggerText,item.caseId);$('practice-selected').textContent=`${item.id} · ${item.source==='human_voice'?'마이크 경로':'수동 모의'} · ${STATUSES[item.status]}`;
   $('practice-annotation-action').value=toSelect(item.expectedAction);$('practice-annotation-verified').checked=item.referenceConfirmed;$('practice-annotation-note').value=item.notes;
-  controls();
+  refreshAudioPlayer();controls();
 }
 function annotateSelected(advance=false){
   if(locked()||storageFailed||storageInvalid||!selected())return false;
@@ -103,14 +119,52 @@ function annotateSelected(advance=false){
     const saved=persistDataset(next);selectAttempt(item.id);if(saved){status('원문·출처·명령 판정은 유지하고 정답·메모만 보관했습니다.');if(advance)nextCase();}return saved;
   }catch(err){error(err.message);return false;}
 }
-function finalizePractice(outcome,reason){
-  const a=active;if(!a||a.finalized)return; a.finalized=true;active=null;stopping=false;clearInterval(ticker);ticker=null;
-  const raw=a.fragments.join(' ');preview(raw,a.provisionalTriggerText);
+function audioMetadata(descriptor,status='stored',errorCode=descriptor?.captureErrorCode||''){
+  return {status,contentType:descriptor?.contentType||'',extension:descriptor?.extension||'',byteLength:descriptor?.byteLength||0,sha256:descriptor?.sha256||null,startedAt:descriptor?.startedAt??null,endedAt:descriptor?.endedAt??null,errorCode};
+}
+function refreshAudioPlayer(){
+  if(audioPlayerURL){URL.revokeObjectURL(audioPlayerURL);audioPlayerURL=null;}
+  const player=$('practice-audio-player'),asset=audioAssets.get(selectedId),item=selected();
+  player.pause?.();player.removeAttribute?.('src');player.hidden=!asset?.blob;
+  if(asset?.blob){audioPlayerURL=URL.createObjectURL(asset.blob);player.src=audioPlayerURL;}
+  $('practice-audio-status').textContent=asset?.blob?`음성 ${asset.byteLength}바이트 · ${asset.contentType} · ${asset.durable?'IndexedDB 보관 검증됨':'화면 메모리만 보관 · ZIP을 먼저 내려받으세요'}${item?.audio?.errorCode?' · 불완전 녹음 경고: '+item.audio.errorCode:''}`:item?.audio?`음성 상태: ${item.audio.status}${item.audio.errorCode?' · '+item.audio.errorCode:''} · 재생 가능한 파일 없음`:'선택한 시도에 녹음 파일이 없습니다. 수동 모의에는 음성을 만들지 않습니다.';
+}
+const audioCapture=new PracticeAudioCapture({onState(state){if(active?.audioRequested)$('practice-audio-status').textContent='음성 파일: '+state;},onLimit(reason){if(active&&!stopping)void stopPractice(reason==='time_limit'?'time_limit':'error');}});
+function baseAttempt(a,outcome,reason){return createPracticeAttempt({...a.input,fragments:[...a.fragments],rawText:a.fragments.join(' '),status:outcome,errorCode:a.errorCode||'',stopReason:reason,
+  provisionalTriggerText:a.provisionalTriggerText,timing:{startedAt:a.startedAt,endedAt:Date.now()}});}
+function finishRecord(record,audio=null){
+  let next=appendPracticeAttempt(dataset,record);if(audio)next=attachPracticeAudio(next,record.id,audio);
+  selectedId=record.id;const saved=persistDataset(next);selectAttempt(record.id);
+  status(saved?`${STATUSES[record.status]} · 시도 ${dataset.attempts.length}건을 보관했습니다. 녹음 파일 상태를 별도로 확인하세요.`:'시도는 화면 메모리에 있습니다. ZIP 또는 JSON을 먼저 내려받고 브라우저 보관을 다시 시도하세요.');
+  if(audioStorageFailed)error('음성의 브라우저 보관에 실패했습니다. 파일은 이 화면 메모리에 유지합니다. ZIP으로 내보내거나 보관을 다시 시도하세요. 새 음성 녹음은 잠시 멈췄습니다.');
+}
+async function finishAudioPractice(a,outcome,reason){
+  audioBusy=true;stopping=true;controls();
   try{
-    const record=createPracticeAttempt({...a.input,fragments:[...a.fragments],rawText:raw,status:outcome,errorCode:a.errorCode||'',stopReason:reason,
-      provisionalTriggerText:a.provisionalTriggerText,timing:{startedAt:a.startedAt,endedAt:Date.now()}});
-    const next=appendPracticeAttempt(dataset,record);selectedId=record.id;const saved=persistDataset(next);selectAttempt(record.id);
-    status(saved?`${STATUSES[record.status]} · 시도 ${dataset.attempts.length}건을 브라우저에 보관했습니다. 정답을 확인하거나 같은 문장·다음 문장으로 이어가세요.`:'시도는 화면 메모리에 있습니다. JSON을 먼저 내려받고 브라우저 보관을 다시 시도하세요.');
+    const result=await audioCapture.stop({reason});if(a.disposed)return;
+    const record=baseAttempt(a,outcome,reason);a.record=record;let metadata;
+    if(result.attemptId===record.id&&result.blob?.size){
+      const descriptor=await describePracticeAudio(record.id,result.blob,{startedAt:result.startedAt,endedAt:result.endedAt,captureErrorCode:result.errorCode||''});
+      const asset={attemptId:record.id,availability:'available',blob:result.blob,...descriptor,snapshot:clone(record),durable:false};audioAssets.set(record.id,asset);
+      try{const saved=await audioStore.put(record.id,result.blob,record,{startedAt:result.startedAt,endedAt:result.endedAt,captureErrorCode:result.errorCode||''});Object.assign(asset,saved,{durable:true});}
+      catch{audioStorageFailed=true;}
+      metadata=audioMetadata(descriptor,asset.durable?'stored':'memory_only',result.errorCode||'');
+    }else metadata=audioMetadata(result,result.status==='empty'?'empty':result.status==='unavailable'?'unavailable':'failed',result.errorCode||'AUDIO_NOT_AVAILABLE');
+    if(a.disposed)return;active=null;stopping=false;audioBusy=false;finishRecord(record,metadata);
+  }catch(err){
+    if(a.disposed||active!==a)return;
+    active=null;stopping=false;audioBusy=false;
+    try{finishRecord(baseAttempt(a,outcome,reason),audioMetadata(null,'failed',err.code||'AUDIO_SAVE_FAILED'));}catch{storageFailed=true;}
+    error('음성 파일을 확정하지 못했습니다. 확정 인식문을 보관하고 원문 TXT도 내보낼 수 있습니다. '+err.message);
+  }finally{renderDataset();refreshAudioPlayer();controls();}
+}
+function finalizePractice(outcome,reason){
+  const a=active;if(!a||a.finalized)return; a.finalized=true;clearInterval(ticker);ticker=null;
+  const raw=a.fragments.join(' ');preview(raw,a.provisionalTriggerText);
+  if(a.audioRequested)return finishAudioPractice(a,outcome,reason);
+  active=null;stopping=false;
+  try{
+    finishRecord(baseAttempt(a,outcome,reason));
   }catch(err){storageFailed=true;error('시도를 자료로 묶지 못했습니다. 현재 원문 TXT를 먼저 내려받으세요. '+err.message);}
   renderDataset();controls();
 }
@@ -131,17 +185,20 @@ const capture=new VoiceCapture({
   onError(err){if(active){active.errorCode=/^[a-zA-Z0-9_-]{1,80}$/.test(err.code||'')?err.code:'recognition-error';const owner=active;queueMicrotask(()=>{if(active===owner&&!stopping)finalizePractice('error','error');});}error('음성 인식을 완료하지 못했습니다. 전달된 확정 인식문과 실패 상태를 함께 보관합니다. '+err.message);}
 });
 async function startPractice(){
-  if(locked()||storageFailed||storageInvalid||dataset.attempts.length>=500)return false;error();
+  if(locked()||storageFailed||storageInvalid||dataset.attempts.length>=500||audioStorageFailed&&$('practice-audio-enabled').checked)return false;error();
+  if($('practice-audio-enabled').checked&&dataset.attempts.reduce((sum,item)=>sum+(item.audio?.byteLength||0),0)+20*1024*1024>AUDIO_BATCH_LIMIT){error('현재 묶음의 음성 용량이 가득 찼습니다. ZIP 파일을 확인한 뒤 새 수집 묶음을 시작하세요.');return false;}
+  let owner=null;
   try{const input=contextInput('human_voice'),now=Date.now();createPracticeAttempt({...input,rawText:'',fragments:[],status:'no_match',stopReason:'natural',timing:{startedAt:now,endedAt:now}});
-    active={input,startedAt:now,fragments:[],provisionalTriggerText:null,errorCode:'',finalized:false};preview('');controls();
-    const owner=active;ticker=setInterval(()=>{if(active!==owner)return;const elapsed=Date.now()-owner.startedAt;if(elapsed>=180000){void stopPractice('time_limit');return;}if(capture.active) $('practice-record').textContent=`말하기 마치기 · ${Math.floor(elapsed/1000)}초`;},250);
+    active={input,startedAt:now,fragments:[],provisionalTriggerText:null,errorCode:'',finalized:false,audioRequested:$('practice-audio-enabled').checked};preview('');controls();
+    owner=active;ticker=setInterval(()=>{if(active!==owner)return;const elapsed=Date.now()-owner.startedAt;if(elapsed>=180000){void stopPractice('time_limit');return;}if(capture.active) $('practice-record').textContent=`말하기 마치기 · ${Math.floor(elapsed/1000)}초`;},250);
+    if(owner.audioRequested){status('녹음용 마이크 권한을 확인합니다. 준비되면 음성 인식을 시작합니다.');await audioCapture.start(input.id);if(active!==owner||owner.finalized)return false;}
     await capture.start('browser',{continuous:true});return true;
-  }catch(err){if(active){active.errorCode=err.code||'start-failed';finalizePractice('error','error');}error('말하기를 시작하지 못했습니다. 마이크 권한·브라우저 지원을 확인하세요. '+err.message);controls();return false;}
+  }catch(err){if(owner&&(active!==owner||owner.disposed))return false;if(active===owner&&owner){owner.errorCode=err.code||'start-failed';await finalizePractice('error','error');}error('말하기를 시작하지 못했습니다. 마이크 권한·브라우저 지원을 확인하세요. '+err.message);controls();return false;}
 }
 async function stopPractice(reason='button'){
   if(!active||stopping)return false;const owner=active;stopping=true;controls();
   try{await capture.stop();}catch(err){if(active===owner)owner.errorCode=err.code||'stop-failed';}
-  finally{if(active===owner)finalizePractice(owner.errorCode?'error':owner.fragments.length?'ok':'no_match',owner.errorCode?'error':reason);}
+  finally{if(active===owner)await finalizePractice(owner.errorCode?'error':owner.fragments.length?'ok':'no_match',owner.errorCode?'error':reason);}
   return true;
 }
 function abortPractice(){if(!active)return false;const owner=active;owner.finalized=true;capture.abort();owner.finalized=false;if(active===owner)finalizePractice('aborted','aborted');return true;}
@@ -153,17 +210,76 @@ function runManualPractice(){
 }
 function download(content,type,filename){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),link=node('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function exportDataset(format){
-  if(locked())return false;try{if(storageInvalid&&typeof storageRaw!=='string')throw Error('저장소 원본을 읽지 못해 원본 JSON을 만들 수 없습니다. 브라우저의 저장 허용 상태를 확인하세요.');const content=format==='csv'?exportPracticeCSV(dataset):storageInvalid?storageRaw:exportPracticeJSON(dataset);download(content,format==='csv'?'text/csv;charset=utf-8':'application/json',`command-practice-${Date.now()}.${format}`);if(format==='json')exportedRevision=mutationRevision;status('내려받기를 요청했습니다. 파일이 저장됐는지 확인하세요. 브라우저의 수집 기록은 그대로 유지합니다.');controls();return true;}catch(err){error(err.message);return false;}
+  if(locked())return false;try{if(storageInvalid&&typeof storageRaw!=='string')throw Error('저장소 원본을 읽지 못해 원본 JSON을 만들 수 없습니다. 브라우저의 저장 허용 상태를 확인하세요.');const content=format==='csv'?exportPracticeCSV(dataset):storageInvalid?storageRaw:exportPracticeJSON(dataset);download(content,format==='csv'?'text/csv;charset=utf-8':'application/json',`command-practice-${Date.now()}.${format}`);if(format==='json')exportedRevision=mutationRevision;status('메타데이터 파일 내려받기를 요청했습니다. JSON·CSV에는 음성 파일이 없습니다. 음성까지 보관하려면 ZIP을 선택하세요.');controls();return true;}catch(err){error(err.message);return false;}
 }
 function newPracticeBatch(){
-  if(locked()||exportedRevision!==mutationRevision||!$('practice-export-confirmed').checked)return false;
+  if(locked()||!backedUp()||!$('practice-export-confirmed').checked)return false;
+  if(hasAudio()&&$('practice-audio-cleanup').checked)return clearBackedUpAudioAndStart();
+  return resetPracticeBatch();
+}
+function resetPracticeBatch(){
   const previous=dataset,invalid=storageInvalid;storageInvalid=false;
   if(!persistDataset(emptyPracticeDataset())){dataset=previous;storageInvalid=invalid;renderDataset();controls();return false;}
-  selectedId=null;preview('');$('practice-selected').textContent='새 수집 묶음을 시작했습니다.';rebuildQueue();controls();status('확인한 JSON 파일은 그대로 두고 브라우저에 빈 수집 묶음을 준비했습니다.');return true;
+  selectedId=null;audioAssets.clear();audioStorageFailed=false;refreshAudioPlayer();preview('');$('practice-selected').textContent='새 수집 묶음을 시작했습니다.';rebuildQueue();controls();status('파일 확인 후 새 수집 묶음을 준비했습니다. 선택하지 않은 기존 녹음은 IndexedDB에 유지됩니다.');return true;
+}
+async function clearBackedUpAudioAndStart(){
+  const receipt=archiveReceipt;if(!resetPracticeBatch())return false;audioBusy=true;controls();
+  try{await audioStore.deleteMany(receipt.audio);status('새 묶음을 준비하고, 확인한 ZIP에 포함된 녹음만 브라우저에서 정리했습니다.');return true;}
+  catch(err){error('새 묶음은 준비했지만 기존 녹음 정리는 완료하지 못했습니다. 녹음 보관함 복구로 다시 확인할 수 있습니다. '+err.message);return false;}
+  finally{audioBusy=false;controls();}
+}
+async function collectAudioAssets(){
+  const assets=[];
+  for(const item of dataset.attempts){
+    let asset=audioAssets.get(item.id);
+    if(!asset&&item.audio&&item.source==='human_voice'){try{const row=await audioStore.get(item.id);if(row){asset={attemptId:item.id,availability:'available',blob:row.blob,...row.descriptor,snapshot:row.snapshot,durable:true};}}catch{assets.push({attemptId:item.id,availability:'error',errorCode:'AUDIO_READ_FAILED'});continue;}}
+    if(asset){if(audioIdentity(asset.snapshot)!==audioIdentity(item)||item.audio?.sha256&&item.audio.sha256!==asset.sha256||item.audio?.byteLength&&item.audio.byteLength!==asset.byteLength){audioAssets.delete(item.id);assets.push({attemptId:item.id,availability:'error',errorCode:'AUDIO_ASSOCIATION_MISMATCH'});continue;}audioAssets.set(item.id,asset);}
+    assets.push(asset||{attemptId:item.id,availability:item.audio?.byteLength?'missing':['failed','unavailable','empty','interrupted'].includes(item.audio?.status)?'error':'not_recorded',...(item.audio?.errorCode?{errorCode:item.audio.errorCode}:{})});
+  }
+  return assets;
+}
+async function exportAudioBundle(){
+  if(locked()||storageInvalid||!dataset.attempts.length)return false;
+  audioBusy=true;controls();error();
+  try{const revision=mutationRevision,assets=await collectAudioAssets(),bundle=await buildPracticeAudioBundle(dataset,assets);
+    download(bundle.blob,'application/zip',bundle.filename);
+    archiveReceipt={revision,audio:bundle.manifest.audio.filter(row=>row.included).map(row=>({attemptId:row.attemptId,sha256:row.sha256}))};
+    $('practice-export-confirmed').checked=false;
+    const count=bundle.manifest.audio.filter(row=>row.included).length,missing=bundle.manifest.audio.filter(row=>row.availability==='missing'||row.availability==='error').length;
+    status(`ZIP 내려받기를 요청했습니다. 음성 ${count}개 포함 · 누락·오류 ${missing}건. 파일을 실제로 확인하세요. 인식문·정답·시험 조건·manifest를 함께 담았습니다.`);return true;
+  }catch(err){archiveReceipt=null;error('ZIP을 만들지 못했습니다. 현재 자료는 유지합니다. '+err.message);return false;}
+  finally{audioBusy=false;refreshAudioPlayer();controls();}
+}
+async function retryAudioStorage(){
+  if(locked()||storageInvalid)return false;audioBusy=true;controls();let next=dataset,failed=false;
+  try{for(const asset of audioAssets.values()){if(asset.durable)continue;try{const saved=await audioStore.put(asset.attemptId,asset.blob,asset.snapshot,{startedAt:asset.startedAt,endedAt:asset.endedAt,captureErrorCode:asset.captureErrorCode||''});Object.assign(asset,saved,{durable:true});if(next.attempts.some(item=>item.id===asset.attemptId))next=attachPracticeAudio(next,asset.attemptId,audioMetadata(saved));}catch{failed=true;}}
+    audioStorageFailed=failed;const saved=persistDataset(next);if(saved&&!failed)status('텍스트와 음성의 브라우저 보관을 다시 확인했습니다.');if(failed)error('아직 보관하지 못한 음성은 메모리에 있습니다. 먼저 ZIP을 내려받으세요.');return saved&&!failed;
+  }finally{audioBusy=false;refreshAudioPlayer();controls();}
+}
+async function verifyRestoredAudio(){
+  if(!hasAudio()||locked())return;audioBusy=true;controls();let next=dataset,changed=false;
+  try{const assets=await collectAudioAssets();for(const asset of assets){const item=next.attempts.find(row=>row.id===asset.attemptId);if(!item?.audio)continue;
+      const metadata=asset.blob?audioMetadata(asset,asset.durable?'stored':'memory_only'):item.audio.byteLength?{...item.audio,status:'missing',errorCode:'AUDIO_BYTES_MISSING'}:item.audio;
+      if(JSON.stringify(metadata)!==JSON.stringify(item.audio)){next=attachPracticeAudio(next,item.id,metadata);changed=true;}}
+    if(changed)persistDataset(next);
+  }catch(err){error('복원된 음성을 확인하지 못했습니다. ZIP의 누락 목록을 확인하세요. '+err.message);}
+  finally{audioBusy=false;refreshAudioPlayer();controls();}
+}
+async function recoverAudioTrials(){
+  if(locked()||storageFailed||storageInvalid)return false;audioBusy=true;controls();
+  try{const rows=await audioStore.list();let next=dataset,count=0;
+    for(const row of rows){if(next.attempts.some(item=>item.id===row.attemptId))continue;next=appendPracticeAttempt(next,row.snapshot);next=attachPracticeAudio(next,row.attemptId,audioMetadata(row.descriptor));count++;}
+    let restored=0;
+    for(const row of rows){const item=next.attempts.find(item=>item.id===row.attemptId);if(item&&audioIdentity(item)===audioIdentity(row.snapshot)&&(!item.audio?.sha256||item.audio.sha256===row.descriptor.sha256)){
+      audioAssets.set(row.attemptId,{attemptId:row.attemptId,availability:'available',blob:row.blob,...row.descriptor,snapshot:row.snapshot,durable:true});
+      const metadata=audioMetadata(row.descriptor);if(JSON.stringify(item.audio)!==JSON.stringify(metadata)){next=attachPracticeAudio(next,item.id,metadata);restored++;}}}
+    if(count||restored)persistDataset(next);status(`녹음 보관함에서 누락 시도 ${count}건·음성 연결 ${restored}건을 복구했습니다. 기존 정답 검토는 유지했습니다.`);return true;
+  }catch(err){error('녹음 보관함을 복구하지 못했습니다. 기존 목록은 유지합니다. '+err.message);return false;}
+  finally{audioBusy=false;renderDataset();refreshAudioPlayer();controls();}
 }
 function importDataset(text){
   if(locked()||storageFailed||storageInvalid)return false;
-  try{const imported=importPracticeJSON(text),before=dataset.attempts.length,next=mergePracticeDatasets(dataset,imported),saved=persistDataset(next);if(saved)status(`${dataset.attempts.length-before}건을 합쳤습니다. 동일 기록은 중복 추가하지 않았고 출처를 유지했습니다.`);if(!selectedId&&dataset.attempts.length)selectAttempt(dataset.attempts.at(-1).id);return saved;}catch(err){error('자료를 합치지 않았습니다. 기존 기록은 유지했습니다. '+err.message);return false;}
+  try{const imported=importPracticeJSON(text),before=dataset.attempts.length,next=mergePracticeDatasets(dataset,imported),saved=persistDataset(next);if(saved)status(`${dataset.attempts.length-before}건을 합쳤습니다. 동일 기록은 중복 추가하지 않았고 출처를 유지했습니다. JSON에는 음성이 없어 이 브라우저의 보관함을 따로 확인합니다.`);if(!selectedId&&dataset.attempts.length)selectAttempt(dataset.attempts.at(-1).id);void verifyRestoredAudio();return saved;}catch(err){error('자료를 합치지 않았습니다. 기존 기록은 유지했습니다. '+err.message);return false;}
 }
 function restoreContext(item){if(!item)return;for(const [id,value]of Object.entries({speaker:item.speakerId,device:item.device,noise:item.condition.noiseKind,style:item.condition.style,mask:item.condition.mask,distance:item.condition.distanceCm??'',pair:item.pairId}))$('practice-'+id).value=String(value);}
 function initialize(){
@@ -173,6 +289,7 @@ function initialize(){
   const families=[...new Set(PRACTICE_CASES.map(item=>item.family))];$('practice-group').replaceChildren(...['all',...families].map(value=>{const option=node('option',value==='all'?'모든 유형':FAMILIES[value]||value);option.value=value;return option;}));$('practice-group').value='all';
   rebuildQueue();renderDataset();if(dataset.attempts.length)selectAttempt(dataset.attempts.at(-1).id);
   status(loaded.status==='valid'?`${dataset.attempts.length}건을 복원했습니다. 실제 마이크 시도와 수동 모의는 따로 집계합니다.`:'대본을 고르고 말하기 시작을 누르세요. 종료하면 시도를 자동 보관합니다.');controls();
+  void verifyRestoredAudio();
 }
 for(const name of ['group','action','failed-only'])$('practice-'+name).onchange=rebuildQueue;
 $('practice-search').oninput=rebuildQueue;$('practice-case').onchange=selectCase;
@@ -183,12 +300,18 @@ $('practice-reference').oninput=()=>{if(!locked()&&$('practice-custom-enabled').
 $('practice-record').onclick=()=>active?stopPractice():startPractice();$('practice-abort').onclick=abortPractice;
 $('practice-fill-manual').onclick=()=>{if(!locked())$('practice-manual').value=$('practice-reference').value;};$('practice-simulate').onclick=runManualPractice;
 $('practice-annotation-save').onclick=()=>annotateSelected();$('practice-verify-next').onclick=()=>annotateSelected(true);
-$('practice-save-retry').onclick=()=>{if(!locked()&&!storageInvalid){const saved=persistDataset(dataset);if(saved)status('현재 화면의 자료를 브라우저에 다시 보관했습니다.');}};
+$('practice-save-retry').onclick=retryAudioStorage;
+$('practice-audio-enabled').onchange=controls;
+$('practice-audio-recover').onclick=recoverAudioTrials;
+$('practice-bundle').onclick=exportAudioBundle;
+$('practice-audio-download').onclick=()=>{const asset=audioAssets.get(selectedId);if(!locked()&&asset?.blob)download(asset.blob,asset.contentType,encodeURIComponent(asset.attemptId)+'.'+asset.extension);};
 $('practice-json').onclick=()=>exportDataset('json');$('practice-csv').onclick=()=>exportDataset('csv');
 $('practice-export-confirmed').onchange=controls;$('practice-new-batch').onclick=newPracticeBatch;
 $('practice-raw-export').onclick=()=>{if(!locked()&&$('practice-raw').value)download($('practice-raw').value,'text/plain;charset=utf-8',`command-practice-raw-${Date.now()}.txt`);};
 $('practice-import').onchange=async event=>{const file=event.target.files?.[0];if(!file||locked())return;try{if(file.size>4*1024*1024)throw Error('파일이 4MiB 상한을 넘습니다.');importDataset(await file.text());}catch(err){error(err.message);}finally{$('practice-import').value='';}};
 window.addEventListener('storage',event=>{if(event.key!==PRACTICE_KEY||event.newValue===storageRaw)return;if(active)abortPractice();storageFailed=true;error('다른 탭이 자료를 바꿔 이 탭의 보관을 멈췄습니다. 이 화면의 JSON을 내려받고 새로고침 후 합치세요.');controls();});
-window.addEventListener('beforeunload',event=>{if(active||storageFailed&&dataset.attempts.length){event.preventDefault();event.returnValue='';}});
-window.addEventListener('pagehide',()=>{if(active){const owner=active;owner.finalized=true;capture.abort();owner.finalized=false;if(active===owner)finalizePractice('aborted','page_exit');}capture.stopSpeaking();});
+window.addEventListener('beforeunload',event=>{if(active||audioBusy||(storageFailed||audioStorageFailed)&&dataset.attempts.length){event.preventDefault();event.returnValue='';}});
+window.addEventListener('pagehide',()=>{if(active){const owner=active;owner.finalized=true;owner.disposed=true;capture.abort();audioCapture.cancel();active=null;stopping=false;audioBusy=false;clearInterval(ticker);ticker=null;
+    try{if(!dataset.attempts.some(item=>item.id===owner.input.id))finishRecord(owner.record||baseAttempt(owner,'aborted','page_exit'),owner.audioRequested?audioMetadata(null,'interrupted','AUDIO_PAGE_EXIT'):null);}catch{storageFailed=true;}}
+  audioCapture.cancel();capture.stopSpeaking();if(audioPlayerURL){URL.revokeObjectURL(audioPlayerURL);audioPlayerURL=null;}});
 initialize();

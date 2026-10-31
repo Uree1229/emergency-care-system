@@ -118,9 +118,23 @@ function parserResult(value,rawText){
   return {...current};
 }
 const FIELDS=['id','source','imported','trialNo','pairId','caseId','caseSnapshot','referenceText','referenceConfirmed','rawText','fragments','status','errorCode','stopReason','timing','speakerId','device','browser','condition','autoStop','provisionalTriggerText','notes','parserResult','actualAudioSaved'];
+const AUDIO_STATES=new Set(['stored','memory_only','missing','failed','unavailable','empty','not_recorded','interrupted']);
+function normalizeAudio(value){
+  shape(value,['status','contentType','extension','byteLength','sha256','startedAt','endedAt','errorCode']);
+  if(!AUDIO_STATES.has(value.status))invalid();
+  const contentType=text(value.contentType,160),extension=text(value.extension,8),byteLength=integer(value.byteLength);
+  if(byteLength>20*1024*1024)limit();
+  if(value.sha256!==null&&(typeof value.sha256!=='string'||!/^[a-f0-9]{64}$/u.test(value.sha256)))invalid();
+  const startedAt=value.startedAt===null?null:timestamp(value.startedAt,Number.MAX_SAFE_INTEGER),endedAt=value.endedAt===null?null:timestamp(value.endedAt,Number.MAX_SAFE_INTEGER);
+  if(startedAt!==null&&endedAt!==null&&endedAt<startedAt)invalid();
+  if(contentType){const base=contentType.split(';')[0].trim().toLowerCase(),expected={'audio/webm':'webm','audio/ogg':'ogg','audio/mp4':'mp4'}[base];if(!expected||extension!==expected||/[\r\n]/u.test(contentType))invalid();}
+  else if(extension)invalid();
+  if(['stored','memory_only'].includes(value.status)&&(!contentType||!byteLength||value.sha256===null))invalid();
+  return {status:value.status,contentType,extension,byteLength,sha256:value.sha256,startedAt,endedAt,errorCode:text(value.errorCode,120)};
+}
 function normalizeAttempt(value,{now=Number.MAX_SAFE_INTEGER}={}){
-  integer(now);shape(value,FIELDS,['expectedAction']);
-  if(!SOURCES.has(value.source)||!STATUSES.includes(value.status)||!REASONS.has(value.stopReason)||value.actualAudioSaved!==false)invalid();
+  integer(now);shape(value,FIELDS,['expectedAction','audio']);
+  if(!SOURCES.has(value.source)||!STATUSES.includes(value.status)||!REASONS.has(value.stopReason)||typeof value.actualAudioSaved!=='boolean')invalid();
   const caseSnapshot=snapshot(value.caseSnapshot),caseId=ident(value.caseId,80,true);
   if((caseSnapshot===null&&caseId!=='')||(caseSnapshot!==null&&caseSnapshot.id!==caseId))invalid();
   array(value.fragments,PRACTICE_LIMITS.fragments);const fragments=value.fragments.map(item=>text(item));
@@ -137,17 +151,21 @@ function normalizeAttempt(value,{now=Number.MAX_SAFE_INTEGER}={}){
     speakerId:ident(value.speakerId,80,true,true),device:text(value.device,200),browser:text(value.browser,512),
     condition:{noiseKind:value.condition.noiseKind,mask:value.condition.mask,distanceCm,style:value.condition.style},
     autoStop:bool(value.autoStop),provisionalTriggerText:value.provisionalTriggerText===null?null:text(value.provisionalTriggerText),notes:text(value.notes,PRACTICE_LIMITS.notes),
-    parserResult:parserResult(value.parserResult,rawText),actualAudioSaved:false});
+    parserResult:parserResult(value.parserResult,rawText),actualAudioSaved:value.actualAudioSaved});
+  if(own(value,'audio')){result.audio=normalizeAudio(value.audio);if(result.actualAudioSaved!==(result.audio.status==='stored')||(result.source!=='human_voice'&&result.audio.status!=='not_recorded'))invalid();}
+  else if(result.actualAudioSaved)invalid();
   if(result.referenceConfirmed&&!result.referenceText.trim())invalid();
   if(bytes(JSON.stringify(result))>PRACTICE_LIMITS.attemptBytes)limit();return result;
 }
 function serialize(dataset){const raw=JSON.stringify(dataset);if(bytes(raw)>PRACTICE_LIMITS.bytes)limit();return raw;}
 function normalizeDataset(value){
   shape(value,['schema','purpose','actualAudioSaved','attempts']);
-  if(value.schema!==1||value.purpose!=='synthetic_command_practice'||value.actualAudioSaved!==false)invalid();
+  if(![1,2].includes(value.schema)||value.purpose!=='synthetic_command_practice'||typeof value.actualAudioSaved!=='boolean')invalid();
   array(value.attempts,PRACTICE_LIMITS.attempts);const ids=new Set(),attempts=[];
   for(const valueAttempt of value.attempts){const attempt=normalizeAttempt(valueAttempt);if(ids.has(attempt.id))invalid();ids.add(attempt.id);attempts.push(attempt);}
-  const result={schema:1,purpose:'synthetic_command_practice',actualAudioSaved:false,attempts};serialize(result);return result;
+  const saved=attempts.some(attempt=>attempt.actualAudioSaved);
+  if(value.actualAudioSaved!==saved||(value.schema===1&&(saved||attempts.some(attempt=>own(attempt,'audio')))))invalid();
+  const result={schema:value.schema,purpose:'synthetic_command_practice',actualAudioSaved:saved,attempts};serialize(result);return result;
 }
 
 /** Filters never infer labels for free-form trials; seeded order is reproducible. */
@@ -175,7 +193,15 @@ export function createPracticeAttempt(input,{now=Date.now()}={}){
 
 export function appendPracticeAttempt(dataset,attempt){
   const result=normalizeDataset(dataset),normalized=normalizeAttempt(attempt);if(result.attempts.some(value=>value.id===normalized.id))invalid();
-  result.attempts.push(normalized);return normalizeDataset(result);
+  result.attempts.push(normalized);if(own(normalized,'audio'))result.schema=2;result.actualAudioSaved=result.attempts.some(item=>item.actualAudioSaved);return normalizeDataset(result);
+}
+
+/** Audio availability is distinct from the immutable captured text and labels. */
+export function attachPracticeAudio(dataset,id,audio){
+  const result=normalizeDataset(dataset),attempt=result.attempts.find(value=>value.id===id);if(!attempt)throw problem('PRACTICE_ATTEMPT_NOT_FOUND','음성을 연결할 시도가 없습니다.');
+  const normalized=normalizeAudio(audio);if(attempt.source!=='human_voice'&&normalized.status!=='not_recorded')invalid();
+  attempt.audio=normalized;attempt.actualAudioSaved=normalized.status==='stored';result.schema=2;
+  result.actualAudioSaved=result.attempts.some(value=>value.actualAudioSaved);return normalizeDataset(result);
 }
 
 export function annotatePracticeAttempt(dataset,id,annotation){
@@ -224,8 +250,9 @@ export function importPracticeJSON(raw){
 }
 export function mergePracticeDatasets(existing,imported){
   const result=normalizeDataset(existing),incoming=normalizeDataset(imported),ids=new Map(result.attempts.map(attempt=>[attempt.id,attempt]));
+  if(incoming.schema===2)result.schema=2;
   for(const attempt of incoming.attempts){const previous=ids.get(attempt.id);if(previous){const left={...previous,imported:false},right={...attempt,imported:false};if(JSON.stringify(left)!==JSON.stringify(right))throw problem('PRACTICE_ID_CONFLICT','같은 ID의 서로 다른 명령 연습 자료가 있습니다. 기존 자료는 유지됩니다.');continue;}result.attempts.push(attempt);ids.set(attempt.id,attempt);}
-  return normalizeDataset(result);
+  result.actualAudioSaved=result.attempts.some(value=>value.actualAudioSaved);return normalizeDataset(result);
 }
 export function exportPracticeJSON(dataset){return serialize(normalizeDataset(dataset));}
 
@@ -233,7 +260,7 @@ const CSV_FIELDS=['id','source','imported','trialNo','pairId','caseId','caseFami
 function actionCell(value,hasValue){return !hasValue?'unlabelled':value===null?'no_command':value;}
 function csvCell(value){let textValue=value===null||value===undefined?'':String(value);if(/^[\s\u0000-\u001f\u007f\uFEFF]*[=+\-@]/u.test(textValue)||/^[\t\r\n]/u.test(textValue))textValue="'"+textValue;return '"'+textValue.replace(/"/gu,'""')+'"';}
 export function exportPracticeCSV(dataset){
-  const normalized=normalizeDataset(dataset),rows=[CSV_FIELDS];
-  for(const value of normalized.attempts){const c=value.caseSnapshot,p=value.parserResult;rows.push([value.id,value.source,value.imported,value.trialNo,value.pairId,value.caseId,c?.family??'',c?.title??'',c?.referenceText??'',actionCell(c?.expectedAction,!!c&&own(c,'expectedAction')),value.referenceText,value.referenceConfirmed,actionCell(value.expectedAction,own(value,'expectedAction')),value.rawText,JSON.stringify(value.fragments),value.status,value.errorCode,value.stopReason,value.timing.startedAt,value.timing.endedAt,value.speakerId,value.device,value.browser,value.condition.noiseKind,value.condition.mask,value.condition.distanceCm,value.condition.style,value.autoStop,value.provisionalTriggerText,value.notes,p?.action??'no_command',p?.prefix,p?.command,p?.suffix,p?.index,p?.end,false]);}
+  const normalized=normalizeDataset(dataset),rows=[normalized.schema===2?[...CSV_FIELDS,'audioStatus','audioContentType','audioBytes','audioSHA256']:CSV_FIELDS];
+  for(const value of normalized.attempts){const c=value.caseSnapshot,p=value.parserResult;rows.push([value.id,value.source,value.imported,value.trialNo,value.pairId,value.caseId,c?.family??'',c?.title??'',c?.referenceText??'',actionCell(c?.expectedAction,!!c&&own(c,'expectedAction')),value.referenceText,value.referenceConfirmed,actionCell(value.expectedAction,own(value,'expectedAction')),value.rawText,JSON.stringify(value.fragments),value.status,value.errorCode,value.stopReason,value.timing.startedAt,value.timing.endedAt,value.speakerId,value.device,value.browser,value.condition.noiseKind,value.condition.mask,value.condition.distanceCm,value.condition.style,value.autoStop,value.provisionalTriggerText,value.notes,p?.action??'no_command',p?.prefix,p?.command,p?.suffix,p?.index,p?.end,value.actualAudioSaved,...(normalized.schema===2?[value.audio?.status??'not_recorded',value.audio?.contentType??'',value.audio?.byteLength??0,value.audio?.sha256??'']:[])]);}
   return '\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n';
 }
