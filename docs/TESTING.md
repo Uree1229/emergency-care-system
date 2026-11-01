@@ -33,13 +33,13 @@ python scripts/test_suites.py research
 
 ## 연구 검증이 공용 작업 PC에서만 재현되는 이유
 
-11-01에 main을 새로 체크아웃해 전체 6,414개를 실행했더니 241개 모듈이 실패했다. 3개를 뺀 238개가 연구 검증이고, 같은 모듈이 공용 작업 폴더에서는 통과한다.
+11-01에 main을 새로 체크아웃해 전체 6,414개를 실행했더니 241개 모듈이 실패했다. 3개를 뺀 238개가 연구 검증이다. (11-01 오후 정정) 같은 날 공용 작업 폴더에서 전체를 돌려 보니 연구 검증 106개 모듈은 그곳에서도 실패했다. 오전에 '공용 폴더에서는 통과한다'고 적은 것은 모듈마다 확인하지 않은 잘못된 문장이었다. 원인은 아래 알려진 문제에 있다.
 
 - 실험 잠금은 공용 작업 폴더 파일의 정확한 바이트로 해시를 고정했다. 이 폴더는 도구가 쓴 LF 파일(약 1,165개)과 git이 체크아웃한 CRLF 파일(약 393개)이 섞여 있어, LF든 CRLF든 한 방식의 체크아웃으로는 모두 재현되지 않는다.
 - 52개가 넘는 연구 모듈이 git 밖 자료를 읽는다. `.codex-build`(Codex 작업 공간), `simulation_results` 원자료, `outputs/`다.
 - 서버 기준 소스 21개는 `.gitattributes`의 `-text` 지정으로 새 클론에서도 기준 해시가 맞는다.
 
-**기존 잠금과 해시는 고치지 않는다.** 공용 작업 PC가 바뀌면 연구 검증은 백업한 작업 폴더를 그대로 복원해 실행한다.
+**기존 잠금과 해시는 고치지 않는다.** 11-01부터 공용 작업 폴더는 main을 따른다. 그 전에 봉인한 실험은 11-01 백업을 복원한 폴더에서 검증한다. 공용 작업 PC가 바뀌어도 같은 방법을 쓴다.
 
 ### 백업
 
@@ -50,10 +50,11 @@ python scripts/test_suites.py research
 | `worktree-exact.tar.gz` | 작업 폴더의 코드·문서·잠금을 당시 바이트 그대로(커밋 안 된 작업 포함). `.git`, 아래 큰 폴더, `__pycache__` 제외 |
 | `simulation_results.tar.gz`, `outputs.tar.gz` | 시뮬레이션 원자료와 실험 출력 |
 | `data-and-solver-deps.tar.gz` | `data/`, `.solver_deps/` |
-| `codex-build-referenced.tar.gz` | 저장소 코드가 읽는 `.codex-build` 하위 71개 폴더 |
+| `codex-build-referenced.tar.gz`, `codex-build-rest.tar.gz` | `.codex-build` 전체(개인키 `*.key` 5개 제외). 코드가 폴더 이름을 조립해 읽는 경우가 있어 일부만 고르면 복원본에서 실패했다 |
+| `empty-dirs.tar.gz` | 빈 폴더 237개. 일부 연구 테스트는 `.codex-build/<실험>/tmp/`가 있어야 돈다 |
 | `local-branches.bundle` | GitHub에 없는 로컬 브랜치 5개 |
 
-복원은 빈 폴더에 다섯 묶음을 `tar -xzf`로 풀면 된다. 백업 당시 폴더에는 `scripts/test_suites.py`가 없으므로 main에서 복사한 뒤 고정 실행 환경으로 `research`를 실행한다. 파일 수와 압축 파일 해시는 같은 폴더의 `MANIFEST.json`에 있다.
+원본 23.5 GB, 압축 10.3 GB이고 143,609개 파일 모두 원본과 바이트가 같음을 확인했다. 복원은 짧은 경로의 빈 폴더(예: `C:\Users\PC\rs1101`)에 일곱 묶음을 `tar -xzf`로 풀면 된다. 백업 당시 폴더에는 `scripts/test_suites.py`가 없으므로 main에서 복사한 뒤 고정 실행 환경으로 `research`를 실행한다. 11-01에 이렇게 복원한 폴더에서 공용 폴더와 같은 106개가 같은 이유로 실패하는 것을 확인했다. 파일 수와 압축 파일 해시는 백업 폴더의 `MANIFEST.json`에, 복원 방법은 `README.md`에 있다.
 
 ## 새 실험 규칙
 
@@ -64,6 +65,8 @@ python scripts/test_suites.py research
 
 | 테스트 | 상태 | 원인 |
 |---|---|---|
-| `test_public_offer_audit`, `test_c1_incumbent_audit`, `test_offer_reserve_audit` | 공용 작업 PC에서도 실패. 실행기가 '알려진 과거 감사 실패'로 따로 보고 | 10-29에 `server/inquiry_policies.py`가 legacy `reply`를 결정 시간 표본에서 빼도록 바뀌었다(피어리뷰 대응). 10-20 전후 실험은 바꾸기 전 규칙으로 회신 표본을 셌으므로 현재 코드로 다시 계산하면 `global_reply_samples`가 1에서 0으로 달라진다. 재현하려면 10-28 버전(`6fc079b`)의 서버 모듈로 다시 계산해야 한다 |
+| 연구 검증 106개 모듈 (`config/research_expected_failures_20261101.json`) | 공용 작업 폴더와 11-01 백업 복원본 모두에서 실패. 실행기가 '예상 실패'로 따로 세고 종료 코드에 넣지 않는다 | 10-14~10-28에 봉인한 실험이 그 뒤 바뀐 소스 바이트를 고정하고 있다. 대부분 10-29~30 서버 변경(`server/db.py`, `server/inquiry_*.py`, `server/service.py`)이고, 아래 감사 3개도 여기에 들어 있다. 그 전 서버 소스로만 재현된다 |
+| `test_public_offer_audit`, `test_c1_incumbent_audit`, `test_offer_reserve_audit` | 위 106개에 포함 | 10-29에 `server/inquiry_policies.py`가 legacy `reply`를 결정 시간 표본에서 빼도록 바뀌었다(피어리뷰 대응). 10-20 전후 실험은 바꾸기 전 규칙으로 회신 표본을 셌으므로 현재 코드로 다시 계산하면 `global_reply_samples`가 1에서 0으로 달라진다. 재현하려면 10-28 버전(`6fc079b`)의 서버 모듈로 다시 계산해야 한다 |
 | `test_server_inquiry_experiment` | 11-01 해결 | DB 초기화가 음성 사전 seed 행에 현재 시각을 기록해(`server/voice_lexicon.py`), 실행이 1초 경계를 넘으면 초기 스냅샷 해시가 달라졌다. 테스트에서 그 모듈의 시계만 고정했다. 서버 코드와 잠금 파일은 바꾸지 않았다 |
+| `test_road_online_replay` | 11-01 실행기에서 차단 | `KAKAO_REST_KEY`가 설정된 PC에서는 실제 카카오 경로 API를 불러 실패했다. 실행기가 API 키 환경변수(`KAKAO_REST_KEY`, `DATA_GO_KR_KEY`, `AZURE_SPEECH_KEY`)를 빼고 테스트를 돌린다. 테스트 파일은 보존 기록에 해시가 있어 고치지 않았다 |
 | `test_hospital_operations_http.mjs` | 단독 실행 대상 아님 | `test_hospital_operations_http.py`가 격리 서버를 띄운 뒤 실행한다. 실행기는 Node 단독 실행에서 뺀다 |
