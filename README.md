@@ -74,6 +74,8 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m simulation.run --seeds 30 --sensitivity
 ```
 
+전체 테스트는 `python scripts/test_suites.py core`로 묶어 실행합니다. PR마다 GitHub Actions가 같은 `core` 묶음을 돌립니다. 연구 실험 검증은 공용 작업 PC에서만 재현되며, 묶음 구분과 이유는 [테스트 안내](docs/TESTING.md)에 있습니다.
+
 솔버 데모는 `.\.venv\Scripts\python.exe solver_improved.py`로 실행할 수 있습니다. 화면 프로토타입은 [`prototype/index.html`](prototype/index.html)을 열어 볼 수 있으며, 서버와 데이터가 자동으로 동기화되지는 않습니다. USB의 `portable-runtime.zip`을 쓰던 이전 실행 스크립트(`SETUP_WINDOWS.cmd` 등), 초기 최적화 실험, 제안서 생성 도구는 [`archive/`](archive/)로 옮겼습니다.
 
 ## 프로젝트 구조
