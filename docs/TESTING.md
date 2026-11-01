@@ -6,7 +6,7 @@
 
 | 묶음 | 대상 | 어디서 |
 |---|---|---|
-| `core` | 서버·음성·팀 실행·자료·화면 테스트 (Python 86개 모듈 + Node 33개 파일) | 새 클론, CI |
+| `core` | 서버·음성·팀 실행·자료·화면 테스트 (Python 86개 모듈 + Node 33개 파일) | 새 클론(고정 실행 환경), CI |
 | `local-data` | git 밖 자료가 필요한 3개 (`test_server_replay_adapter`, `test_server_replay_regression`, `test_demo_casebook_20261030`) | 공용 작업 PC |
 | `research` | 알고리즘·문의 정책 실험 검증 (454개 모듈) | 공용 작업 PC |
 | `all` | 전부 | 공용 작업 PC |
@@ -23,7 +23,13 @@ python scripts/test_suites.py research
 
 ## CI
 
-`.github/workflows/core-tests.yml`이 main으로 가는 PR과 main 반영마다 Ubuntu·Python 3.12·Node 24에서 `core`를 실행한다. 11-01 새 클론 조건에서 Node 2,011개와 Python 1,256개가 통과했고 약 4분 걸렸다.
+`.github/workflows/core-tests.yml`이 main으로 가는 PR과 main 반영마다 Ubuntu·Node 24에서 `core`를 실행한다. 11-01 새 클론 조건에서 Node 2,011개와 Python 1,256개가 통과했고 약 4분 걸렸다.
+
+### 고정 실행 환경
+
+팀 실행·배정 기준 테스트 10개 모듈(`test_team_runtime`, `test_team_lan`, `test_allocation_baseline`, `test_voice_allocation_rehearsal` 등)은 고정 실행 환경이 아니면 시작을 거부한다. 기준은 `config/server_allocation_baseline_20261030.json`의 Python 3.12.14, SQLite 3.53.1, OR-Tools 9.15.6755다.
+
+공용 작업 PC의 Codex 런타임은 python-build-standalone `3.12.14+20260825` 빌드다. CI도 같은 릴리스의 Linux 빌드를 SHA-256 확인 후 내려받아 쓴다. 다른 Python으로 `core`를 돌리면 이 10개 모듈이 실패하고, 실행기 결과의 `environment.match`가 `false`로 나온다.
 
 ## 연구 검증이 공용 작업 PC에서만 재현되는 이유
 

@@ -65,8 +65,6 @@ def classify():
 
 def run_python(names):
     """Load each module separately so one import-time failure does not stop the rest."""
-    sys.path[:0] = [str(ROOT), str(ROOT / '.solver_deps')]
-    os.chdir(ROOT)
     summary = dict(modules=len(names), tests=0, failures=0, errors=0, skipped=0, failing={})
     with open(os.devnull, 'w') as sink:
         for name in names:
@@ -86,6 +84,17 @@ def run_python(names):
                 last = problems[0][1].strip().splitlines()[-1]
                 summary['failing'][name] = f'{len(result.failures)}F/{len(result.errors)}E {last[:160]}'
     return summary
+
+
+def pinned_environment():
+    """Team runtime and allocation baseline tests refuse to run outside this frozen runtime."""
+    lock = json.loads((ROOT / 'config' / 'server_allocation_baseline_20261030.json').read_text(encoding='utf-8'))
+    try:
+        from server.allocation_baseline import current_environment
+        actual = current_environment()
+    except ImportError as exc:
+        actual = f'unavailable: {exc}'
+    return dict(match=actual == lock['environment'], expected=lock['environment'], actual=actual)
 
 
 def run_node(files, node):
@@ -112,8 +121,10 @@ def main(argv=None):
     if args.suite == 'list':
         print(json.dumps({k: dict(count=len(v), names=v) for k, v in groups.items()}, ensure_ascii=False, indent=1))
         return 0
+    sys.path[:0] = [str(ROOT), str(ROOT / '.solver_deps')]
+    os.chdir(ROOT)
     started = time.time()
-    report = dict(suite=args.suite)
+    report = dict(suite=args.suite, environment=pinned_environment())
     if args.suite in ('core', 'all'):
         report['node'] = run_node(groups['node'], args.node)
     names = dict(core=groups['core'], research=groups['research'], all=groups['core'] + groups['local_data'] + groups['research'])
