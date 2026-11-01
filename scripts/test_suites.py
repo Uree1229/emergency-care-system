@@ -6,6 +6,9 @@ research    experiment verification. Exact-byte locks and .codex-build artifacts
             the shared working PC; see docs/TESTING.md.
 all         every Python and Node test.
 
+API key variables are removed before any test runs. Failures listed in
+config/research_expected_failures_20261101.json are reported but do not fail the run.
+
     python scripts/test_suites.py list
     python scripts/test_suites.py core [--node PATH]
 """
@@ -37,9 +40,10 @@ CORE_PREFIXES = (
 LOCAL_DATA = {'test_server_replay_adapter', 'test_server_replay_regression', 'test_demo_casebook_20261030'}
 # Node files that a Python harness launches with a loopback fixture; not runnable alone.
 HARNESS_ONLY = {'test_hospital_operations_http.mjs'}
-# Historical audits that no longer reproduce since the 2026-10-29 server change to reply
-# observations (server/inquiry_policies.py stopped counting legacy 'reply' samples).
-KNOWN_HISTORICAL = {'test_public_offer_audit', 'test_c1_incumbent_audit', 'test_offer_reserve_audit'}
+# Research checks sealed before the 2026-10-29~30 server changes; they fail with the current server.
+EXPECTED_FAILURES = ROOT / 'config' / 'research_expected_failures_20261101.json'
+# Tests must not reach live services with the team's keys (test_road_online_replay used Kakao when one was set).
+API_KEYS = ('KAKAO_REST_KEY', 'DATA_GO_KR_KEY', 'AZURE_SPEECH_KEY')
 
 
 def python_modules():
@@ -121,6 +125,8 @@ def main(argv=None):
     if args.suite == 'list':
         print(json.dumps({k: dict(count=len(v), names=v) for k, v in groups.items()}, ensure_ascii=False, indent=1))
         return 0
+    for key in API_KEYS:
+        os.environ.pop(key, None)
     sys.path[:0] = [str(ROOT), str(ROOT / '.solver_deps')]
     os.chdir(ROOT)
     started = time.time()
@@ -129,9 +135,10 @@ def main(argv=None):
         report['node'] = run_node(groups['node'], args.node)
     names = dict(core=groups['core'], research=groups['research'], all=groups['core'] + groups['local_data'] + groups['research'])
     report['python'] = run_python(names.get(args.suite, groups['local_data']))
-    unexpected = {k: v for k, v in report['python']['failing'].items() if k not in KNOWN_HISTORICAL}
-    known = sorted(set(report['python']['failing']) & KNOWN_HISTORICAL)
-    report['known_historical_failures'] = known
+    expected = set(json.loads(EXPECTED_FAILURES.read_text(encoding='utf-8'))['modules'])
+    unexpected = {k: v for k, v in report['python']['failing'].items() if k not in expected}
+    report['expected_failures'] = len(set(report['python']['failing']) & expected)
+    report['unexpected_failures'] = sorted(unexpected)
     report['seconds'] = round(time.time() - started, 1)
     print(json.dumps(report, ensure_ascii=False, indent=1))
     node_ok = report.get('node', {}).get('ok', True)
