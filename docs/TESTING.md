@@ -41,6 +41,20 @@ python scripts/test_suites.py research
 
 **기존 잠금과 해시는 고치지 않는다.** 공용 작업 PC가 바뀌면 연구 검증은 백업한 작업 폴더를 그대로 복원해 실행한다.
 
+### 백업
+
+11-01에 git 밖 자료를 공용 PC의 `C:\Users\PC\Documents\ChatGPT\캡스톤 디자인_백업_20261101\`에 묶었다. 같은 디스크라 디스크 고장에는 대비되지 않으므로 USB나 클라우드로 옮겨 둔다.
+
+| 묶음 | 내용 |
+|---|---|
+| `worktree-exact.tar.gz` | 작업 폴더의 코드·문서·잠금을 당시 바이트 그대로(커밋 안 된 작업 포함). `.git`, 아래 큰 폴더, `__pycache__` 제외 |
+| `simulation_results.tar.gz`, `outputs.tar.gz` | 시뮬레이션 원자료와 실험 출력 |
+| `data-and-solver-deps.tar.gz` | `data/`, `.solver_deps/` |
+| `codex-build-referenced.tar.gz` | 저장소 코드가 읽는 `.codex-build` 하위 71개 폴더 |
+| `local-branches.bundle` | GitHub에 없는 로컬 브랜치 5개 |
+
+복원은 빈 폴더에 다섯 묶음을 `tar -xzf`로 풀면 된다. 백업 당시 폴더에는 `scripts/test_suites.py`가 없으므로 main에서 복사한 뒤 고정 실행 환경으로 `research`를 실행한다. 파일 수와 압축 파일 해시는 같은 폴더의 `MANIFEST.json`에 있다.
+
 ## 새 실험 규칙
 
 - 잠금에 넣는 소스 해시는 `scripts/source_hash.py`(CRLF를 LF로 통일한 SHA-256)로 계산한다. 정확한 바이트가 꼭 필요하면 해당 파일을 `.gitattributes`에서 `-text`로 지정한 뒤 잠근다.
