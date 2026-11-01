@@ -4,11 +4,25 @@
 """
 import copy
 import json
+import types
 import unittest
 from collections import Counter
 
 from server import inquiry_experiment as experiment
 from server import inquiry_experiment_scenarios as scenarios
+from server import voice_lexicon
+
+_real_lexicon_time = voice_lexicon.time
+
+
+def setUpModule():
+    # DB 초기화가 음성 사전 seed 행에 현재 시각을 기록한다. 실행이 1초 경계를 넘으면
+    # 초기 스냅샷 해시가 달라져 반복·순서 비교가 우연히 실패하므로 그 시계만 고정한다.
+    voice_lexicon.time = types.SimpleNamespace(time=lambda: 1793000000.0)
+
+
+def tearDownModule():
+    voice_lexicon.time = _real_lexicon_time
 
 
 def scenario(hospital_count=3, patient_count=1, *, service_seconds=7,
