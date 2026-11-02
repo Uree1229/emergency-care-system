@@ -1,6 +1,6 @@
 # dev1 새 AI 시작 지시
 
-작성일: 2026-11-02. 아래 지시를 새 AI에 전달한다. 현재 상태 기준은 clean main `cef0230`이며, 시작할 때 실제 체크아웃과 차이를 먼저 확인한다.
+작성일: 2026-11-02. 아래 지시를 새 AI에 전달한다. 기준은 main `580460a` 기반 구급대원 UI 후속 소스이며, 시작할 때 실제 체크아웃과 해당 PR 병합 여부를 먼저 확인한다.
 
 ```text
 당신은 dev1의 구급대원 화면 개발을 이어받는다. dev2는 병원 화면 담당이다.
@@ -13,7 +13,7 @@
 - docs/team-handoff/20261102/dev1/README.md
 - docs/team-handoff/20261102/dev1/AI_START.md (이 프롬프트 자체)
 
-기준은 clean main cef0230이다. 과거 문서의 '로컬 완료', 공용 폴더의 미공개 코드,
+기준은 main 580460a 기반 이번 UI 후속 변경을 포함한 소스다. 과거 문서의 '로컬 완료', 다른 미공개 코드,
 옛 실행 묶음에만 있는 기능을 현재 main 기능으로 가정하지 않는다.
 실제 SHA와 변경 상태를 확인하고 차이가 있으면 범위를 기록한다.
 최신 원격 main도 확인한다. 첫 응답에는 현재 구현·소유 범위·D01 재현 계획을
@@ -46,7 +46,7 @@
 먼저 읽을 실제 코드:
 1. paramedic-ui/voice-client.mjs: VoiceClient.execute/write/retry/sync
 2. paramedic-ui/app.js: connect, load-patient 처리, submit-button 처리,
-   renderPatient, candidates
+   renderPatient, candidates; main-recovery.mjs의 쓰기 전 보존·GET 복원·정확 재시도
 3. paramedic-ui/main-followup.mjs: MainFollowup, patientNavigation
 4. paramedic-ui/main-treatment-review.mjs: requireWaiting/load/preview/apply
 5. patient-ui/app.js: intake-form 처리, openPatient, resetPatientContext,
@@ -117,17 +117,24 @@ D01 완료 기준:
 창 노출을 작업시간으로 자동 간주하지 않는다. 등록 전에는 pid가 없으므로
 등록 전 총 입력시간은 별도 사용성 측정으로 구분하고 서버 시간을 소급하지 않는다.
 
-800ms 게이트 상태:
-CommandCommitGate는 command-practice 연습 화면에만 연결됐다.
-업무 quick은 findVoiceTrigger 직후 finish('voice')를 호출한다.
-800ms를 검증된 최적값이나 업무 UI 적용 완료로 표현하지 않는다.
-업무 적용은 명령 의미 조율·부정/인용/시간 문맥/후속 조각/지연 결과 오탐 회귀를
-갖춘 별도 작업이다. D01/D02 수정에 끼워 넣지 않는다.
+후속 기능 보존:
+- main-recovery.mjs는 같은 탭 sessionStorage에 12시간 동안 미저장 입력과 원요청을
+  보존한다. GET부터 복원하고 불확실 쓰기는 명시 정확 재시도만 허용한다.
+  저장 실패·범위 불일치·편집 버전 충돌에서 자동 전송/새 초안 대체를 금지한다.
+- CommandCommitGate는 command-practice와 업무 quick-test 모두에 연결됐다.
+  Quick은 기본 후속 인식 800ms 보류, 버튼 전용은 관찰이다. STT 결과 수신
+  기준 실험값으로 실제 무음 검출·최적값·실제 현장 오탐 방지 검증이 아니다.
+  부정/인용/시각 설명/후속 조각/환자 전환/늦은 결과 회귀를 유지한다.
+- noise-compare.html은 선택형 로컬 RNNoise 전후 A/B·수동 인식문·ZIP 도구다.
+  원본을 보존하고 처리본을 업무 STT에 자동 전달하지 않는다.
+이 기능들이 /patient/ 수동 등록 D01과 채팅 D02 복구를 대신하지 않는다.
+D01/D02에 잡음 처리나 명령 정책 변경을 섞지 않는다.
 
 기본 검증 명령(저장소 루트):
 python scripts/test_suites.py list
 python scripts/test_suites.py core
 node --test test_paramedic_voice_client.mjs test_paramedic_main_workflow.mjs test_patient_workflow_state.mjs test_patient_workflow_view.mjs test_patient_workflow_transport_change_retry.mjs
+node --test test_paramedic_main_recovery_20261031.mjs test_paramedic_local_audio_page.mjs test_paramedic_quick_page.mjs test_paramedic_noise_suppression.mjs test_paramedic_noise_compare_page.mjs
 python -m unittest test_server test_voice_api test_work_activity test_backend_measurement_api -v
 
 core는 Python 3.12.14, SQLite 3.53.1, OR-Tools 9.15.6755 고정 환경이다.

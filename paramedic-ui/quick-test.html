@@ -21,7 +21,12 @@
     <div class="qv-sheet-head"><h2 id="settings-title">설정</h2><button type="button" id="quick-new" class="qv-pill">새 환자 시작</button></div>
     <p class="qv-label">마이크 조작</p>
     <div class="qv-seg qv-seg-two" role="group" aria-label="마이크 조작"><button type="button" id="recording-toggle" aria-pressed="true">한 번 눌러 시작 · 종료</button><button type="button" id="recording-hold" aria-pressed="false">누르는 동안 말하기</button></div>
-    <p class="qv-help">한 번 눌러 시작·종료합니다(최대 180초). 두 조작 방식 모두 확정 인식문의 “중단”·“종료”·“그만”은 앞 내용을 저장하고 마칩니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다. 누르는 동안 말하기는 최대 30초입니다.</p>
+    <p class="qv-help">한 번 눌러 시작·종료합니다(최대 180초). 누르는 동안 말하기는 최대 30초입니다. 음성 명령은 아래 확인 방식을 따릅니다.</p>
+    <label class="qv-label" for="quick-command-policy">음성 명령 확인 방식</label>
+    <select id="quick-command-policy"><option value="deferred" selected>추가 말 확인 후 실행 · 0.8초 실험 설정</option><option value="observe">버튼으로만 종료 · 음성 명령 동작 안 함</option></select>
+    <p class="qv-help">명령 후보 뒤의 추가 말과 부정 표현을 잠시 확인합니다. 0.8초는 실험값이며 정확도를 보장하지 않습니다. 임시 인식이 남으면 명령을 확정하지 않습니다. 버튼 전용에서는 명령 단어도 받아쓰기 본문에 남습니다.</p>
+    <button type="button" id="quick-command-export" class="qv-chip-btn" disabled>이번 음성 명령 시험 기록 JSON</button>
+    <p class="qv-help">직접 내려받을 때만 확정·임시 인식문의 수신, 판정, 종료 요청 시점을 파일로 만듭니다. 장비의 실제 녹음 종료 시각은 아닙니다. 자동 업로드하지 않습니다. 실제 환자정보가 포함되지 않았는지 확인하세요.</p>
     <details class="qv-example"><summary>사이렌·주변 소음이 클 때</summary><p class="qv-help">이 화면은 브라우저가 마이크 입력과 인식을 관리합니다. 앱의 PCM 소음 억제 설정은 이 경로에 적용되지 않습니다. 입 가까운 마이크로 항목명과 값을 짧게 말하고, 숫자·없음 표현은 원문과 비교해 확인하세요. <a href="./evaluate.html">소음 조건을 기록하며 시험하기</a></p></details>
     <p class="qv-label">말하기 방식</p>
     <div class="qv-seg" role="group" aria-label="말하기 방식"><button type="button" id="mode-auto" aria-pressed="true">자동 판단</button><button type="button" id="mode-dictation" aria-pressed="false">상태만</button><button type="button" id="mode-command" aria-pressed="false" disabled>명령만</button></div>
@@ -141,6 +146,7 @@
       <button type="button" id="quick-cancel" class="qv-pill" hidden>취소</button>
     </div>
     <div class="qv-status-line"><span id="quick-state" role="status">준비됨</span><span id="quick-time">00:00</span><span id="quick-interim" aria-live="polite">“중단”·“녹음 종료”는 앞 내용을 저장합니다. “병원 추천해줘”는 저장 후 추천 준비로 이어집니다.</span></div>
+    <p id="quick-command-status" class="qv-help qv-ended" role="status"></p>
     <p id="recording-ended" class="qv-help qv-ended" role="status" hidden></p>
     <section id="recording-excluded" class="qv-excluded" aria-labelledby="recording-excluded-title" hidden>
       <h2 id="recording-excluded-title">명령 뒤 추가 인식 (미반영)</h2>

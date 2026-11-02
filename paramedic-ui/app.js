@@ -4,6 +4,7 @@ import {captureDescription,localAudioTestMetadata} from './speech-test-context.m
 import {readDraftHandoff,clearDraftHandoff} from './draft-handoff.mjs';
 import {MainFollowup,patientNavigation} from './main-followup.mjs';
 import {MainTreatmentReview} from './main-treatment-review.mjs';
+import {MainRecovery,findMainRecovery,emptyMainInput} from './main-recovery.mjs';
 
 const $ = id => document.getElementById(id);
 const labels = {age:'나이',age_group:'연령대',sex:'성별',symptoms:'확인된 증상',denied_symptoms:'없다고 확인한 증상',uncertain_symptoms:'미확인·의심 증상',consciousness:'의식 상태',breathing:'호흡 상태',systolic_bp:'수축기 혈압',diastolic_bp:'이완기 혈압',pulse:'맥박',spo2:'산소포화도',temperature:'체온',respiratory_rate:'호흡수',glucose:'혈당',onset_at:'증상 발생 시각',blood_pressure:'혈압'};
@@ -12,6 +13,7 @@ const listFields = new Set(['symptoms','denied_symptoms','uncertain_symptoms']);
 Object.assign(labels,{avpu:'의식 AVPU',chief_complaint:'주증상 분류',age_category:'연령 구분',pre_ktas:'Pre-KTAS',stemi_suspected:'심전도 ST 상승',injury_region:'손상 부위',labor:'진통·양막 파열',pregnancy_weeks:'임신 주수',seizure_ongoing:'경련 지속',bleeding_risk:'출혈 경향',high_risk_mechanism:'고위험 손상 기전',pain_score:'통증 점수',gcs:'GCS'});
 Object.assign(enums,{avpu:{A:'A 명료',V:'V 목소리 반응',P:'P 통증 반응',U:'U 무반응',unknown:'미확인'},chief_complaint:{cardiac:'흉통·심장',stroke:'뇌졸중 의심',altered_seizure:'의식저하·경련',dyspnea:'호흡곤란',trauma:'외상',bleeding:'출혈',abdominal:'복통·소화기',obstetric:'산과·분만',toxic_env:'중독·환경',other:'기타'},age_category:{adult:'성인',child:'소아',neonate:'신생아',pregnant:'임신 중',unknown:'미확인'},pre_ktas:{1:'1',2:'2',3:'3',4:'4',5:'5',unclassified:'미분류'},stemi_suspected:{yes:'확인됨',no:'없음',unmeasured:'미측정'},injury_region:{head:'머리',torso:'몸통',limb:'팔다리',multiple:'여러 곳'},labor:{yes:'있음',no:'없음'},seizure_ongoing:{yes:'지속 중',no:'멈춤'},bleeding_risk:{yes:'있음',no:'없음'},high_risk_mechanism:{yes:'있음',no:'없음'}});
 const storage = {get(key){try{return sessionStorage.getItem('paramedic.voice.'+key);}catch(_){return null;}},set(key,value){try{sessionStorage.setItem('paramedic.voice.'+key,value);}catch(_){}}};
+const previousIdentity={actor:storage.get('actor'),session:storage.get('session'),server:storage.get('server')};
 const params = new URLSearchParams(location.search);
 const actorFromQuery=params.get('actor_id');
 const actorQueryValid=!actorFromQuery||(/^[A-Za-z0-9][A-Za-z0-9._:@-]*$/.test(actorFromQuery)&&actorFromQuery.length<=80);
@@ -23,10 +25,49 @@ let captureMode = 'dictation', captureProvider = 'browser', finalCount = 0, star
 let canRead = VoiceCapture.capabilities().tts;
 let localAudioUrl=null,localAudioMetadata=null;
 let mainFollowup=null,treatmentReview=null,captureQuestion=null,lastQuestionSpoken='';
+let recovery=null,recoveryError='',recoveryFieldConflict=false,recoveryCopy=null;
 
 const node = (tag, text, className) => {const result=document.createElement(tag);if(text!==undefined)result.textContent=text;if(className)result.className=className;return result;};
 function message(text, isError=false) {const target=$(isError?'error':'notice');target.textContent=text;target.hidden=!text;if(isError)$('notice').hidden=true;}
 function clearError(){ $('error').hidden=true; $('error').textContent=''; }
+function recoveryInput(){
+  const fields={};if(dirty)for(const input of $('fields-editor').querySelectorAll('[data-field]'))fields[input.dataset.field]=input.value;
+  return {transcript:$('transcript-input').value,command:$('command-input').value,answer:$('main-answer').value,mode:$('voice-mode').value,changeKind:$('change-kind').value,fields,dirty,baseVersion:client?.session?.version||0,lat:$('lat').value,lon:$('lon').value,requiredCapabilities:[...$('required-capabilities').selectedOptions].map(o=>o.value),consent:$('consent').checked};
+}
+function recoveryStatus(){
+  $('main-recovery-status').textContent=recoveryError|| (recoveryFieldConflict?'서버 버전이 변경되어 저장한 항목 편집을 자동 적용하지 않았습니다. 아래 원본을 확인하세요.':client?.pending?'처리 여부 미확인 요청을 보존했습니다. 서버 최신 기록과 별개로 같은 요청 다시 시도를 명시적으로 누르세요.':recovery?.record.sessionId?'서버에서 저장한 초안을 조회했습니다. 로컬 입력창은 이미 반영된 원문도 포함할 수 있으며 자동 전송하지 않습니다.':'새 기록 시작 또는 환자 불러오기를 명시적으로 선택하세요. 자동 등록·전송은 하지 않습니다.');
+  $('main-recovery-save').hidden=!recoveryError||!recovery;
+  $('main-recovery-copy').hidden=!recoveryCopy;
+  $('main-recovery-copy').value=recoveryCopy?JSON.stringify(recoveryCopy,null,2):'';
+  $('main-recovery-discard-edits').hidden=!recoveryFieldConflict;
+}
+function saveRecovery(outcome){
+  if(!recovery)return;
+  try{recovery.update({session:client?.session,ui:recoveryFieldConflict?recovery.record.ui:recoveryInput(),pending:client?.pending||null,outcome:outcome||(client?.pending?'pending':recovery.record.outcome)});recoveryError='';}
+  catch(error){recoveryError=error.message;recoveryStatus();throw error;}
+  recoveryStatus();
+}
+function saveInput(){try{saveRecovery();}catch(error){message(error.message,true);}controls();}
+function attachRecovery(next,selected=null,patientId=null){
+  const store=handoffStorage();
+  const manager=new MainRecovery({storage:store,pageOrigin:location.origin,serverOrigin:next.server,actorId:next.actorId,patientId,selected});
+  next.beforeWrite=request=>{
+    if(recovery!==manager||client!==next||next.server!==normalizeServer($('server-url').value.trim())||next.actorId!==actor||(recoveryFieldConflict&&JSON.stringify(request)!==JSON.stringify(manager.record.pending)))throw Error('현재 화면과 저장한 요청의 범위를 먼저 확인하세요.');
+    persistRestoredIdentity(next.actorId,next.session?.id||'',next.server);
+    manager.beforeWrite(request,{session:next.session,ui:recoveryFieldConflict?manager.record.ui:recoveryInput()});
+  };
+  recovery=manager;recoveryError='';return manager;
+}
+function restoreRecoveryInput(ui){
+  for(const [id,key]of [['transcript-input','transcript'],['command-input','command'],['main-answer','answer'],['voice-mode','mode'],['change-kind','changeKind'],['lat','lat'],['lon','lon']])$(id).value=ui[key];
+  for(const option of $('required-capabilities').options)option.selected=ui.requiredCapabilities.includes(option.value);
+  $('consent').checked=ui.consent;
+  if(ui.dirty){
+    if(ui.baseVersion!==client?.session?.version){recoveryFieldConflict=true;recoveryCopy=ui;}
+    else{for(const input of $('fields-editor').querySelectorAll('[data-field]'))if(Object.hasOwn(ui.fields,input.dataset.field))input.value=ui.fields[input.dataset.field];dirty=true;}
+  }
+  recoveryStatus();controls();
+}
 function remember(){if(client?.session&&!handoffPending&&!handoffFailed){storage.set('actor',actor);storage.set('session',client.session.id);storage.set('server',client.server);}}
 function handoffStorage(){try{return sessionStorage;}catch(_){return null;}}
 function persistRestoredIdentity(nextActor,nextSession,nextServer){
@@ -41,8 +82,14 @@ function persistRestoredIdentity(nextActor,nextSession,nextServer){
     throw Error('복원한 기록의 연결 정보를 저장하지 못했습니다. 원래 음성 초안 연결은 유지했습니다. 저장 권한을 확인한 뒤 다시 시도하세요.');
   }
 }
-function removeHandoffParameter(){
-  try{const query=new URLSearchParams(location.search);query.delete('voice_handoff');window.history.replaceState(null,'',location.pathname+(query.size?'?'+query.toString():'')+(location.hash||''));}catch(_){}
+function removeHandoffParameter({newPatient=false}={}){
+  const query=new URLSearchParams(location.search);query.delete('voice_handoff');params.delete('voice_handoff');
+  if(newPatient){for(const key of ['pid','entry']){query.delete(key);params.delete(key);}$('resume-patient').value='';}
+  window.history.replaceState(null,'',location.pathname+(query.size?'?'+query.toString():'')+(location.hash||''));
+}
+function selectPatientParameter(patientId){
+  const query=new URLSearchParams(location.search);query.set('pid',patientId);params.set('pid',patientId);
+  window.history.replaceState(null,'',location.pathname+'?'+query.toString()+(location.hash||''));$('resume-patient').value=patientId;
 }
 function renderRecommendation(){
   $('recommendation-prep').hidden=!handoffPending&&!handoffFailed&&!recommendationReady;
@@ -57,7 +104,7 @@ function draft(){return client?.session?.state==='DRAFT';}
 function linkedWaiting(){return !!client?.session?.patient_id&&currentPatient?.state==='WAITING';}
 function ensureModels(){if(client&&mainFollowup?.client!==client){mainFollowup=new MainFollowup(client);treatmentReview=new MainTreatmentReview(client);lastQuestionSpoken='';}}
 function invalidateTreatment(){if(treatmentReview?.review){treatmentReview.invalidate();$('treatment-detail').textContent='초안이나 선택이 바뀌었습니다. 변경안을 다시 조회하세요.';}$('treatment-confirm').checked=false;$('treatment-reduction').checked=false;}
-function blocked(){return tasks>0 || connecting || gpsBusy || capture.active || !!client?.pending;}
+function blocked(){return tasks>0 || connecting || gpsBusy || capture.active || !!client?.pending || !!recoveryError || recoveryFieldConflict;}
 function allowedSubmit(){
   if(!client?.session?.confirmed || !draft() || blocked() || dirty || handoffUnapplied)return false;
   if(client.session.patient_id)return false;
@@ -68,10 +115,11 @@ function allowedSubmit(){
 function controls(){
   const locked=blocked(), supported=VoiceCapture.capabilities();
   for(const id of ['connect-server','new-case','load-patient','sample-button'])$(id).disabled=locked||dirty;
-  $('connect-server').disabled=locked||dirty||handoffUnapplied;
-  $('load-patient').disabled=locked||dirty||handoffPending||handoffFailed;
+  $('new-case').disabled=tasks>0||connecting||gpsBusy||capture.active||!!client?.pending||dirty||recoveryFieldConflict;
+  $('connect-server').disabled=tasks>0||connecting||capture.active||!!client?.pending||dirty||handoffUnapplied;
+  $('load-patient').disabled=tasks>0||connecting||gpsBusy||capture.active||!!client?.pending||dirty||recoveryFieldConflict||handoffPending||handoffFailed;
   $('sample-button').disabled=locked||dirty||handoffUnapplied;
-  $('handoff-new-case').disabled=locked||dirty;
+  $('handoff-new-case').disabled=$('new-case').disabled;
   $('discard-handoff-text').disabled=locked||!handoffUnapplied;
   $('server-url').disabled=locked; $('resume-patient').disabled=locked;
   for(const id of ['send-transcript','send-command','voice-mode','speech-provider'])$(id).disabled=locked||!draft()||dirty;
@@ -95,6 +143,9 @@ function controls(){
   $('refresh-candidates').disabled=locked||!currentPatient||recommendationAwaitingSubmit;
   $('retry-request').hidden=!client?.pending;
   $('retry-request').disabled=tasks>0||capture.active;
+  for(const id of ['transcript-input','command-input','main-answer'])$(id).disabled=locked||!client?.session;
+  $('main-recovery-save').disabled=tasks>0||connecting||capture.active;
+  recoveryStatus();
   for(const control of $('fields-editor').querySelectorAll('input,select,textarea'))control.disabled=locked||!draft();
   $('change-kind').disabled=locked||!draft();
   for(const id of ['lat','lon','gps-button','use-demo-location','required-capabilities','consent'])$(id).disabled=locked||!draft()||!!client?.session?.patient_id;
@@ -130,7 +181,7 @@ function renderFields(){
     input.id='field-'+key;input.dataset.field=key;
     const value=values[key];
     input.value=value===undefined?'':Array.isArray(value)?value.join(', '):key==='onset_at'?new Date(value*1000-new Date(value*1000).getTimezoneOffset()*60000).toISOString().slice(0,19):String(value);
-    input.addEventListener('input',()=>{dirty=true;invalidateTreatment();$('approval-status').textContent='수정 중 · 서버에 아직 반영되지 않았습니다';controls();});
+    input.addEventListener('input',()=>{dirty=true;invalidateTreatment();$('approval-status').textContent='수정 중 · 서버에 아직 반영되지 않았습니다';saveInput();});
     field.append(label,input);
     const spec=catalog?.terms?.measurements?.[key];
     if(spec)field.append(node('small',spec.unit));
@@ -227,10 +278,11 @@ async function answerMain(text,{unavailable=false,question=mainFollowup?.current
 }
 async function task(action){
   tasks++;controls();
-  try{const result=await action();render();return result;}
+  try{const result=await action();render();saveRecovery(client?.pending?'pending':'saved');return result;}
   catch(error){
     if(capture.active)capture.abort();
-    if(error.status===409&&client?.session&&!client.pending){try{const mode=$('treatment-mode').value;invalidateTreatment();await client.sync();if(client.session.patient_id)currentPatient=await client.api('/api/patients/'+encodeURIComponent(client.session.patient_id));if(currentPatient?.state==='WAITING'&&draft())await treatmentReview.load(currentPatient,mode);render();$('treatment-status').textContent='충돌 후 최신 초안·환자·변경안을 조회했습니다. 감소 항목을 포함해 다시 확인하세요.';}catch(_){}}
+    if(error.status===409&&client?.session&&!client.pending){try{const before=recovery?.record.ui,mode=$('treatment-mode').value;invalidateTreatment();await client.sync();if(client.session.patient_id)currentPatient=await client.api('/api/patients/'+encodeURIComponent(client.session.patient_id));if(currentPatient?.state==='WAITING'&&draft())await treatmentReview.load(currentPatient,mode);render();if(before?.dirty&&before.baseVersion!==client.session.version){recoveryFieldConflict=true;recoveryCopy=before;}$('treatment-status').textContent='충돌 후 최신 초안·환자·변경안을 조회했습니다. 감소 항목을 포함해 다시 확인하세요.';}catch(_){}}
+    try{saveRecovery(client?.pending?'pending':'terminal_error');}catch(_){}
     message(error.message||'처리하지 못했습니다.',true);throw error;
   }finally{tasks--;controls();}
 }
@@ -261,12 +313,12 @@ function resetCase(){
   handoffUnapplied=false;recommendationAwaitingSubmit=false;
   currentPatient=null;dirty=false;$('candidate-list').replaceChildren(node('p','환자정보를 저장하면 후보 병원을 확인할 수 있습니다.','empty-state'));
   mainFollowup=null;treatmentReview=null;lastQuestionSpoken='';captureQuestion=null;invalidateTreatment();$('patient-navigation').hidden=true;
-  $('patient-result').replaceChildren();$('transcript-input').value='';$('command-input').value='';$('readback-text').textContent='';$('interim-text').textContent='';$('history-list').replaceChildren();
+  $('patient-result').replaceChildren();$('transcript-input').value='';$('command-input').value='';$('main-answer').value='';$('treatment-reason').value='';$('readback-text').textContent='';$('interim-text').textContent='';$('history-list').replaceChildren();
   $('consent').checked=false;$('lat').value='';$('lon').value='';$('location-status').textContent='현재 위치를 확인해 주세요';
   for(const option of $('required-capabilities').options)option.selected=false;
 }
-async function connect({forceNew=false}={}){
-  if(blocked())return;
+async function connect({forceNew=false,patientIdOverride=null,loadExisting=false}={}){
+  if(tasks>0||connecting||gpsBusy||capture.active||!!client?.pending||dirty||recoveryFieldConflict)return;
   connecting=true;controls();
   try{
     const server=normalizeServer($('server-url').value.trim());
@@ -290,29 +342,53 @@ async function connect({forceNew=false}={}){
     $('speech-provider').querySelector('[value="azure"]').disabled=!caps.speech.configured||!supported.recording;
     $('speech-provider').querySelector('[value="local_wav"]').disabled=!supported.recording;
     $('capabilities-note').textContent=caps.speech.configured?'필요 진료 분야는 직접 확인해 선택하세요. 녹음 파일 인식 사용 가능.':'서버 음성인식 키 미설정 · 브라우저 인식, 직접 입력 또는 서버 전송 없는 로컬 오디오 시험을 사용할 수 있습니다.';
-    resetCase();
     if(handoff){
       await next.sync(handoff.sessionId);
       if(next.session?.id!==handoff.sessionId||!Number.isSafeInteger(next.session?.version)||next.session.version<handoff.version)throw Error('서버 초안의 ID 또는 버전이 저장한 기록과 일치하지 않습니다. 새 빈 초안으로 대체하지 않았습니다.');
       if(next.session.state!=='DRAFT'||(next.session.actor_id!==undefined&&next.session.actor_id!==handoff.actorId))throw Error('서버 초안의 상태 또는 작성자가 이어갈 음성 기록과 일치하지 않습니다. 새 빈 초안으로 대체하지 않았습니다.');
       const restoredPatient=next.session.patient_id?await next.api('/api/patients/'+encodeURIComponent(next.session.patient_id)):null;
       persistRestoredIdentity(handoff.actorId,next.session.id,next.server);
-      actor=handoff.actorId;client=next;handoffPending=false;handoffFailed=false;recommendationReady=true;
+      resetCase();actor=handoff.actorId;client=next;handoffPending=false;handoffFailed=false;recommendationReady=true;
+      attachRecovery(next,null,next.session.patient_id??null);recovery.update({session:next.session});
       currentPatient=restoredPatient;recommendationAwaitingSubmit=true;
       $('transcript-input').value=handoff.unappliedText;handoffUnapplied=!!handoff.unappliedText;
       remember();clearDraftHandoff(handoffStorage());removeHandoffParameter();
     }else{
-      const saved=!forceNew&&!params.get('pid')&&!actorFromQuery&&storage.get('server')===server?storage.get('session'):null;
-      if(saved){try{await next.sync(saved);}catch(_){await next.create();}}
-      else if(!params.get('pid')||forceNew)await next.create();
-      client=next;
+      const requestedPatient=!forceNew?(patientIdOverride||params.get('pid')||undefined):undefined;
+      if(requestedPatient!==undefined&&!/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$/.test(requestedPatient))throw Error('환자 ID 연결이 올바르지 않습니다.');
+      const selected=!forceNew?findMainRecovery(handoffStorage(),{pageOrigin:location.origin,serverOrigin:server,actorId:actor,...(requestedPatient!==undefined?{patientId:requestedPatient}:{})}):null;
+      if(selected?.expired)throw Error('임시 저장본의 12시간 유효기간이 지났습니다. 자동 복원·전송하지 않았습니다. 현재 탭의 보존 기록을 확인하세요.');
+      const saved=!forceNew&&!loadExisting&&!selected&&previousIdentity.actor===actor&&previousIdentity.server===server?previousIdentity.session:null;
+      if(selected?.record.sessionId||saved){
+        const sid=selected?.record.sessionId||saved;await next.sync(sid);
+        if(selected)MainRecovery.prototype.assertSession.call({record:selected.record},next.session);
+        else if(next.session?.id!==sid||!Number.isSafeInteger(next.session?.version)||next.session.version<1||!['DRAFT','SUBMITTED'].includes(next.session.state)||(next.session.actor_id!==undefined&&next.session.actor_id!==actor))throw Error('저장한 초안의 ID·작성자·버전을 확인하지 못했습니다. 새 빈 초안으로 바꾸지 않았습니다.');
+        if(requestedPatient!==undefined&&(next.session.patient_id??null)!==requestedPatient){if(selected)throw Error('연결한 환자와 보존한 초안의 환자가 다릅니다. 다른 기록을 적용하거나 새 초안을 만들지 않았습니다.');else next.session=null;}
+      }
+      const expectedPatient=next.session?.patient_id||requestedPatient;
+      const restoredPatient=expectedPatient?await next.api('/api/patients/'+encodeURIComponent(expectedPatient)):null;
+      if(restoredPatient&&restoredPatient.id!==expectedPatient)throw Error('서버 환자 응답의 범위가 다릅니다.');
+      const startLinked=loadExisting&&next.session?.state==='SUBMITTED'&&!selected?.record.pending;
+      const savedInput=startLinked?null:selected?.record.ui;
+      resetCase();recoveryFieldConflict=false;recoveryCopy=null;client=next;
+      if(startLinked)next.session=null;
+      attachRecovery(next,startLinked?null:selected,requestedPatient??next.session?.patient_id??null);
+      next.pending=!startLinked&&selected?.record.pending?JSON.parse(JSON.stringify(selected.record.pending)):null;
+      if(next.session)recovery.update({session:next.session});
+      currentPatient=restoredPatient;
+      if(forceNew)removeHandoffParameter({newPatient:true});
+      else if(loadExisting)selectPatientParameter(requestedPatient);
+      if(forceNew||(loadExisting&&!next.session&&!next.pending)){await next.create(loadExisting?requestedPatient:undefined);saveRecovery('saved');}
       recommendationAwaitingSubmit=next.session?.state==='DRAFT'&&!!next.session.patient_id;
-      if(forceNew)removeHandoffParameter();
+      render();if(savedInput)restoreRecoveryInput(savedInput);
     }
     if(next.session?.patient_id){if(!currentPatient)currentPatient=await next.api('/api/patients/'+encodeURIComponent(next.session.patient_id));renderPatient();if(!recommendationAwaitingSubmit)await candidates();}
-    render();message(handoffUnapplied?'저장된 초안을 불러왔습니다. 명령 뒤 문장은 아직 미반영이며, 내용을 검토한 뒤 문장 반영 또는 제외를 선택하세요.':recommendationReady?'저장된 초안을 불러왔습니다. 내용 검토부터 계속하세요.':'음성으로 말하거나 인식문을 입력해 기록을 시작하세요.');
+    if(handoff)render();else controls();
+    if(handoff){saveRecovery('saved');}
+    message(handoffUnapplied?'저장된 초안을 불러왔습니다. 명령 뒤 문장은 아직 미반영이며, 내용을 검토한 뒤 문장 반영 또는 제외를 선택하세요.':recommendationReady?'저장된 초안을 불러왔습니다. 내용 검토부터 계속하세요.':client?.pending?'보존한 요청은 자동 전송하지 않았습니다. 원문과 범위를 확인한 뒤 같은 요청 다시 시도를 누르세요.':next.session?'동일 범위의 서버 기록과 로컬 입력창을 불러왔습니다.':'새 기록 시작 또는 기존 환자 불러오기를 선택하세요.');
     if(params.get('pid')&&!next.session)message('같은 이송 ID를 준비했습니다. 기존 환자 불러오기를 눌러 현재 상태를 확인하세요. 새 환자는 등록하지 않았습니다.');
   }catch(error){
+    recoveryError=error.message;
     if(handoffPending){handoffFailed=true;client=null;$('session-meta').textContent='음성 초안 복원 실패 · 새 빈 초안을 만들지 않았습니다';$('recommendation-status').textContent=error.message;}
     $('connection-status').textContent='연결 확인 필요';$('connection-status').dataset.state='error';message(error.message,true);
   }
@@ -322,6 +398,7 @@ const capture=new VoiceCapture({
   onInterim(text){$('interim-text').textContent=text||'듣고 있습니다…';},
   onFinal(text){
     finalCount++;$('transcript-input').value=text;$('interim-text').textContent='최종 문장 확인 · 서버 처리 중';
+    saveInput();
     const extra={utterance_id:requestId(),text,is_final:true,mode:captureMode};
     const question=captureQuestion;captureQuestion=null;
     if(question){(async()=>{if(capture.active)await capture.stop();await answerMain(text,{question});})().catch(()=>{});return;}
@@ -363,19 +440,16 @@ bindAsync('record-button',async()=>{
 });
 bindAsync('connect-server',connect);
 async function newCase(){
-  if(handoffPending||handoffFailed||!client){handoffPending=false;handoffFailed=false;recommendationReady=false;resetCase();await connect({forceNew:true});return;}
-  return task(async()=>{capture.abort();capture.stopSpeaking();recommendationReady=false;resetCase();await client.create();message('새 환자 초안을 만들었습니다.');});
+  handoffPending=false;handoffFailed=false;recommendationReady=false;
+  await connect({forceNew:true});
 }
 bindAsync('new-case',newCase);
 bindAsync('handoff-new-case',newCase);
-bindAsync('discard-handoff-text',()=>{if(blocked())return;handoffUnapplied=false;$('transcript-input').value='';message('명령 뒤 미반영 문장을 제외했습니다. 저장된 초안은 변경하지 않았습니다.');controls();});
-bindAsync('load-patient',()=>task(async()=>{
+bindAsync('discard-handoff-text',()=>{if(blocked())return;handoffUnapplied=false;$('transcript-input').value='';saveInput();message('명령 뒤 미반영 문장을 제외했습니다. 저장된 초안은 변경하지 않았습니다.');controls();});
+bindAsync('load-patient',async()=>{
   const id=$('resume-patient').value.trim();if(!/^[\w-]+$/.test(id))throw Error('불러올 환자 ID를 입력하세요.');
-  const patient=await client.api('/api/patients/'+encodeURIComponent(id));
-  resetCase();await client.create(id);currentPatient=patient;renderPatient();
-  recommendationAwaitingSubmit=true;
-  message(patient.state==='WAITING'?'기존 환자의 현재 정보로 같은 이송 ID의 음성 초안을 연결했습니다. 검토 중 환자 원본과 병원 응답은 변경되지 않습니다. 기록과 치료조건을 명시적으로 확인한 뒤 적용하세요.':'기존 환자의 현재 정보로 초안을 연결했습니다. 환자 원본은 변경하지 않았습니다. 목적지가 확정된 환자의 변경은 아래 이송 중 환자정보 변경 검토 화면에서 진행하세요. 일반 환자 등록은 열지 않습니다.');
-}));
+  await connect({patientIdOverride:id,loadExisting:true});
+});
 bindAsync('send-transcript',async()=>{const text=$('transcript-input').value;await write('transcripts',{utterance_id:requestId(),text,is_final:true,mode:$('voice-mode').value});if($('transcript-input').value===text)handoffUnapplied=false;controls();message(handoffUnapplied?'보낸 문장은 반영했습니다. 그동안 검토칸에서 변경한 문장은 아직 미반영입니다.':'문장 내용을 초안에 반영했습니다.');await history();await speakNextQuestion();});
 bindAsync('send-command',async()=>{await task(async()=>{const result=await client.write('commands',{text:$('command-input').value});message('명령을 처리했습니다.');await commandFeedback(result);});await history();});
 $('fields-form').addEventListener('submit',event=>{
@@ -392,7 +466,7 @@ $('fields-form').addEventListener('submit',event=>{
     write('fields',{changes,unset_fields:unset,change_kind:$('change-kind').value},'PATCH').then(()=>{message('수정 내용을 초안에 반영했습니다. 다시 확인해 주세요.');return history();}).catch(()=>{});
   }catch(error){message(error.message,true);}
 });
-if($('discard-fields'))bindAsync('discard-fields',()=>{dirty=false;render();});
+if($('discard-fields'))bindAsync('discard-fields',()=>{dirty=false;render();saveRecovery();});
 bindAsync('undo-button',async()=>{await write('undo');message('직전 변경을 되돌렸습니다.');await history();});
 bindAsync('refresh-session',()=>task(async()=>{await client.sync();await history();message('최신 초안을 불러왔습니다.');}));
 bindAsync('retry-request',()=>task(async()=>{
@@ -401,8 +475,10 @@ bindAsync('retry-request',()=>task(async()=>{
   const retriedSubmit=pending?.method==='POST'&&(pending.path===path+'/submit'||pending.path===path+'/treatment-review/apply');
   const wasUnapplied=handoffUnapplied,pendingText=retriedTranscript?pending.body.text:null;
   const answerJob=mainFollowup?.flow.job;
+  const restoredAnswer=!answerJob&&pending?.path===path+'/followup/answers'?{questionId:pending.body.question_id,text:pending.body.text}:null;
   const result=answerJob?await mainFollowup.flow.retry():await client.retry();
   if(answerJob){if(!result.answer?.accepted&&!result.answer?.unavailable)mainFollowup.deferred.set(answerJob.questionId,answerJob.text);mainFollowup.observe();}
+  if(restoredAnswer){mainFollowup.observe();if(!result.answer?.accepted&&!result.answer?.unavailable)mainFollowup.deferred.set(restoredAnswer.questionId,restoredAnswer.text);else if($('main-answer').value===restoredAnswer.text)$('main-answer').value='';}
   if(wasUnapplied&&retriedTranscript&&$('transcript-input').value===pendingText)handoffUnapplied=false;
   if(retriedSubmit&&result.patient){currentPatient=await client.api('/api/patients/'+encodeURIComponent(result.patient.id));recommendationAwaitingSubmit=false;renderPatient();await candidates();}
   message(handoffUnapplied?(retriedTranscript?'같은 요청으로 보낸 문장의 반영을 확인했습니다. 현재 검토칸의 다른 문장은 아직 미반영입니다.':'같은 요청의 처리 결과를 확인했습니다. 검토칸의 미반영 문장을 확인해 주세요.'):'같은 요청으로 처리 결과를 확인했습니다.');
@@ -456,17 +532,19 @@ bindAsync('treatment-preview',()=>task(async()=>{invalidateTreatment();await tre
 bindAsync('treatment-apply',()=>task(async()=>{const result=await treatmentReview.apply(currentPatient,{confirmed:$('treatment-confirm').checked,allowReduction:$('treatment-reduction').checked,reason:$('treatment-reason').value.trim()});currentPatient=await client.api('/api/patients/'+encodeURIComponent(result.patient.id));recommendationAwaitingSubmit=false;renderPatient();await candidates();$('treatment-status').textContent=result.reevaluation?`재평가 ${result.reevaluation.status} · 워커 ${result.reevaluation.availability?.worker_state||'미확인'} · 목적지 자동 변경 없음`:'';message('확인한 새 관찰과 치료조건을 적용했습니다. 수용 응답과 추천을 진행 화면에서 다시 확인하세요.');}));
 for(const id of ['treatment-confirm','treatment-reduction'])$(id).addEventListener('change',controls);
 $('treatment-mode').addEventListener('change',()=>{invalidateTreatment();controls();});
-bindAsync('use-demo-location',()=>{$('lat').value='35.1595';$('lon').value='126.8526';$('location-status').textContent='광주 시연 좌표 · 실제 GPS 위치가 아닙니다';controls();});
+bindAsync('use-demo-location',()=>{$('lat').value='35.1595';$('lon').value='126.8526';$('location-status').textContent='광주 시연 좌표 · 실제 GPS 위치가 아닙니다';saveInput();});
 bindAsync('gps-button',()=>new Promise((resolve,reject)=>{
   if(!navigator.geolocation){const error=Error('이 브라우저에서 위치를 가져올 수 없습니다. 좌표를 직접 입력하세요.');message(error.message,true);reject(error);return;}
   gpsBusy=true;controls();$('location-status').textContent='현재 위치 확인 중…';
-  navigator.geolocation.getCurrentPosition(position=>{$('lat').value=position.coords.latitude.toFixed(6);$('lon').value=position.coords.longitude.toFixed(6);$('location-status').textContent=`GPS 위치 확인 · 오차 약 ${Math.round(position.coords.accuracy)}m`;gpsBusy=false;controls();resolve();},()=>{message('위치 권한이나 연결을 확인하고 좌표를 직접 입력하세요.',true);gpsBusy=false;controls();reject(Error('위치 확인 실패'));},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+  navigator.geolocation.getCurrentPosition(position=>{$('lat').value=position.coords.latitude.toFixed(6);$('lon').value=position.coords.longitude.toFixed(6);$('location-status').textContent=`GPS 위치 확인 · 오차 약 ${Math.round(position.coords.accuracy)}m`;gpsBusy=false;saveInput();resolve();},()=>{message('위치 권한이나 연결을 확인하고 좌표를 직접 입력하세요.',true);gpsBusy=false;controls();reject(Error('위치 확인 실패'));},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
 }));
-for(const id of ['lat','lon','consent'])$(id).addEventListener('input',controls);
-bindAsync('sample-button',()=>{$('transcript-input').value='65세 남성. 흉통. 호흡곤란 없음. 의식 명료. 혈압 110에 70. 맥박 90. 산소포화도 97. 증상은 20분 전 발생.';message('시연 문장을 넣었습니다. 음성 인식 결과가 아닙니다. 문장 반영을 눌러 시험하세요.');});
+for(const id of ['lat','lon','consent','transcript-input','command-input','main-answer','voice-mode','change-kind','required-capabilities'])$(id).addEventListener('input',saveInput);
+bindAsync('main-recovery-save',()=>{saveRecovery();message('임시 저장 상태를 다시 확인했습니다. 보존한 요청은 명시적으로 재시도하세요.');controls();});
+bindAsync('main-recovery-discard-edits',()=>{recoveryFieldConflict=false;recoveryCopy=null;dirty=false;render();saveRecovery();message('보존한 항목 편집을 제외하고 서버의 최신 기록을 사용합니다. 자동 전송하지 않았습니다.');});
+bindAsync('sample-button',()=>{$('transcript-input').value='65세 남성. 흉통. 호흡곤란 없음. 의식 명료. 혈압 110에 70. 맥박 90. 산소포화도 97. 증상은 20분 전 발생.';saveInput();message('시연 문장을 넣었습니다. 음성 인식 결과가 아닙니다. 문장 반영을 눌러 시험하세요.');});
 function clearLocalAudio(){if(localAudioUrl)URL.revokeObjectURL(localAudioUrl);localAudioUrl=null;localAudioMetadata=null;$('audio-test-download').hidden=true;$('audio-test-metadata').hidden=true;}
 $('audio-test-metadata').addEventListener('click',()=>{if(!localAudioMetadata)return;const url=URL.createObjectURL(new Blob([JSON.stringify(localAudioMetadata,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='voice-input-settings-'+Date.now()+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
-window.addEventListener('pagehide',()=>{capture.abort();capture.stopSpeaking();clearInterval(ticker);clearLocalAudio();});
+window.addEventListener('pagehide',()=>{if(!connecting)try{saveRecovery();}catch(_){}capture.abort();capture.stopSpeaking();clearInterval(ticker);clearLocalAudio();});
 $('server-url').value=params.get('server')||location.origin;
 $('resume-patient').value=params.get('pid')||'';
 $('recording-state').textContent='마이크 꺼짐';

@@ -1,5 +1,9 @@
 # 응급환자 병원 연결 시스템
 
+## 구급대 화면 대기 작업 통합
+
+메인 입력·미확인 요청 복구, Quick의 800ms 명령 보류, 원본·RNNoise 비교 도구의 범위와 실행법은 [통합 안내](docs/PARAMEDIC_PENDING_INTEGRATION_20261102.md)를 참고합니다. 잡음 비교는 선택형 도구이며 기본 STT 전처리는 변경하지 않습니다.
+
 ## dev1 · dev2 개발 시작 — 2026-11-02
 
 오늘부터 작업하는 화면 담당자는 [최신 핸드오프](docs/team-handoff/20261102/README.md)를 먼저 읽습니다. [dev1 구급대원 화면](docs/team-handoff/20261102/dev1/README.md)과 [dev2 병원 웹](docs/team-handoff/20261102/dev2/README.md)에 현재 구현·첫 작업·연결 API·완료 기준·각자 GPT/Claude에 전달할 시작 프롬프트를 정리했습니다. 새 PC의 실행 방법과 main/로컬 전용 기능 차이는 이 핸드오프를 우선합니다.

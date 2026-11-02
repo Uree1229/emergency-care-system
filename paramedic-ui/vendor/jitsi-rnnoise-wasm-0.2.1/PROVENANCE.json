@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "package": "@jitsi/rnnoise-wasm",
+  "version": "0.2.1",
+  "packageSource": "https://github.com/jitsi/rnnoise-wasm",
+  "gitCommit": "cb529a59a8478fe604e57986fc96afdaecfa6fb7",
+  "tarball": "https://registry.npmjs.org/@jitsi/rnnoise-wasm/-/rnnoise-wasm-0.2.1.tgz",
+  "tarballIntegrity": "sha512-iEj77www43pS2Yq+cfLZb+hFuI7L5ccisBzzPMcOjjLsG4/LAlkD1CY58/8gc84nHdLBGmD/OPIWGnvYnXvB0A==",
+  "tarballSha1": "55b1991e5b66de57e730eeaf91a7b1846e005eda",
+  "rnnoiseSource": "https://github.com/xiph/rnnoise",
+  "rnnoiseCommit": "372f7b4b76cde4ca1ec4605353dd17898a99de38",
+  "runtimeAsset": "rnnoise-sync.mjs",
+  "upstreamRuntimeAsset": "package/dist/rnnoise-sync.js",
+  "runtimeModification": "File extension only: .js to .mjs. File contents are byte-identical to npm artifact; embedded WASM is unchanged.",
+  "embeddedWasmBytes": 1440118,
+  "embeddedWasmSha256": "4f513a50613de74378331237886138eab52fa2650e8b1a41eb587d932d9b8850",
+  "files": {
+    "build.upstream.sh": {
+      "bytes": 2496,
+      "sha256": "c17402b868dc40c8c925039d96b6b970e172aff755eb2030e4271eef0576833d"
+    },
+    "COPYING.rnnoise.txt": {
+      "bytes": 1612,
+      "sha256": "45d37ca1cdb278c088e1aa85e0e65ca3a534ed86a28dcc96ca16810248a61d35"
+    },
+    "denoise.upstream.c": {
+      "bytes": 13609,
+      "sha256": "a7759a51af88381d135ed90f6e73919a6f9540845e437749758f6f0dc608e4c4"
+    },
+    "denoise.upstream.h": {
+      "bytes": 2284,
+      "sha256": "3ea8149b47b51b76a1eef308cc38168731693b74ed3f64330b55583f92dcc071"
+    },
+    "gitmodules.upstream.txt": {
+      "bytes": 81,
+      "sha256": "8bb4ce9623431f669829744c0f006c7656e190814184432babf629cd5021821e"
+    },
+    "LICENSE.apache-2.0.txt": {
+      "bytes": 12588,
+      "sha256": "4646d0ab74a05730f8b3b12b6376ddccb7f0905ee5b69265b3d873b97ace3e94"
+    },
+    "package.upstream.json": {
+      "bytes": 790,
+      "sha256": "2f210b224b46b72bc621c7957ae4827d452d07f0855c32536f7f1fa499f16895"
+    },
+    "README.upstream.md": {
+      "bytes": 2837,
+      "sha256": "e14388dd45d89ee09976ffce618aeb62c9c8d52908e42941b6f388d128f4b66e"
+    },
+    "rnnoise-sync.mjs": {
+      "bytes": 1933102,
+      "sha256": "05a553f523d59502d133a6d05dbf1878137c9e7bcff06edf5561f7001b62f95f"
+    },
+    "rnnoise.upstream.h": {
+      "bytes": 3817,
+      "sha256": "424d75212a781147f40666f511309d1c054d946eca44af2de4cd1b3346f09276"
+    },
+    "NOTICE.local.txt": {
+      "bytes": 2182,
+      "sha256": "f933b458c10b5218c18020ccfedd3f5830c21dd0fc5298d9f7571a2a6e8fc9f9"
+    }
+  }
+}

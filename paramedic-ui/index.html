@@ -64,6 +64,14 @@
           <button id="retry-request" type="button" class="button button-secondary" hidden>같은 요청 다시 시도</button>
         </div>
 
+        <section class="session-bar" aria-label="같은 탭의 기록 복구">
+          <div><strong>같은 탭의 임시 복구</strong><p>같은 탭에서 입력과 미확인 요청을 이어갑니다.</p><p id="main-recovery-status" role="status"></p>
+          <details><summary>임시 보관 범위·복구 한계</summary><p class="help-text">이 브라우저 원점의 현재 탭에 입력 원문·항목 편집·좌표·동의와 정확한 미확인 요청을 보관합니다. Azure 녹음 전송 요청에는 음원이 포함될 수 있으며 성공 또는 확정된 오류 후 미확인 요청에서 제거합니다. 저장본 하나당 최대 4 MiB, 마지막 저장 후 12시간이며 만료 후 복원하지 않습니다. 만료는 자동 복원만 차단하므로 저장 매체에서 지우려면 탭을 닫거나 사이트 데이터를 삭제하세요. 서버의 환자 전체 기록·로컬 WAV 다운로드·녹음 중 음성은 보관하지 않습니다. 새 탭·다른 기기·탭 종료 후 복원과 여러 탭 간 경합 방지는 보장하지 않습니다. 공용 기기에서는 사용 후 탭을 닫고 브라우저의 사이트 데이터를 지우세요.</p></details>
+          <button id="main-recovery-save" type="button" class="button button-secondary button-small" hidden>임시 저장 다시 확인</button>
+          <textarea id="main-recovery-copy" rows="6" aria-label="자동 적용하지 않은 보존 편집 원본" readonly hidden></textarea>
+          <button id="main-recovery-discard-edits" type="button" class="button button-secondary button-small" hidden>보존 편집을 제외하고 서버 최신 기록 사용</button></div>
+        </section>
+
         <section id="recommendation-prep" class="recommendation-prep" aria-labelledby="recommendation-title" hidden>
           <h2 id="recommendation-title">저장한 초안으로 병원 추천 준비</h2>
           <p id="recommendation-status" role="status"></p>

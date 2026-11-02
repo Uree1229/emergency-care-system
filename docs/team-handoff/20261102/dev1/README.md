@@ -1,6 +1,6 @@
 # dev1 · 구급대원 화면 인수인계
 
-작성일: 2026-11-02. 기준 소스: clean main `cef0230`. 이 문서는 해당 체크아웃의 코드 읽기 결과이며, 새로 시험을 실행해 PASS를 확인한 보고서는 아니다. 공용 작업 폴더의 미공개 변경과 과거 로컬 실행 묶음을 현재 main의 구현으로 간주하지 않는다.
+작성일: 2026-11-02. 기준 소스: main `580460a` 기반 구급대원 UI 후속 변경 포함. 실제 체크아웃과 PR 병합 여부를 먼저 확인한다. 이 문서의 기능 목록은 코드 설명이며 실제 마이크·휴대폰·임상 성능 PASS 보고가 아니다. 공용 폴더의 다른 미공개 변경과 과거 로컬 실행 묶음을 현재 소스에 있다고 가정하지 않는다.
 
 - 먼저 읽기: [공통 안내](../README.md), [공통 실행](../COMMON_RUNTIME.md), [현재 상태](../CURRENT_STATE.md).
 - 새 AI에 전달할 시작 지시: [AI_START.md](AI_START.md).
@@ -27,10 +27,12 @@
 
 | 화면·파일 | 현재 구현과 읽을 위치 |
 |---|---|
-| `/paramedic/` · [app.js](../../../../paramedic-ui/app.js) | `connect`, `load-patient`(372~377행), `submit-button`(416~422행), `renderPatient`(423~430행), `candidates`(431행 이후). 신규 등록과 같은 환자 진행 링크가 연결됨 |
+| `/paramedic/` · [app.js](../../../../paramedic-ui/app.js) | `connect`, `load-patient`, `submit-button`, `renderPatient`, `candidates`. 신규 등록·같은 환자 진행 링크와 같은 탭의 미저장 입력·불확실 요청 복구가 연결됨 |
+| [main-recovery.mjs](../../../../paramedic-ui/main-recovery.mjs) | 같은 탭의 12시간 복구본, 쓰기 전 원요청 보존, GET 우선 복원·명시 정확 재시도. 저장 오류·범위/편집 버전 충돌 시 새 쓰기를 차단 |
 | [main-followup.mjs](../../../../paramedic-ui/main-followup.mjs) | `MainFollowup.answer`: 최신 질문 답변, 미측정, 로컬 검토 보류. `patientNavigation`: 같은 서버·환자·작업자 링크 |
 | [main-treatment-review.mjs](../../../../paramedic-ui/main-treatment-review.mjs) | `requireWaiting`, `load`, `preview`, `apply`: WAITING의 같은 환자·세션, 두 버전·토큰·확인·조건 감소 검토 |
-| `/paramedic/quick-test.html` · [quick-test.js](../../../../paramedic-ui/quick-test.js) | 토글/PTT, 긴 발화, 중간 명령, 환자별 복구·복창·인계 요약·이력. 실제 등록은 메인의 같은 초안으로 이어감 |
+| `/paramedic/quick-test.html` · [quick-test.js](../../../../paramedic-ui/quick-test.js) | 토글/PTT, 긴 발화, 중간 명령, 환자별 복구·복창·인계 요약·이력. 기본 800ms 후속 인식 보류·버튼 전용 관찰·명령 이벤트 JSON. 실제 등록은 메인의 같은 초안으로 이어감 |
+| [noise-compare.html](../../../../paramedic-ui/noise-compare.html) | 원본 보존·같은 입력 RNNoise 전후 로컬 A/B·수동 인식문·ZIP. 업무 STT의 기본 전처리가 아님 |
 | `/patient/` · [app.js](../../../../patient-ui/app.js) | `intake-form` 등록(232~241행), 문의·사람 확정·출발·조건 감시·위치·취소(245~259행), `readConversation`, `submitMessage` |
 | [workflow-state.mjs](../../../../patient-ui/workflow-state.mjs) | `PatientWorkflow`: 추천/input-review, 명시 재계산, 중요 사건 페이지·복귀·수신·확인 |
 | [workflow-view.mjs](../../../../patient-ui/workflow-view.mjs) | `observeVisibleEvents`: 문서와 해당 행의 실제 노출 뒤 수신 처리 |
@@ -62,7 +64,7 @@
 ## 4. 보존할 오류·식별자 계약
 
 - [VoiceClient](../../../../paramedic-ui/voice-client.mjs)의 `execute`, `write`, `retry`는 요청 직렬화와 원래 `client_request_id`·본문·`expected_version` 재사용을 구현한다. 응답 유실·잘못된 응답·5xx로 결과가 불확실하면 새 쓰기를 막고, 중복 성공 뒤 최신 GET까지 확인한다. 이를 일반 재POST로 단순화하지 않는다.
-- 409는 최신 초안·질문을 다시 읽는 계기이며 과거 본문을 자동 덮어쓰는 신호가 아니다. `quick-test.js`의 `failure`(838~848행), 메인 `task`의 충돌 처리(233행)를 확인한다.
+- 409는 최신 초안·질문을 다시 읽는 계기이며 과거 본문을 자동 덮어쓰는 신호가 아니다. `quick-test.js`의 `failure`, 메인 `task`와 `main-recovery.mjs`의 편집 버전 검사를 유지한다. 메인 음성 요청 복구가 `/patient/` 수동 등록·채팅의 복구까지 대신하지는 않는다.
 - `patient-ui/app.js`의 `submitMessage`(204~224행)는 원래 `client_message_id`·본문·`hospital_session_id`를 보존한다. 참여 병원 변경 뒤 자동으로 새 병원에 재전송하지 않는다. 종료 후에도 이미 전송했으나 결과가 불확실한 요청의 정확한 재시도와 새 메시지를 구분한다.
 - 채팅 사건/메시지 커서는 독립이다. 모든 `has_more`를 읽고 ID로 합친다. POST 성공 항목을 합쳐도 GET 커서를 임의로 앞당기지 않는다.
 - 중요 사건은 GET 성공만으로 `delivered`를 쓰지 않는다. 문서·행 노출 뒤 수신, 사용자의 버튼 뒤 `acknowledge`다. 다른 환자·서버·작업자·화면 세대의 늦은 응답을 버린다.
@@ -97,11 +99,13 @@
 
 완료 기준: 등록된 같은 환자·작업자의 입력/진행 확인/대화 같은 실제 작업에 시작·종료를 연결하고, 원래 `client_activity_id` 재시도, 열린 활동 복원, 다른 범위 종료 차단, 반복 종료의 시간 불변을 검증한다. 창이 열려 있다는 이유만으로 활동을 시작하지 않는다. 서버는 등록된 pid가 필요하므로 등록 전 총 입력시간은 별도 사용성 측정으로 구분하고 서버 시각을 소급 작성하지 않는다. 임상 본문을 계측 추가 필드로 보내지 않는다.
 
-### 별도 판단 항목 · 800ms 명령 보류
+### 보존할 후속 기능 · 메인 복구·800ms·잡음 비교
 
-`command-commit.mjs`의 `CommandCommitGate` 기본 800ms는 `command-practice.js:7,102~106`의 연습 화면에서 사용한다. `command-practice.html:59`도 검증된 최적값이 아니라고 명시한다. 업무 quick은 `findVoiceTrigger` 결과 직후 `finish('voice')`를 호출한다(`quick-test.js:911~919`).
+이번 소스에는 `main-recovery.mjs`와 메인 연결이 있다. 같은 탭의 원래 요청·버전·입력창을 보존하고 GET부터 복원한다. 자동 재전송하거나 조회 실패를 새 빈 초안으로 바꾸지 않는다. 12시간 유효기간·저장 실패 차단·편집 충돌 원본 유지 경계를 보존한다. 다른 기기 복원이나 영구 의료기록 보관 기능은 아니다.
 
-업무 화면 적용은 아직 완료된 기능이 아니다. 적용하려면 부정·인용·시간 문맥·후속 조각·종료/추천/환자 전환·지연 결과의 공유 의미를 조율하고 별도 오탐 회귀를 둔다. 연습용 수치만으로 업무 UI를 자동 교체하지 않는다.
+`CommandCommitGate`는 연습과 업무 Quick 모두에서 사용한다. Quick 기본은 후속 인식 800ms 보류, 버튼 전용은 관찰 모드다. 부정·인용·시각 설명·후속 임시 조각·자연 종료·버튼 종료·환자 전환·늦은 인식 회귀를 유지한다. 800ms는 STT 결과 수신 기준의 실험값이며 실제 무음·발화 완료 검출이나 최적값 검증이 아니다. 이벤트 JSON은 화면 메모리에서 명시 내보내기하며 임상 정보가 포함될 수 있으므로 공유 전 확인한다.
+
+`noise-compare.html`은 선택형 로컬 RNNoise A/B 도구다. 원본과 기존 보관함을 보존하며 처리본을 업무 STT에 자동 전달하지 않는다. 음질·신호 지표와 인식·의료 정확도를 구분한다. 이 세 기능이 D01 수동 등록과 D02 채팅 복구를 완료한 것은 아니며 두 P0를 그대로 진행한다.
 
 ## 6. 시험과 종료 보고
 
@@ -112,6 +116,7 @@ python scripts/test_suites.py list
 python scripts/test_suites.py core
 node --test test_paramedic_voice_client.mjs test_paramedic_main_workflow.mjs test_patient_workflow_state.mjs test_patient_workflow_view.mjs test_patient_workflow_transport_change_retry.mjs
 node --test test_paramedic_command_commit.mjs test_paramedic_command_practice_page.mjs test_paramedic_quick_page.mjs
+node --test test_paramedic_main_recovery_20261031.mjs test_paramedic_local_audio_page.mjs test_paramedic_noise_suppression.mjs test_paramedic_noise_compare_page.mjs
 python -m unittest test_server test_voice_api test_voice_treatment_review_http test_work_activity test_backend_measurement_api -v
 ```
 

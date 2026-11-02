@@ -1,0 +1,5 @@
+# Optional offline synthetic paired ASR experiment; not a server dependency.
+faster-whisper==1.2.1
+ctranslate2==4.8.4
+av==16.0.1
+scipy==1.16.2
