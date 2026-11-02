@@ -132,3 +132,6 @@ server/treatment_data.py -text
 server/worker.py -text
 simulation/observed_inquiry.py -text
 solver_improved.py -text
+
+# Keep vendored RNNoise bytes identical to the upstream provenance hashes.
+paramedic-ui/vendor/jitsi-rnnoise-wasm-0.2.1/** -text

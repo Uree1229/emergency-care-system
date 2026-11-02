@@ -76,6 +76,17 @@ class ReadingStudioStaticHttp(unittest.TestCase):
             with self.subTest(name=name):
                 self.asset(name, 'text/javascript')
 
+    def test_noise_comparison_and_recovery_dependencies_are_served_without_a_build(self):
+        html = self.asset('noise-compare.html', 'text/html').decode('utf-8')
+        self.assertIn('noise-compare.js', html)
+        self.asset('noise-compare.css', 'text/css')
+        for name in (
+            'noise-compare.js', 'noise-suppression.mjs', 'main-recovery.mjs',
+            'vendor/jitsi-rnnoise-wasm-0.2.1/rnnoise-sync.mjs',
+        ):
+            with self.subTest(name=name):
+                self.asset(name, 'text/javascript')
+
     def test_nested_svg_masks_are_served_as_images(self):
         for name in (
             'microphone-fill.svg', 'microphone.svg', 'gear-six.svg', 'archive.svg',

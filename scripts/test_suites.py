@@ -35,6 +35,7 @@ CORE_PREFIXES = (
     'test_recommendation_contract', 'test_system_status', 'test_inquiry_workflow',
     'test_allocation_input_review', 'test_allocation_baseline', 'test_audio_noise_benchmark',
     'test_work_activity', 'test_resource_accounting', 'test_demo_casebook', 'test_source_hash',
+    'test_noise_pair_asr',
 )
 # Core tests that read git-ignored data; they fail on a fresh clone by construction.
 LOCAL_DATA = {'test_server_replay_adapter', 'test_server_replay_regression', 'test_demo_casebook_20261030'}

@@ -1,6 +1,6 @@
 # 공통 실행 환경과 통신 계약
 
-기준: **2026-11-02, main 소스 `cef023058a23c08afd138923cd99a529f0551690`**. 이 문서는 dev1/dev2가 Git으로 받은 소스에서 로컬 UI 개발을 시작하는 절차다. 고정 배포 ZIP과 로컬 v1.4 추가 API는 별도다.
+기준: **2026-11-02, main `580460a` 기반 구급대원 UI 후속 소스 포함**. 실제 체크아웃과 해당 PR 병합 여부를 확인한다. 이 문서는 dev1/dev2가 Git으로 받은 소스에서 로컬 UI 개발을 시작하는 절차다. 고정 배포 ZIP과 로컬 v1.4 추가 API는 별도다.
 
 ## 1. 먼저 각자 PC에서 실행
 
@@ -51,6 +51,8 @@ python -m server.chat_demo --db data/dev2-ui-20261102.db --port 18021
 | 대상 | 주소 |
 | --- | --- |
 | 구급대원 입력 | <http://127.0.0.1:18020/paramedic/> |
+| Quick 음성 기록 | <http://127.0.0.1:18020/paramedic/quick-test.html> |
+| 선택형 잡음 A/B 비교 | <http://127.0.0.1:18020/paramedic/noise-compare.html> |
 | 환자·이송 진행 | <http://127.0.0.1:18020/patient/> |
 | 병원 H01 | <http://127.0.0.1:18020/hospital/?hid=H01> |
 | 병원 H04 | <http://127.0.0.1:18020/hospital/?hid=H04> |
@@ -102,6 +104,8 @@ python -m server.app --db data/voice-dev1-20261102.db --port 8000 --no-planner -
 
 `/paramedic/quick-test.html` 또는 `/paramedic/command-practice.html`을 연다. dev2는 DB 이름을 바꾼다. 이 명령은 **문의·배정 워커 모두 OFF**이며 `--seed`를 붙이지 않는다. [긴 문장 음성 시험 안내](../../TEAM_VOICE_TEST_GUIDE_20261031.md)를 따른다. 실제 브라우저 음성 인식은 브라우저·인터넷·권한에 따라 달라진다. 키 없는 텍스트 API 시험을 실제 마이크 성공으로 기록하지 않는다.
 
+메인의 미저장 입력·불확실 요청 복구는 같은 탭의 `sessionStorage`를 사용하며 자동 재전송하지 않는다. Quick은 기본 800ms 후속 인식 보류와 버튼 전용 관찰을 제공한다. 이 값은 실험 설정이지 검증된 최적값이 아니다. `noise-compare.html`은 원본과 RNNoise 처리본을 로컬에서 비교하는 선택형 도구이며 업무 STT에 처리본을 자동 연결하지 않는다.
+
 `server.app` 일반 실행은 환경에 카카오 키가 있으면 외부 길찾기를 사용할 수 있다. 병원 연결 UI 연습은 외부 길찾기가 명시적으로 꺼진 1번 `chat_demo`를 사용한다. Azure 음성은 서버 설정이 있는 별도 경로이며 키를 UI 코드·Git에 넣지 않는다.
 
 ## 6. 이후 공통 full 서버 연결은 중앙 서버 담당자와 진행
@@ -137,7 +141,7 @@ python -m server.team_runtime serve --db data/team-common-20261102.db --port 180
 python scripts/test_suites.py list
 ```
 
-현재 분류는 Python core 86개 모듈, Node 33개 파일, local-data 3개 모듈, research 454개 모듈이다. core 전체는 위 고정 Python·SQLite·OR-Tools 환경과 **Node 24**에서 실행한다.
+분류와 개수는 위 `list` 명령의 실제 출력으로 확인한다. 새 테스트가 추가되므로 과거 개수를 완료 근거로 복사하지 않는다. core 전체는 위 고정 Python·SQLite·OR-Tools 환경과 **Node 24**에서 실행한다.
 
 ```powershell
 node --version
@@ -151,7 +155,7 @@ python scripts/test_suites.py core --node $teamNode
 
 ## 8. 이번 문서 작성 중 확인한 범위
 
-2026-11-02, 위 기준 커밋에서 Python **3.14.3 / SQLite 3.50.4**, OR-Tools 미설치 상태로 격리된 `chat_demo`를 기동했다. 공통 full의 고정 환경 검증 결과가 아니다.
+2026-11-02, 이번 UI 후속 변경 전 main의 문서 작성 기준(`cef0230`)에서 Python **3.14.3 / SQLite 3.50.4**, OR-Tools 미설치 상태로 격리된 `chat_demo`를 기동했다. 이 절은 당시 실행 기록이며 이번 UI 수정의 회귀 결과를 대신하지 않는다. 공통 full의 고정 환경 검증 결과가 아니다.
 
 실제 실행 명령은 저장소 루트에서 다음과 같았다. 아래 절대 경로는 이 PC의 검증 기록이며 다른 PC에 복사할 설치 경로가 아니다. 각자의 개발 실행에는 1번 명령을 사용한다.
 
