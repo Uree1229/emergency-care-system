@@ -1,5 +1,9 @@
 # 응급환자 병원 연결 시스템
 
+## dev2 음성 개선 인계
+
+현재 시연본의 [음성인식 적용 기능](docs/VOICE_CURRENT_FEATURES_DEV2_20261103.md)과 [개선 노력과 검증 결과](docs/VOICE_IMPROVEMENT_EFFORTS_DEV2_20261103.md)를 먼저 확인하세요. 시연 실행본과 Git 코드의 기능 차이, 미적용 기능, 실제 음성 시험으로 남은 작업을 구분했습니다.
+
 ## 음성 문맥과 복수 후보 검토
 
 긴 보고의 복수 인식 후보 비교, 수치·부정 충돌의 항목별 재확인, API와 한계는 [문맥 검토 안내](docs/VOICE_RECOGNITION_CONTEXT_20261103.md)를 참고합니다.
