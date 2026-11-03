@@ -1,5 +1,6 @@
 /** Explicitly retained text and retry references only; no audio or clinical auto-apply. */
 import {normalizeCorrection} from './quick-session.mjs';
+import {normalizeRecognitionAlternatives} from './recognition-context.mjs';
 export const RECOVERY_KEY = 'paramedic.voice.quick-recovery.v1';
 const TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_BYTES = 128 * 1024;
@@ -99,7 +100,7 @@ function validatePending(pending,payload){
     keys(request.body,['actor_id','client_request_id']);
   }else{
     if(payload.sessionId===null)fail();
-    keys(request.body,correct?['actor_id','client_request_id','expected_version','changes','unset_fields','change_kind']:transcript?['actor_id','client_request_id','expected_version','text','mode','utterance_id','is_final']:['actor_id','client_request_id','expected_version','question_id','profile','utterance_id','text'],answer?['unavailable']:[]);
+    keys(request.body,correct?['actor_id','client_request_id','expected_version','changes','unset_fields','change_kind']:transcript?['actor_id','client_request_id','expected_version','text','mode','utterance_id','is_final']:['actor_id','client_request_id','expected_version','question_id','profile','utterance_id','text'],correct?[]:[...(answer?['unavailable']:[]),'recognition_alternatives']);
     integer(request.body.expected_version,1);if(request.body.expected_version>payload.version)fail();
     if(correct){
       normalizeCorrection({changes:request.body.changes,unset_fields:request.body.unset_fields});
@@ -113,12 +114,14 @@ function validatePending(pending,payload){
   }
   identifier(request.body.actor_id,80);identifier(request.body.client_request_id);
   if(request.body.actor_id!==payload.actorId)fail();
-  keys(job,correct?['phase','changes','unsetFields']:answer?['text','questionId','utteranceId','phase']:['text','mode','utteranceId','phase']);
+  keys(job,correct?['phase','changes','unsetFields']:answer?['text','questionId','utteranceId','phase']:['text','mode','utteranceId','phase'],correct?[]:['recognitionAlternatives']);
   if(job.phase!==(create?'create':correct?'correct':answer?'answer':'write'))fail();
   if(correct){
     normalizeCorrection({changes:job.changes,unset_fields:job.unsetFields});
     if(JSON.stringify(job.changes)!==JSON.stringify(request.body.changes)||JSON.stringify(job.unsetFields)!==JSON.stringify(request.body.unset_fields))fail();
-  }else{text(job.text,4000,true);identifier(job.utteranceId);}
+  }else{text(job.text,4000,true);identifier(job.utteranceId);
+    if(Object.hasOwn(job,'recognitionAlternatives'))normalizeRecognitionAlternatives(job.text,job.recognitionAlternatives);
+    if(!create&&JSON.stringify(job.recognitionAlternatives)!==JSON.stringify(request.body.recognition_alternatives))fail();}
   if(answer){identifier(job.questionId);if(job.questionId!==request.body.question_id)fail();}
   else if(!correct&&!MODES.includes(job.mode))fail();
   if(create&&job.mode==='command')fail();

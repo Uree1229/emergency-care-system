@@ -1,5 +1,6 @@
 /** A long utterance is one API operation; partial STT fragments never edit a draft. */
 import {requestId} from './voice-client.mjs';
+import {normalizeRecognitionAlternatives} from './recognition-context.mjs';
 
 export const FOLLOWUP_PROFILE = 'voice_extended_v1';
 const MODES = ['auto', 'dictation', 'command'];
@@ -85,11 +86,12 @@ function validateRecovery(snapshot, client) {
   shape(pending, ['path', 'method', 'body']);
   identifier(client.actorId, 80);
   const answer = job.phase === 'answer', correct = job.phase === 'correct';
-  shape(job, correct ? ['phase','changes','unsetFields'] : answer ? ['text', 'questionId', 'utteranceId', 'phase'] : ['text', 'mode', 'utteranceId', 'phase']);
+  shape(job, correct ? ['phase','changes','unsetFields'] : answer ? ['text', 'questionId', 'utteranceId', 'phase'] : ['text', 'mode', 'utteranceId', 'phase'], correct ? [] : ['recognitionAlternatives']);
   if (!['create', 'write', 'answer','correct'].includes(job.phase) || pending.method !== (correct ? 'PATCH' : 'POST')) throw invalidRecovery();
   if (correct) normalizeCorrection({changes:job.changes,unset_fields:job.unsetFields});
   else {
     recoveryText(job.text);identifier(job.utteranceId);
+    if(Object.hasOwn(job,'recognitionAlternatives'))normalizeRecognitionAlternatives(job.text,job.recognitionAlternatives);
     if (answer) identifier(job.questionId);
     else if (!MODES.includes(job.mode)) throw invalidRecovery();
   }
@@ -106,7 +108,7 @@ function validateRecovery(snapshot, client) {
     const suffix = correct ? 'fields' : answer ? 'followup/answers' : 'transcripts';
     if (pending.path !== `/api/voice/sessions/${encodeURIComponent(session.id)}/${suffix}`) throw invalidRecovery();
     shape(body, correct ? [...common,'expected_version','changes','unset_fields','change_kind'] : [...common, 'expected_version', 'text', 'utterance_id',
-      ...(answer ? ['question_id', 'profile'] : ['mode', 'is_final'])], answer ? ['unavailable'] : []);
+      ...(answer ? ['question_id', 'profile'] : ['mode', 'is_final'])], correct ? [] : [...(answer ? ['unavailable'] : []),'recognition_alternatives']);
     positiveVersion(body.expected_version);
     // A retry may use an older version because idempotency is checked before
     // version conflicts. Never replace it with the freshly loaded version.
@@ -116,6 +118,7 @@ function validateRecovery(snapshot, client) {
       if (body.change_kind !== 'correction' || JSON.stringify(body.changes) !== JSON.stringify(job.changes) ||
           JSON.stringify(body.unset_fields) !== JSON.stringify(job.unsetFields)) throw invalidRecovery();
     } else if (body.text !== job.text || body.utterance_id !== job.utteranceId) throw invalidRecovery();
+    if(!correct && JSON.stringify(body.recognition_alternatives)!==JSON.stringify(job.recognitionAlternatives))throw invalidRecovery();
     if (answer) {
       if (body.question_id !== job.questionId || body.profile !== FOLLOWUP_PROFILE ||
           (Object.hasOwn(body, 'unavailable') && body.unavailable !== true)) throw invalidRecovery();
@@ -150,12 +153,13 @@ export class QuickSession {
     this.job = restored.job;
     return clone(restored);
   }
-  async apply(text, mode = 'dictation') {
+  async apply(text, mode = 'dictation', {recognitionAlternatives} = {}) {
     if (this.job) throw new Error('진행 중인 요청을 먼저 확인하세요.');
     if (!MODES.includes(mode)) throw new Error('지원하지 않는 말하기 모드입니다.');
     checkText(text);
     if (mode === 'command' && !this.client.session) throw new Error('환자 상태를 먼저 말해 주세요.');
-    this.job = {text, mode, utteranceId: this.makeId(), phase: this.client.session ? 'write' : 'create'};
+    const context=recognitionAlternatives===undefined?{}:{recognitionAlternatives:normalizeRecognitionAlternatives(text,recognitionAlternatives)};
+    this.job = {text, mode, utteranceId: this.makeId(), phase: this.client.session ? 'write' : 'create',...context};
     try {
       if (this.job.phase === 'create') await this.client.create();
       return await this._write();
@@ -166,25 +170,28 @@ export class QuickSession {
   }
   async _write() {
     this.job.phase = 'write';
-    const {text, mode, utteranceId} = this.job;
+    const {text, mode, utteranceId, recognitionAlternatives} = this.job;
     // Even submit commands only reach the transcript endpoint, never /submit.
     const result = await this.client.write('transcripts', {
       text, mode, utterance_id: utteranceId, is_final: true,
+      ...(recognitionAlternatives===undefined?{}:{recognition_alternatives:recognitionAlternatives}),
     });
     this.job = null;
     return result;
   }
   /** Answer only the question the server offered; the server re-checks it against the current version. */
-  async answer(question, text, {unavailable = false} = {}) {
+  async answer(question, text, {unavailable = false, recognitionAlternatives} = {}) {
     if (this.job) throw new Error('진행 중인 요청을 먼저 확인하세요.');
     if (!this.client.session) throw new Error('환자 상태를 먼저 말해 주세요.');
     if (!question?.id) throw new Error('답할 확인 질문이 없습니다.');
     checkText(text);
-    this.job = {text, questionId: question.id, utteranceId: this.makeId(), phase: 'answer'};
+    const context=recognitionAlternatives===undefined?{}:{recognitionAlternatives:normalizeRecognitionAlternatives(text,recognitionAlternatives)};
+    this.job = {text, questionId: question.id, utteranceId: this.makeId(), phase: 'answer',...context};
     try {
       const result = await this.client.write('followup/answers', {
         question_id: question.id, profile: FOLLOWUP_PROFILE, utterance_id: this.job.utteranceId, text,
         ...(unavailable ? {unavailable: true} : {}),
+        ...(recognitionAlternatives===undefined?{}:{recognition_alternatives:context.recognitionAlternatives}),
       });
       this.job = null;
       return result;
