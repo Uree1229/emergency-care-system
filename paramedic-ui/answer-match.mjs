@@ -8,10 +8,23 @@ const squeeze = text => String(text || '').toLowerCase().replace(/[\s.,!?~·'"�
 // answers only, and never when a number is present, so a spoken value is not turned into "unmeasured".
 const UNAVAILABLE = /[미비및]측정?|[미비]확인|(?:측정|확인)(?:불가|못|안)|(?:못|안)(?:쟀|재|잼|잰|측정)|모르겠|모름|몰라|모르는|패스|pass|스킵|skip|넘어가|넘겨|건너뛰|나중에/;
 const NUMERAL = /[0-9]|[일이삼사오육칠팔구십백]{2,}/;
+// A scope-changing instruction must be a complete, explicit request. Never
+// expand a damaged word (e.g. "무릎") or a quoted/negated phrase into a command.
+const NOT_UNAVAILABLE = /[?？"'“”‘’]|아니|않|말아|말고|마세요|마라|하지마|하지말|취소|라고|라는|라면|이면|경우|가정|예시|연습|뜻|인지/;
+const REMAINING_UNAVAILABLE = /^(?:(?:남은|나머지|빠진|미입력)(?:항목|질문|정보)?(?:은|는|을|를)?(?:전부|모두|다)*|(?:항목|질문|정보)(?:은|는|을|를)?(?:전부|모두|다)+|(?:전부|모두|다)+)(?:미확인|미측정|모름|모르겠어요|모르겠습니다|몰라요)(?:(?:으로|로)?(?:다)?(?:처리|기록|남기|남겨|해)(?:해줘|해주세요|줘|주세요|둘게요|둘게|둬|둬요)?|입니다|이에요|이요|요)?$/;
+
+export function isRemainingUnavailableAnswer(text) {
+  const raw = String(text || '');
+  const value = squeeze(raw);
+  return value.length <= 48 && !NOT_UNAVAILABLE.test(raw.replace(/\s/g,'')) &&
+    !NUMERAL.test(value) && REMAINING_UNAVAILABLE.test(value);
+}
 
 export function isUnavailableAnswer(text) {
   const value = squeeze(text);
-  return value.length > 0 && value.length <= 16 && !NUMERAL.test(value) && UNAVAILABLE.test(value);
+  const scoped = /^(?:남은|나머지|빠진|미입력|항목|질문|정보|전부|모두|다모름|다미확인|다미측정)/.test(value);
+  return !scoped && !NOT_UNAVAILABLE.test(String(text||'').replace(/\s/g,'')) &&
+    value.length > 0 && value.length <= 16 && !NUMERAL.test(value) && UNAVAILABLE.test(value);
 }
 
 // [strong, weak] shapes per question. Digits beat Korean number words, which STT also produces
@@ -30,7 +43,7 @@ const SHAPES = {
 
 /** 2: clearly answer-shaped (or "not measured"), 1: only Korean number words, 0: no fit. Ranking only. */
 function fitLevel(question, text) {
-  if (isUnavailableAnswer(text)) return 2;
+  if (isUnavailableAnswer(text) || isRemainingUnavailableAnswer(text)) return 2;
   const [strong, weak] = SHAPES[question?.id] || [];
   const value = squeeze(text);
   return strong?.test(value) ? 2 : weak?.test(value) ? 1 : 0;

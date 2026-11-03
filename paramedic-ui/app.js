@@ -5,6 +5,7 @@ import {readDraftHandoff,clearDraftHandoff} from './draft-handoff.mjs';
 import {MainFollowup,patientNavigation} from './main-followup.mjs';
 import {MainTreatmentReview} from './main-treatment-review.mjs';
 import {MainRecovery,findMainRecovery,emptyMainInput} from './main-recovery.mjs';
+import {initStagedReview,canReturnToConversation} from './staged-review.mjs';
 
 const $ = id => document.getElementById(id);
 const labels = {age:'나이',age_group:'연령대',sex:'성별',symptoms:'확인된 증상',denied_symptoms:'없다고 확인한 증상',uncertain_symptoms:'미확인·의심 증상',consciousness:'의식 상태',breathing:'호흡 상태',systolic_bp:'수축기 혈압',diastolic_bp:'이완기 혈압',pulse:'맥박',spo2:'산소포화도',temperature:'체온',respiratory_rate:'호흡수',glucose:'혈당',onset_at:'증상 발생 시각',blood_pressure:'혈압'};
@@ -15,6 +16,7 @@ Object.assign(enums,{avpu:{A:'A 명료',V:'V 목소리 반응',P:'P 통증 반�
 const storage = {get(key){try{return sessionStorage.getItem('paramedic.voice.'+key);}catch(_){return null;}},set(key,value){try{sessionStorage.setItem('paramedic.voice.'+key,value);}catch(_){}}};
 const previousIdentity={actor:storage.get('actor'),session:storage.get('session'),server:storage.get('server')};
 const params = new URLSearchParams(location.search);
+const arrivedFromConversation=params.get('voice_handoff')==='1';
 const actorFromQuery=params.get('actor_id');
 const actorQueryValid=!actorFromQuery||(/^[A-Za-z0-9][A-Za-z0-9._:@-]*$/.test(actorFromQuery)&&actorFromQuery.length<=80);
 let actor = (actorQueryValid&&actorFromQuery) || storage.get('actor') || 'crew-' + requestId();
@@ -26,6 +28,15 @@ let canRead = VoiceCapture.capabilities().tts;
 let localAudioUrl=null,localAudioMetadata=null;
 let mainFollowup=null,treatmentReview=null,captureQuestion=null,lastQuestionSpoken='';
 let recovery=null,recoveryError='',recoveryFieldConflict=false,recoveryCopy=null;
+const stagedReview=initStagedReview({document,onBackToConversation(){
+  if(blocked()||dirty||handoffUnapplied||handoffPending||handoffFailed||!canReturnToConversationNow())return false;
+  const url=new URL('./quick-test.html',location.href);url.searchParams.set('flow','field');
+  location.assign(url.href);return true;
+}});
+function canReturnToConversationNow(){
+  try{return canReturnToConversation({fromVoiceHandoff:arrivedFromConversation,session:client?.session,actorId:actor,serverOrigin:client?.server,pageOrigin:location.origin,tabStorage:sessionStorage,patientStorage:localStorage});}
+  catch{return false;}
+}
 
 const node = (tag, text, className) => {const result=document.createElement(tag);if(text!==undefined)result.textContent=text;if(className)result.className=className;return result;};
 function message(text, isError=false) {const target=$(isError?'error':'notice');target.textContent=text;target.hidden=!text;if(isError)$('notice').hidden=true;}
@@ -161,6 +172,7 @@ function controls(){
   const review=treatmentReview?.review;
   $('treatment-apply').disabled=!canReview||!review?.can_apply||!client?.session?.confirmed||!$('treatment-confirm').checked||((review?.reductions||[]).length>0&&!$('treatment-reduction').checked);
   renderRecommendation();
+  stagedReview.update({session:client?.session,patient:recommendationAwaitingSubmit?null:currentPatient,pending:client?.pending,locked,dirty,unapplied:handoffUnapplied,handoffLoading:handoffPending,handoffFailed,recoveryError:!!recoveryError,recoveryConflict:recoveryFieldConflict,canReturnToConversation:canReturnToConversationNow()});
 }
 function renderFields(){
   const values=client?.session?.fields||{};
@@ -207,7 +219,7 @@ function render(){
   const step=currentPatient&&!recommendationAwaitingSubmit?'hospital':s?.confirmed?'submit':Object.keys(s?.fields||{}).length?'review':'input';
   const steps={input:'01 음성으로 기록',review:'02 정보 확인·수정',submit:'03 확인 후 저장',hospital:'04 병원 후보 확인'};
   $('workflow-step').textContent=steps[step];
-  for(const el of document.querySelectorAll('[data-step]'))el.classList.toggle('is-current',el.dataset.step===step);
+  if(!stagedReview.active)for(const el of document.querySelectorAll('[data-step]'))el.classList.toggle('is-current',el.dataset.step===step);
   $('field-warnings').replaceChildren();
   if(s?.baseline_summary?.symptoms)$('field-warnings').append(node('p','기존 기록 증상: '+s.baseline_summary.symptoms,'baseline-note'));
   for(const text of s?.warnings||[])$('field-warnings').append(node('p',text,'warning-note'));
@@ -501,6 +513,13 @@ function renderPatient(){
   $('patient-result').append(node('span','저장된 환자','badge'),node('strong',currentPatient.id),node('p',`환자정보 v${currentPatient.version} · ${currentPatient.state==='WAITING'?'병원 탐색 대기':currentPatient.state}`));
   if(currentPatient.lat!==null&&currentPatient.lon!==null){$('lat').value=currentPatient.lat;$('lon').value=currentPatient.lon;$('location-status').textContent='저장된 환자 위치';}
   $('patient-progress-link').href=patientNavigation(client.server,currentPatient.id,actor);
+  let exchangeLink=$('patient-handoff-exchange-link');
+  if(!exchangeLink){exchangeLink=node('a','인계 공유·병원 재확인','button button-secondary');exchangeLink.id='patient-handoff-exchange-link';$('patient-navigation').append(exchangeLink);}
+  const exchangeUrl=new URL('/handoff-exchange.html',normalizeServer(client.server));
+  exchangeUrl.search=new URLSearchParams({role:'owner',actor_id:actor,pid:currentPatient.id,
+    ...(client.session?.id?{sid:client.session.id}:{})}).toString();
+  exchangeLink.href=exchangeUrl.href;
+  exchangeLink.hidden=!capabilities?.handoff_exchange_revision;
   const enroute=['CONFIRMED','IN_TRANSIT'].includes(currentPatient.state);$('patient-change-link').hidden=!enroute;
   if(enroute){const link=new URL(patientNavigation(client.server,currentPatient.id,actor,'/patient/transport-change.html'));if(currentPatient.destination_hospital_id)link.searchParams.set('hid',currentPatient.destination_hospital_id);$('patient-change-link').href=link.href;}
 }

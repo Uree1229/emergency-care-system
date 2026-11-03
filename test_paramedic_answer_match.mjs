@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {isUnavailableAnswer, answerFits, chooseAnswer, answerVocabulary} from './paramedic-ui/answer-match.mjs';
+import {isUnavailableAnswer, isRemainingUnavailableAnswer, answerFits, chooseAnswer, answerVocabulary} from './paramedic-ui/answer-match.mjs';
 
 // Strings marked "real" are browser STT outputs from the 2026-10-30 18:47 live-microphone session
 // (verification server, virtual patient). The rest are synthetic. No accuracy is measured here.
@@ -58,5 +58,23 @@ test('answer vocabulary lists every option together and never a specific number'
   for (const id of ['age', 'blood_pressure', 'pulse', 'spo2', 'temperature', 'respiratory_rate', 'glucose', 'onset_at', 'nope']) {
     assert.ok(answerVocabulary(q(id)).every(word => !/[0-9]|[일이삼사오육칠팔구십백]{2,}/.test(word)), id);
     assert.ok(answerVocabulary(q(id)).includes('미측정'), id);
+  }
+});
+
+test('explicit remaining-unknown scope is ranked without coercing it into a single unavailable answer',()=>{
+  for(const text of ['남은 항목 전부 다 모름으로 해줘','항목 전부 다 모름 처리','남은 항목 전부 미확인으로 남겨줘','나머지는 모르겠어요','전부 미확인']){
+    assert.equal(isRemainingUnavailableAnswer(text),true,text);
+    assert.equal(isUnavailableAnswer(text),false,text);
+    assert.equal(answerFits(q('breathing'),text),true,text);
+    assert.equal(chooseAnswer(q('breathing'),[text]).unavailable,false,text);
+  }
+});
+
+test('damaged STT, negation, reports and mixed values cannot expand into unknown commands',()=>{
+  for(const text of ['남은 항목 전부 다 무릎으로 해줘','항목 전부 다 모름 처리 모윰으로 처리','모름 처리하지 마',
+    '남은 항목 전부 모름 처리하지 말고','남은 항목 전부 미확인이라고 했어요','남은 항목 전부 미확인?',
+    '“남은 항목 전부 미확인”','모름이 아니에요','남은 항목 미확인 혈압 120에 80','남은 항목 전부 모름이면']){
+    assert.equal(isRemainingUnavailableAnswer(text),false,text);
+    assert.equal(isUnavailableAnswer(text),false,text);
   }
 });
