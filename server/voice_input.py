@@ -13,6 +13,7 @@ from functools import wraps
 
 from . import db, service, patient_amendments, inquiry_workflow
 from . import voice_terms, voice_audio, voice_r1, voice_followup, voice_lexicon
+from . import voice_recognition_context
 
 MAX_HTTP_BYTES = 3 * 1024 * 1024
 COMMON = {'actor_id', 'client_request_id', 'expected_version'}
@@ -224,6 +225,7 @@ def capabilities():
             'patient_projection_revision': 'voice-patient-link-20261030-v1',
             'handoff_parser_revision': 'voice-ui-handoff-20261030-v1',
             'dictionary_revision': 'voice-dictionary-20261030-v1',
+            'recognition_context_revision': voice_recognition_context.REVISION,
             'command_revision': 'voice-commands-20261030-v3',
             'command_actions': list(voice_terms.command_catalog()['actions']),
             'treatment_review_revision': 'voice-treatment-review-20261030-v1',
@@ -378,6 +380,10 @@ def _advance(conn, now, row, fields, meta, warnings, kind, *, undoable=True, sta
 
 def _merge(row, patch, evidence, now, source, kind, replace=False):
     fields, meta = json.loads(row['fields']), json.loads(row['field_metadata'])
+    pending_symptoms = {name for item in meta.values() if item.get('needs_clarification')
+                        for name in item.get('recognition_context', {}).get('symptoms', [])}
+    pending_evidence = list(dict.fromkeys(quote for key in LIST_FIELDS for quote in
+                            meta.get(key, {}).get('clarification_evidence', [])))
     for key, value in patch.items():
         if key in LIST_FIELDS and not replace:
             fields[key] = list(dict.fromkeys(fields.get(key, []) + value))
@@ -412,8 +418,25 @@ def _merge(row, patch, evidence, now, source, kind, replace=False):
             # clear the old question's flags, while remaining uncertain symptom
             # values still produce their own question in voice_followup.plan.
             if qid in ('age', 'symptoms') and meta[key].get('clarification_question_id') == qid:
-                for flag in ('needs_clarification', 'clarification_at', 'clarification_evidence', 'clarification_question_id'):
+                for flag in ('needs_clarification', 'clarification_at', 'clarification_evidence', 'clarification_question_id', 'recognition_context'):
                     meta[key].pop(flag, None)
+    if pending_symptoms and LIST_FIELDS & patch.keys():
+        resolved = {name for key in ('symptoms', 'denied_symptoms') for name in patch.get(key, [])}
+        remaining = sorted(pending_symptoms - resolved)
+        if remaining:
+            # A reply about one symptom cannot silently settle the other ASR
+            # polarity disputes. Keep them visible in the existing question.
+            for key in ('symptoms', 'denied_symptoms'):
+                if key in fields:
+                    fields[key] = [name for name in fields[key] if name not in remaining]
+            fields['uncertain_symptoms'] = list(dict.fromkeys(fields.get('uncertain_symptoms', []) + remaining))
+            for key in LIST_FIELDS:
+                meta[key] = {**meta.get(key, {}), 'needs_clarification': True,
+                             'clarification_at': now, 'clarification_evidence': pending_evidence,
+                             'clarification_question_id': 'symptoms',
+                             'recognition_context': dict(revision=voice_recognition_context.REVISION,
+                                 status='needs_clarification', coverage='provided_hypotheses_only', symptoms=remaining)}
+                meta[key].pop('followup_unavailable_for', None)
     return fields, meta
 
 
@@ -437,10 +460,46 @@ def _mark_clarification(meta, keys, text, now, question_id=None):
             meta[key]['clarification_question_id'] = question_id
 
 
+def _recognition_metadata(meta, report):
+    for key in report['disputed_fields']:
+        item = meta[key]
+        item.pop('followup_unavailable_for', None)
+        item['recognition_context'] = dict(revision=report['revision'],
+            status='needs_clarification', coverage=report['coverage'])
+        if key in LIST_FIELDS and report.get('disputed_symptoms'):
+            item['recognition_context']['symptoms'] = list(report['disputed_symptoms'])
+        for qid in voice_followup.PROFILES['voice_extended_v1']:
+            if key in voice_followup.lookup(qid)['fields']:
+                item['clarification_question_id'] = qid
+                break
+
+
+def _recognition_peer_reset(fields, meta, question_id, now):
+    peers = {'age': ('age_category',), 'consciousness': ('avpu',),
+             'symptoms': ('chief_complaint', 'seizure_ongoing')}.get(question_id, ())
+    removed = []
+    for key in peers:
+        item = meta.get(key, {})
+        if item.get('needs_clarification') and item.get('recognition_context'):
+            fields.pop(key, None)
+            meta[key] = {'source': 'recognition_peer_reset', 'observed_at': now,
+                         'evidence': [], 'change_kind': 'observation', 'removed': True}
+            removed.append(key)
+    return removed
+
+
+def _require_recognition_review(meta):
+    service._require(not any(item.get('needs_clarification') and item.get('recognition_context')
+                             for item in meta.values()), 'VOICE_RECOGNITION_REVIEW_REQUIRED',
+                     '인식 후보가 다른 항목을 다시 말하거나 직접 수정한 뒤 확인하세요', 409)
+
+
 def _observation(conn, now, row, parsed, text, source='voice', kind='dictation'):
     patch = voice_terms.normalize_fields(parsed['fields'])
     fields, meta = _merge(row, patch, parsed['evidence'], now, source, 'observation')
     _mark_clarification(meta, parsed.get('clarification_fields', []), text, now)
+    if parsed.get('recognition_context'):
+        _recognition_metadata(meta, parsed['recognition_context'])
     warnings = list(dict.fromkeys(json.loads(row['warnings']) + parsed['warnings']))
     if not patch:
         warnings.append('자동으로 추출한 항목이 없습니다. 원문을 확인하고 필요한 정보를 보완하세요.')
@@ -489,6 +548,26 @@ def _utterance(conn, now, row, body, text, provider):
     service._require(count < 100, 'VOICE_SESSION_FULL', '세션당 발화 100개를 초과했습니다', 409)
     conn.execute('INSERT INTO voice_utterances VALUES(?,?,?,?,?,?,?)',
                  (row['id'], uid, text, mode, provider, now, now))
+    if ('recognition_alternatives' in body and requested_mode == 'auto' and
+            parsed_control['action'] == 'observe'):
+        variants = [text] + voice_recognition_context.validate(text, body['recognition_alternatives'])
+        if all(voice_terms.parse_command(value)['action'] in ('observe', 'unknown') for value in variants):
+            def parse_observation(value):
+                command = voice_terms.parse_command(value)
+                return _extract(command['text'] if command['action'] == 'observe' else value, now, row)
+            parsed, context = voice_recognition_context.analyze(text, body['recognition_alternatives'],
+                parse_observation, existing_fields=json.loads(row['fields']))
+            parsed['recognition_context'] = context
+            result = _observation(conn, now, row, parsed, text, source='voice_command', kind='observation')
+            result.update(command=parsed_control, requested_mode=requested_mode, effective_mode=mode,
+                          recognition_context=context)
+            return result
+    if 'recognition_alternatives' in body and mode == 'command':
+        return {'session': _public(conn, row), 'is_final': True,
+                'recognition_context': voice_recognition_context.blocked_command(text, body['recognition_alternatives']),
+                'operational_effect': 'voice_command_needs_clarification',
+                'speak_text': '복수 인식 후보가 있는 명령은 실행하지 않았습니다. 원문과 실행할 동작을 다시 확인하세요.',
+                'tts': 'client', 'requested_mode': requested_mode, 'effective_mode': mode}
     if requested_mode == 'auto' and parsed_control.get('rejected'):
         return {'session': _public(conn, row), 'command': parsed_control,
                 'operational_effect': 'voice_command_needs_clarification',
@@ -505,14 +584,26 @@ def _utterance(conn, now, row, body, text, provider):
         result.update(requested_mode=requested_mode, effective_mode=mode)
         return result
     parsed = _extract(text, now, row)
+    context = None
+    if 'recognition_alternatives' in body:
+        parsed, context = voice_recognition_context.analyze(text, body['recognition_alternatives'],
+                                                           lambda candidate: _extract(candidate, now, row),
+                                                           existing_fields=json.loads(row['fields']))
+        parsed['recognition_context'] = context
     kind = 'observation' if voice_terms.observation_fields(text) else 'dictation'
     result = _observation(conn, now, row, parsed, text, kind=kind)
     result.update(requested_mode=requested_mode, effective_mode=mode)
+    if context is not None:
+        result['recognition_context'] = context
     return result
 
 
 def transcript(conn, now, sid, body):
-    _shape(body, COMMON | {'utterance_id', 'text', 'is_final'}, {'mode'})
+    _shape(body, COMMON | {'utterance_id', 'text', 'is_final'}, {'mode', 'recognition_alternatives'})
+    if 'recognition_alternatives' in body:
+        voice_recognition_context.validate(body['text'], body['recognition_alternatives'])
+        service._require(body['is_final'] is True, 'INVALID_RECOGNITION_CONTEXT',
+                         '확정된 인식문에만 인식 후보를 보낼 수 있습니다')
     def action(actor):
         row = _row(conn, sid, actor, now)
         _mutable(row, body['expected_version'])
@@ -596,6 +687,7 @@ def _confirm(conn, now, row):
                      'VOICE_EMPTY_DRAFT', '확인할 환자정보가 없습니다')
     service._require(fields.get('onset_at', now) <= now, 'INVALID_VOICE_FIELDS',
                      '발생 시각은 현재보다 미래일 수 없습니다')
+    _require_recognition_review(meta)
     conn.execute('UPDATE voice_sessions SET confirmed_version=version,confirmed_at=?,updated_at=? WHERE id=?',
                  (now, now, row['id']))
     return {'session': _public(conn, _row(conn, row['id'], row['actor_id'], now)),
@@ -738,10 +830,12 @@ def _answer_interpretation_notes(question, text, candidate):
 
 
 def answer_followup(conn, now, sid, body):
-    _shape(body, COMMON | {'question_id', 'utterance_id', 'text'}, {'profile', 'unavailable'})
+    _shape(body, COMMON | {'question_id', 'utterance_id', 'text'}, {'profile', 'unavailable', 'recognition_alternatives'})
     text = body['text']
     service._require(isinstance(text, str) and 0 < len(text.strip()) <= 4000, 'INVALID', 'text는 1~4000자입니다')
     service._require(type(body.get('unavailable', False)) is bool, 'INVALID', 'unavailable은 불리언입니다')
+    if 'recognition_alternatives' in body:
+        voice_recognition_context.validate(text, body['recognition_alternatives'])
     uid = _identifier(body['utterance_id'], 'utterance_id')
     _identifier(body['question_id'], 'question_id')
     profile = body.get('profile', 'voice_extended_v1')
@@ -772,6 +866,27 @@ def answer_followup(conn, now, sid, body):
             if candidate:
                 parsed = _extract(candidate, now, row)
                 contextual = True
+        recognition_context = None
+        if 'recognition_alternatives' in body:
+            def parse_answer(candidate_text):
+                value = _answer_context(offered, candidate_text)
+                numeric_question = offered['id'] in ('age', 'blood_pressure', 'pulse', 'spo2',
+                                                      'temperature', 'respiratory_rate', 'glucose')
+                result = (_extract(value, now, row) if value else
+                          dict(fields={}, evidence={}, warnings=[]) if numeric_question else
+                          _extract(candidate_text, now, row))
+                return result
+            parsed, recognition_context = voice_recognition_context.analyze(
+                text, body['recognition_alternatives'], parse_answer, allowed_fields=allowed)
+            # A single clear number cannot resolve a competing unavailable answer.
+            variants = [text] + voice_recognition_context.validate(text, body['recognition_alternatives'])
+            unavailable_votes = {_unavailable_answer(value, offered['id']) for value in variants}
+            if len(unavailable_votes) > 1 or recognition_context['disputed_fields']:
+                recognition_context['status'] = 'needs_clarification'
+                recognition_context['disputed_fields'] = sorted(allowed)
+                parsed['fields'] = {}; parsed['evidence'] = {}
+                parsed['clarification_fields'] = sorted(allowed)
+                unavailable = False
         patch = {key: value for key, value in parsed['fields'].items() if key in allowed}
         interpretation_notes = _answer_interpretation_notes(offered, text, candidate)
         known_patch = {key: value for key, value in patch.items() if value != 'unknown'}
@@ -788,10 +903,19 @@ def answer_followup(conn, now, sid, body):
         accepted = bool(patch) or unavailable
         if not patch:
             _mark_clarification(meta, offered.get('missing_fields') or offered['fields'], text, now, offered['id'])
+        if recognition_context and recognition_context['disputed_fields']:
+            _mark_clarification(meta, recognition_context['disputed_fields'], text, now, offered['id'])
+            _recognition_metadata(meta, recognition_context)
         if unavailable:
             for key in offered['fields']:
                 meta[key] = {**meta.get(key, {}), 'followup_unavailable_for': offered['id']}
+        question_disputed = any(meta.get(key, {}).get('needs_clarification') and
+                                meta.get(key, {}).get('recognition_context') for key in offered['fields'])
+        peer_resets = (_recognition_peer_reset(fields, meta, offered['id'], now)
+                       if patch and not question_disputed else [])
         warnings = list(dict.fromkeys(json.loads(row['warnings']) + parsed['warnings'] + interpretation_notes))
+        if peer_resets:
+            warnings.append('명확한 답변 뒤에도 이전 인식 후보에 의존한 R1 값은 확정하지 않고 제거했습니다. 필요한 R1 항목을 직접 확인해 입력하세요: ' + ', '.join(peer_resets))
         if ignored_fields:
             warnings.append('질문 대상 외의 항목은 반영하지 않았습니다. 다른 측정값은 일반 상태 입력으로 다시 말해 주세요.')
         if not accepted:
@@ -804,12 +928,15 @@ def answer_followup(conn, now, sid, body):
         updated_plan = _followup_plan(conn, current, profile)
         next_question = updated_plan['next_question']
         speak = next_question['question'] if next_question else '확인 질문을 마쳤습니다. 기록 내용을 검토해 주세요.'
-        return {'session': _public(conn, current), 'followup': updated_plan,
+        result = {'session': _public(conn, current), 'followup': updated_plan,
                 'answer': {'question_id': offered['id'], 'accepted': accepted,
                            'unavailable': unavailable, 'contextual_answer': contextual,
                            'review_required': bool(interpretation_notes), 'interpretation_notes': interpretation_notes,
                            'applied_fields': sorted(patch), 'ignored_fields': ignored_fields},
                 'speak_text': speak, 'tts': 'client', 'operational_effect': 'draft_only'}
+        if recognition_context is not None:
+            result['recognition_context'] = recognition_context
+        return result
     return _operate(conn, now, 'followup_answer:' + sid, body, action)
 
 
@@ -973,6 +1100,7 @@ def submit(conn, now, sid, body, *, reviewed_conditions=None):
     def action(actor):
         row = _row(conn, sid, actor, now)
         _mutable(row, body['expected_version'])
+        _require_recognition_review(json.loads(row['field_metadata']))
         service._require(row['confirmed_version'] == row['version'], 'VOICE_CONFIRMATION_REQUIRED',
                          '현재 버전의 환자정보를 먼저 확인하세요', 409)
         if start:   # R1: 첫 문의에는 필수 5칸(AVPU·호흡·주증상·연령 구분·Pre-KTAS)이 있어야 한다
