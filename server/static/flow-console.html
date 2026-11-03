@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>이송관제</title>
+  <link rel="stylesheet" href="./flow-console.css">
+  <script type="module" src="./flow-console.mjs"></script>
+</head>
+<body>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6.1 6.1A8 8 0 0 1 19.6 10M4.4 14A8 8 0 0 0 17.9 17.9"/></symbol>
+    <symbol id="icon-expand" viewBox="0 0 24 24"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+    <symbol id="icon-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></symbol>
+  </svg>
+
+  <div class="console-shell">
+    <header class="console-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <h1>이송관제</h1>
+        <span class="local-chip">로컬</span>
+      </div>
+      <div class="header-tools">
+        <span class="server-connection" role="status" aria-live="polite">
+          <span id="server-dot" class="status-dot" data-state="pending" aria-hidden="true"></span>
+          <span id="server-status">연결 확인</span>
+        </span>
+        <time id="updated-at" class="updated-at" aria-label="최근 갱신 시각">—</time>
+        <button id="refresh-console" class="button button-quiet" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>
+          <span>새로고침</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="context-toolbar" aria-label="관제 대상 선택">
+      <div class="context-controls">
+        <label class="select-field" for="record-select">
+          <span>환자·초안</span>
+          <select id="record-select"><option value="">기록 선택</option></select>
+        </label>
+        <label class="select-field hospital-select-field" for="hospital-select">
+          <span>병원</span>
+          <select id="hospital-select"><option value="">병원 선택</option></select>
+        </label>
+        <button id="apply-context" class="button button-primary" type="button">적용</button>
+      </div>
+      <div class="case-pills" aria-label="선택한 기록" aria-live="polite">
+        <span id="case-state" class="case-state">미선택</span>
+        <span id="case-summary" class="case-summary">기록을 선택하세요</span>
+      </div>
+    </section>
+
+    <nav class="workflow" aria-label="이송 진행 단계">
+      <ol id="workflow-steps">
+        <li data-step="record"><span class="step-mark" aria-hidden="true">1</span><span>기록</span></li>
+        <li data-step="register"><span class="step-mark" aria-hidden="true">2</span><span>등록</span></li>
+        <li data-step="inquiry"><span class="step-mark" aria-hidden="true">3</span><span>문의</span></li>
+        <li data-step="accept"><span class="step-mark" aria-hidden="true">4</span><span>수용</span></li>
+        <li data-step="confirm"><span class="step-mark" aria-hidden="true">5</span><span>확정</span></li>
+        <li data-step="transport"><span class="step-mark" aria-hidden="true">6</span><span>이송</span></li>
+        <li data-step="arrive"><span class="step-mark" aria-hidden="true">7</span><span>도착</span></li>
+      </ol>
+      <div id="inquiry-items" class="inquiry-strip" aria-label="문의 현황" hidden></div>
+    </nav>
+
+    <div id="console-notice" class="console-notice" role="alert" aria-live="assertive" hidden></div>
+
+    <main id="flow-workspace" class="flow-workspace">
+      <div class="role-tabs" role="tablist" aria-label="역할 화면">
+        <button id="tab-patient" type="button" role="tab" data-panel="patient" aria-controls="patient-panel" aria-selected="true">환자</button>
+        <button id="tab-voice" type="button" role="tab" data-panel="voice" aria-controls="voice-panel" aria-selected="false" tabindex="-1">구급대</button>
+        <button id="tab-hospital" type="button" role="tab" data-panel="hospital" aria-controls="hospital-panel" aria-selected="false" tabindex="-1">병원</button>
+      </div>
+
+      <div id="role-panels" class="role-grid">
+        <section id="patient-panel" class="panel role-panel patient-panel is-active" role="tabpanel" aria-labelledby="tab-patient">
+          <header class="panel-heading">
+            <h2 id="patient-title">환자</h2>
+            <div class="panel-actions">
+              <a id="patient-open" class="icon-button panel-open" href="/patient/" target="_blank" rel="noopener" aria-label="환자 화면 새 창에서 열기" title="새 창">
+                <svg class="icon" aria-hidden="true"><use href="#icon-external"></use></svg>
+              </a>
+              <button class="icon-button" type="button" data-focus="patient" aria-controls="patient-panel" aria-expanded="false" aria-label="환자 화면 확대" title="화면 확대">
+                <svg class="icon" aria-hidden="true"><use href="#icon-expand"></use></svg>
+              </button>
+            </div>
+          </header>
+          <div class="frame-body">
+            <iframe id="patient-frame" title="환자 앱" src="about:blank" allow="geolocation"></iframe>
+            <div id="patient-empty" class="panel-empty"><span>환자를 선택하세요</span></div>
+          </div>
+        </section>
+
+        <section id="voice-panel" class="panel role-panel voice-panel" role="tabpanel" aria-labelledby="tab-voice">
+          <header class="panel-heading">
+            <h2 id="voice-title">구급대</h2>
+            <div class="panel-actions">
+              <a id="voice-open" class="icon-button panel-open" href="/paramedic/quick-test.html?flow=field" target="_blank" rel="noopener" aria-label="구급대 음성 화면 새 창에서 열기" title="새 창">
+                <svg class="icon" aria-hidden="true"><use href="#icon-external"></use></svg>
+              </a>
+              <button class="icon-button" type="button" data-focus="voice" aria-controls="voice-panel" aria-expanded="false" aria-label="구급대 화면 확대" title="화면 확대">
+                <svg class="icon" aria-hidden="true"><use href="#icon-expand"></use></svg>
+              </button>
+            </div>
+          </header>
+          <div class="frame-body">
+            <iframe id="voice-frame" title="구급대 음성 기록" src="about:blank" allow="microphone; geolocation"></iframe>
+            <div id="voice-empty" class="panel-empty"><span>환자 또는 초안을 선택하세요</span></div>
+          </div>
+        </section>
+
+        <section id="hospital-panel" class="panel role-panel hospital-panel" role="tabpanel" aria-labelledby="tab-hospital">
+          <header class="panel-heading">
+            <h2 id="hospital-title">병원</h2>
+            <div class="panel-actions">
+              <a id="hospital-open" class="icon-button panel-open" href="/hospital/" target="_blank" rel="noopener" aria-label="병원 화면 새 창에서 열기" title="새 창">
+                <svg class="icon" aria-hidden="true"><use href="#icon-external"></use></svg>
+              </a>
+              <button class="icon-button" type="button" data-focus="hospital" aria-controls="hospital-panel" aria-expanded="false" aria-label="병원 화면 확대" title="화면 확대">
+                <svg class="icon" aria-hidden="true"><use href="#icon-expand"></use></svg>
+              </button>
+            </div>
+          </header>
+          <div class="frame-body">
+            <iframe id="hospital-frame" title="병원 웹" src="about:blank"></iframe>
+            <div id="hospital-empty" class="panel-empty"><span>병원을 선택하세요</span></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="server-zone" aria-label="서버 대화와 기록">
+        <article class="activity-panel" aria-labelledby="chat-heading">
+          <header class="activity-heading"><h2 id="chat-heading">대화</h2><span class="live-label"><span aria-hidden="true"></span>서버</span></header>
+          <div id="chat-items" class="activity-items chat-items" role="log" aria-live="polite" aria-relevant="additions text" aria-label="서버 대화"></div>
+        </article>
+        <article class="activity-panel" aria-labelledby="event-heading">
+          <header class="activity-heading"><h2 id="event-heading">기록</h2><span class="activity-caption">최근 활동</span></header>
+          <div id="event-items" class="activity-items event-items" role="log" aria-live="polite" aria-relevant="additions text" aria-label="서버 활동 기록"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

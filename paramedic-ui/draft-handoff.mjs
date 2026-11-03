@@ -6,6 +6,7 @@ const MAX_STORED_LENGTH = 32768;
 const INPUT_KEYS = new Set(['serverOrigin', 'actorId', 'sessionId', 'version', 'unappliedText', 'intent']);
 const STORED_KEYS = new Set([...INPUT_KEYS, 'createdAt', 'expiresAt']);
 const ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
+const ACTOR_PATTERN = /^[A-Za-z0-9._:@-]+$/;
 
 function assertTime(now) {
   if (!Number.isSafeInteger(now) || now < 0 || !Number.isSafeInteger(now + TTL_MS)) {
@@ -37,7 +38,7 @@ function normalizePayload(payload, stored = false) {
   }
   for (const [key, limit] of [['actorId', 80], ['sessionId', 128]]) {
     if (typeof payload[key] !== 'string' || payload[key].length > limit ||
-        !ID_PATTERN.test(payload[key])) {
+        !(key === 'actorId' ? ACTOR_PATTERN : ID_PATTERN).test(payload[key])) {
       throw new Error('Invalid handoff identifier.');
     }
   }
