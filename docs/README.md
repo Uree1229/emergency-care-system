@@ -16,7 +16,7 @@
 | 6 | [테스트 묶음과 CI](TESTING.md) | core·연구 검증, 고정 실행 환경, 백업 |
 | 7 | [현재 시연 안내](DEMO_RUNBOOK_20261030.md) | 시연 순서와 저장 기록 |
 
-화면 담당자는 [dev1·dev2 시작 핸드오프](team-handoff/20261102/README.md)에서 시작한다. 구급대원 화면은 [dev1 안내](team-handoff/20261102/dev1/README.md)와 [AI 시작 지시](team-handoff/20261102/dev1/AI_START.md), 병원 웹은 [dev2 안내](team-handoff/20261102/dev2/README.md)와 [AI 시작 지시](team-handoff/20261102/dev2/AI_START.md)를 본다.
+화면 담당자는 [dev1·dev2 시작 핸드오프](team-handoff/20261102/README.md)에서 시작한다. 구급대원 화면은 [dev1 안내](team-handoff/20261102/dev1/README.md), [AI 시작 지시](team-handoff/20261102/dev1/AI_START.md), [모바일 앱 전환 개선사항](team-handoff/20261102/dev1/MOBILE_APP_IMPROVEMENTS_20261103.md), 병원 웹은 [dev2 안내](team-handoff/20261102/dev2/README.md)와 [AI 시작 지시](team-handoff/20261102/dev2/AI_START.md)를 본다.
 
 현재 결론은 [최종 알고리즘 정책](FINAL_ALGORITHM_DECISION_20261030.md), [최종 평가](FINAL_EVALUATION_20261030.md), [사용성 평가 절차](USABILITY_EVALUATION_20261030.md), [최종 발표와 시연 진행안](FINAL_PRESENTATION_AND_DEMO_20261030.md)에 있다.
 
@@ -57,7 +57,7 @@
 | [메인 음성·이송과 검토·추천·알림 연결](MAIN_UI_INTEGRATION_20261030.md), [구급대 화면 대기 작업 통합](PARAMEDIC_PENDING_INTEGRATION_20261102.md) | 화면 연결 상태 |
 | [음성 입력 API](VOICE_INPUT_API.md), [음성 입력 시제품](VOICE_INPUT_PROTOTYPE.md), [무전기 방식 설계](VOICE_PTT_DESIGN.md) | 음성 입력 기본 |
 | [대화 중간 명령](VOICE_MID_TRIGGER_20261030.md), [초안 중간 저장과 복구](VOICE_DRAFT_RECOVERY_20261030.md), [환자별 초안 전환](VOICE_PATIENT_SWITCH_20261030.md), [상태 관찰·수정 이력](VOICE_OBSERVATION_HISTORY_20261030.md) | 초안 관리 |
-| [중요 수치·부정 표현 복창](VOICE_CRITICAL_REVIEW_20261030.md), [시간 설명의 종료 처리 수정](VOICE_STOP_TIME_CONTEXT_20261031.md), [DB 용어사전과 명령 확장](VOICE_DICTIONARY_AND_COMMANDS_20261030.md) | 인식 결과 처리 |
+| [중요 수치·부정 표현 복창](VOICE_CRITICAL_REVIEW_20261030.md), [시간 설명의 종료 처리 수정](VOICE_STOP_TIME_CONTEXT_20261031.md), [DB 용어사전과 명령 확장](VOICE_DICTIONARY_AND_COMMANDS_20261030.md), [보고 문맥과 복수 인식 후보의 검토](VOICE_RECOGNITION_CONTEXT_20261103.md) | 인식 결과 처리 |
 | [음성 명령 연습](VOICE_COMMAND_PRACTICE_20261031.md), [명령 후보 보류와 이벤트 시험](VOICE_COMMAND_GATE_20261031.md), [명령 연습 녹음](VOICE_COMMAND_AUDIO_20261031.md) | 음성 명령 |
 | [통신 장애 안내](VOICE_CONNECTION_GUIDANCE_20261031.md), [음성 기록 저장 확인](VOICE_STORAGE_CHECK.md), [병원 인계용 요약](VOICE_HOSPITAL_HANDOFF_20261030.md) | 저장과 인계 |
 | [현장 소음 시험](VOICE_NOISE_TESTING_20261030.md), [PC 마이크·소음 재시험 준비](PC_MIC_NOISE_PREPARATION_20261031.md), [원본·RNNoise 짝 비교](VOICE_RNNOISE_COMPARISON_20261031.md) | 소음 |
