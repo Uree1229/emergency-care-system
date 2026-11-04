@@ -1,5 +1,9 @@
 # 응급환자 병원 연결 시스템
 
+## dev1 · dev2 작업 지시 업데이트 — 2026-11-05
+
+[최신 인계](docs/team-handoff/20261105/README.md)에서 [dev1 수동 등록 응답 유실 복구](docs/team-handoff/20261105/dev1/README.md)와 [dev2 병원 문의별 질문 초안 분리](docs/team-handoff/20261105/dev2/README.md)의 재현 절차와 완료 기준을 확인하세요.
+
 ## dev2 음성 개선 인계
 
 현재 시연본의 [음성인식 적용 기능](docs/VOICE_CURRENT_FEATURES_DEV2_20261103.md)과 [개선 노력과 검증 결과](docs/VOICE_IMPROVEMENT_EFFORTS_DEV2_20261103.md)를 먼저 확인하세요. 시연 실행본과 Git 코드의 기능 차이, 미적용 기능, 실제 음성 시험으로 남은 작업을 구분했습니다.
@@ -16,7 +20,7 @@
 
 ## dev1 · dev2 개발 시작 — 2026-11-02
 
-오늘부터 작업하는 화면 담당자는 [최신 핸드오프](docs/team-handoff/20261102/README.md)를 먼저 읽습니다. [dev1 구급대원 화면](docs/team-handoff/20261102/dev1/README.md)과 [dev2 병원 웹](docs/team-handoff/20261102/dev2/README.md)에 현재 구현·첫 작업·연결 API·완료 기준·각자 GPT/Claude에 전달할 시작 프롬프트를 정리했습니다. 새 PC의 실행 방법과 main/로컬 전용 기능 차이는 이 핸드오프를 우선합니다.
+[11월 2일 초기 인계](docs/team-handoff/20261102/README.md)에 역할별 코드 범위, 연결 API, 새 PC 실행 방법이 있습니다. 첫 작업과 완료 기준은 위의 11월 5일 업데이트를 따릅니다.
 
 ## 팀원 음성 테스트 — 최신 main
 
