@@ -4,6 +4,8 @@
 
 현재 시연본의 [음성인식 적용 기능](docs/VOICE_CURRENT_FEATURES_DEV2_20261103.md)과 [개선 노력과 검증 결과](docs/VOICE_IMPROVEMENT_EFFORTS_DEV2_20261103.md)를 먼저 확인하세요. 시연 실행본과 Git 코드의 기능 차이, 미적용 기능, 실제 음성 시험으로 남은 작업을 구분했습니다.
 
+통합 작업은 [시연본과 Git 기능 통합 기준](docs/VOICE_DEMO_GIT_INTEGRATION_BASELINE_20261104.md)의 기준 커밋과 검증 절차를 따릅니다.
+
 ## 음성 문맥과 복수 후보 검토
 
 긴 보고의 복수 인식 후보 비교, 수치·부정 충돌의 항목별 재확인, API와 한계는 [문맥 검토 안내](docs/VOICE_RECOGNITION_CONTEXT_20261103.md)를 참고합니다.
