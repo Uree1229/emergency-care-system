@@ -214,4 +214,4 @@ flowchart LR
 - 통화 내용 확인·알림 확인·업무 계측이 수용·이송 상태를 바꾸지 않는다.
 - 기존 업무 DB와 팀원 프론트 파일은 변경하지 않는다.
 
-구현: [실행기](../server/flow_rehearsal.py), [HTTP 역할 시나리오](../server/flow_scenarios.py). 상세 업무 계약은 [공통 API](API.md), [대화 API](CHAT_API.md), [팀원별 연결 작업](TEAM_FEEDBACK_API_HANDOFF_20261029.md)을 따른다.
+구현: [실행기](../server/flow_rehearsal.py), [HTTP 역할 시나리오](../server/flow_scenarios.py). 상세 업무 계약은 [공통 API](API.md), [대화 API](CHAT_API.md), [팀원별 연결 작업](RUNNING.md)을 따른다.

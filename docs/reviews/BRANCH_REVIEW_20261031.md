@@ -34,7 +34,7 @@
 
 ## 팀원 테스트 문서
 
-- [실행·시험·자료 보관 안내](../TEAM_VOICE_TEST_GUIDE_20261031.md)
+- [실행·시험·자료 보관 안내](../VOICE.md)
 - [긴 환자 보고12개](../testing/TEAM_VOICE_REPORT_SENTENCES_20261031.md)
 - [긴 명령 대본40개](../testing/TEAM_VOICE_COMMAND_LONG_SENTENCES_20261031.md), [TXT](../testing/TEAM_VOICE_COMMAND_LONG_SENTENCES_20261031.txt)
 - [빈 결과 CSV](../testing/TEAM_VOICE_TEST_RESULTS_TEMPLATE_20261031.csv)

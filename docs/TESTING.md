@@ -1,72 +1,68 @@
-# 테스트 묶음과 CI
+# 검증과 테스트
 
-2026-11-01. 루트의 테스트 파일은 옮기지 않는다. 실험 잠금이 파일 경로로 해시를 고정하고 있어서다. 대신 `scripts/test_suites.py`가 이름으로 묶음을 나눈다.
+2026-11-05 기준. 테스트는 저장소 루트에서 실행한다. 현재 소스의 기능 회귀, 과거 실험 재현, 실제 사용자 측정을 구분해 기록한다.
 
-## 묶음
-
-| 묶음 | 대상 | 어디서 |
-|---|---|---|
-| `core` | 서버·음성·팀 실행·자료·화면 테스트 (Python 86개 모듈 + Node 33개 파일) | 새 클론(고정 실행 환경), CI |
-| `local-data` | git 밖 자료가 필요한 3개 (`test_server_replay_adapter`, `test_server_replay_regression`, `test_demo_casebook_20261030`) | 공용 작업 PC |
-| `research` | 알고리즘·문의 정책 실험 검증 (454개 모듈) | 공용 작업 PC |
-| `all` | 전부 | 공용 작업 PC |
+## 기본 실행
 
 ```powershell
+python -m pip install -r requirements-server.txt
 python scripts/test_suites.py list
-python scripts/test_suites.py core --node <node 실행 파일>
-python scripts/test_suites.py research
+python scripts/test_suites.py core
 ```
 
-`--node`를 생략하면 `TEST_NODE` 환경변수나 PATH의 `node`를 쓴다. 서버 의존성은 `requirements-server.txt`로 설치하거나, 공용 작업 PC처럼 `.solver_deps`에 둔다. 결과는 JSON으로 출력하고 실패가 있으면 종료 코드 1이다.
+`list`는 현재 파일명으로 테스트를 분류한다. 모듈 수와 통과 수는 실행 결과를 기준으로 읽는다. `core`는 Python 제품 검사와 Node 화면 검사를 함께 실행한다. Node는 `--node` 인자, `TEST_NODE`, PATH 순서로 선택한다.
 
-새 제품 테스트는 `test_server`, `test_voice_`, `test_team_`, `test_paramedic` 등 `CORE_PREFIXES` 접두어로 이름을 지으면 `core`와 CI에 자동으로 들어간다. 그 밖의 이름은 `research`로 분류된다.
-
-## CI
-
-`.github/workflows/core-tests.yml`이 main으로 가는 PR과 main 반영마다 Ubuntu·Node 24에서 `core`를 실행한다. 11-01 새 클론 조건에서 Node 2,011개와 Python 1,256개가 통과했고 약 4분 걸렸다.
-
-### 고정 실행 환경
-
-팀 실행·배정 기준 테스트 10개 모듈(`test_team_runtime`, `test_team_lan`, `test_allocation_baseline`, `test_voice_allocation_rehearsal` 등)은 고정 실행 환경이 아니면 시작을 거부한다. 기준은 `config/server_allocation_baseline_20261030.json`의 Python 3.12.14, SQLite 3.53.1, OR-Tools 9.15.6755다.
-
-공용 작업 PC의 Codex 런타임은 python-build-standalone `3.12.14+20260825` 빌드다. CI도 같은 릴리스의 Linux 빌드를 SHA-256 확인 후 내려받아 쓴다. 다른 Python으로 `core`를 돌리면 이 10개 모듈이 실패하고, 실행기 결과의 `environment.match`가 `false`로 나온다.
-
-## 연구 검증이 공용 작업 PC에서만 재현되는 이유
-
-11-01에 main을 새로 체크아웃해 전체 6,414개를 실행했더니 241개 모듈이 실패했다. 3개를 뺀 238개가 연구 검증이다. (11-01 오후 정정) 같은 날 공용 작업 폴더에서 전체를 돌려 보니 연구 검증 106개 모듈은 그곳에서도 실패했다. 오전에 '공용 폴더에서는 통과한다'고 적은 것은 모듈마다 확인하지 않은 잘못된 문장이었다. 원인은 아래 알려진 문제에 있다.
-
-- 실험 잠금은 공용 작업 폴더 파일의 정확한 바이트로 해시를 고정했다. 이 폴더는 도구가 쓴 LF 파일(약 1,165개)과 git이 체크아웃한 CRLF 파일(약 393개)이 섞여 있어, LF든 CRLF든 한 방식의 체크아웃으로는 모두 재현되지 않는다.
-- 52개가 넘는 연구 모듈이 git 밖 자료를 읽는다. `.codex-build`(Codex 작업 공간), `simulation_results` 원자료, `outputs/`다.
-- 서버 기준 소스 21개는 `.gitattributes`의 `-text` 지정으로 새 클론에서도 기준 해시가 맞는다.
-
-**기존 잠금과 해시는 고치지 않는다.** 11-01부터 공용 작업 폴더는 main을 따른다. 그 전에 봉인한 실험은 11-01 백업을 복원한 폴더에서 검증한다. 공용 작업 PC가 바뀌어도 같은 방법을 쓴다.
-
-### 백업
-
-11-01에 git 밖 자료를 공용 PC의 `C:\Users\PC\Documents\ChatGPT\캡스톤 디자인_백업_20261101\`에 묶었다. 같은 디스크라 디스크 고장에는 대비되지 않으므로 USB나 클라우드로 옮겨 둔다.
-
-| 묶음 | 내용 |
-|---|---|
-| `worktree-exact.tar.gz` | 작업 폴더의 코드·문서·잠금을 당시 바이트 그대로(커밋 안 된 작업 포함). `.git`, 아래 큰 폴더, `__pycache__` 제외 |
-| `simulation_results.tar.gz`, `outputs.tar.gz` | 시뮬레이션 원자료와 실험 출력 |
-| `data-and-solver-deps.tar.gz` | `data/`, `.solver_deps/` |
-| `codex-build-referenced.tar.gz`, `codex-build-rest.tar.gz` | `.codex-build` 전체(개인키 `*.key` 5개 제외). 코드가 폴더 이름을 조립해 읽는 경우가 있어 일부만 고르면 복원본에서 실패했다 |
-| `empty-dirs.tar.gz` | 빈 폴더 237개. 일부 연구 테스트는 `.codex-build/<실험>/tmp/`가 있어야 돈다 |
-| `local-branches.bundle` | GitHub에 없는 로컬 브랜치 5개 |
-
-원본 23.5 GB, 압축 10.3 GB이고 143,609개 파일 모두 원본과 바이트가 같음을 확인했다. 복원은 짧은 경로의 빈 폴더(예: `C:\Users\PC\rs1101`)에 일곱 묶음을 `tar -xzf`로 풀면 된다. 백업 당시 폴더에는 `scripts/test_suites.py`가 없으므로 main에서 복사한 뒤 고정 실행 환경으로 `research`를 실행한다. 11-01에 이렇게 복원한 폴더에서 공용 폴더와 같은 106개가 같은 이유로 실패하는 것을 확인했다. 파일 수와 압축 파일 해시는 백업 폴더의 `MANIFEST.json`에, 복원 방법은 `README.md`에 있다.
-
-## 새 실험 규칙
-
-- 잠금에 넣는 소스 해시는 `scripts/source_hash.py`(CRLF를 LF로 통일한 SHA-256)로 계산한다. 정확한 바이트가 꼭 필요하면 해당 파일을 `.gitattributes`에서 `-text`로 지정한 뒤 잠근다.
-- 재현에 필요한 입력은 git에 넣을 수 있는 크기로 저장소 안에 둔다. `.codex-build`나 `outputs/` 같은 git 밖 경로를 코드에서 직접 읽지 않는다.
-
-## 알려진 문제
-
-| 테스트 | 상태 | 원인 |
+| 묶음 | 목적 | 필요한 자료 |
 |---|---|---|
-| 연구 검증 106개 모듈 (`config/research_expected_failures_20261101.json`) | 공용 작업 폴더와 11-01 백업 복원본 모두에서 실패. 실행기가 '예상 실패'로 따로 세고 종료 코드에 넣지 않는다 | 10-14~10-28에 봉인한 실험이 그 뒤 바뀐 소스 바이트를 고정하고 있다. 대부분 10-29~30 서버 변경(`server/db.py`, `server/inquiry_*.py`, `server/service.py`)이고, 아래 감사 3개도 여기에 들어 있다. 그 전 서버 소스로만 재현된다 |
-| `test_public_offer_audit`, `test_c1_incumbent_audit`, `test_offer_reserve_audit` | 위 106개에 포함 | 10-29에 `server/inquiry_policies.py`가 legacy `reply`를 결정 시간 표본에서 빼도록 바뀌었다(피어리뷰 대응). 10-20 전후 실험은 바꾸기 전 규칙으로 회신 표본을 셌으므로 현재 코드로 다시 계산하면 `global_reply_samples`가 1에서 0으로 달라진다. 재현하려면 10-28 버전(`6fc079b`)의 서버 모듈로 다시 계산해야 한다 |
-| `test_server_inquiry_experiment` | 11-01 해결 | DB 초기화가 음성 사전 seed 행에 현재 시각을 기록해(`server/voice_lexicon.py`), 실행이 1초 경계를 넘으면 초기 스냅샷 해시가 달라졌다. 테스트에서 그 모듈의 시계만 고정했다. 서버 코드와 잠금 파일은 바꾸지 않았다 |
-| `test_road_online_replay` | 11-01 실행기에서 차단 | `KAKAO_REST_KEY`가 설정된 PC에서는 실제 카카오 경로 API를 불러 실패했다. 실행기가 API 키 환경변수(`KAKAO_REST_KEY`, `DATA_GO_KR_KEY`, `AZURE_SPEECH_KEY`)를 빼고 테스트를 돌린다. 테스트 파일은 보존 기록에 해시가 있어 고치지 않았다 |
-| `test_hospital_operations_http.mjs` | 단독 실행 대상 아님 | `test_hospital_operations_http.py`가 격리 서버를 띄운 뒤 실행한다. 실행기는 Node 단독 실행에서 뺀다 |
+| `core` | 서버·음성·환자/병원 화면·팀 실행·자료 계약 회귀 | 저장소 소스와 설치한 Python·Node 의존성 |
+| `local-data` | 저장된 재생·발표 사례 검증 | Git 제외 `simulation_results/`, `outputs/` 원자료 |
+| `research` | 문의 정책·배정 알고리즘의 봉인된 실험 재현 | 해당 실험의 원본 소스·입력·잠금·로컬 산출물 |
+| `all` | Python 전체 묶음과 Node 화면 검사 | 위 자료와 각 실험의 실행 환경 |
+
+```powershell
+python scripts/test_suites.py local-data
+python scripts/test_suites.py research
+python scripts/test_suites.py all
+```
+
+실행기는 API 키 환경변수를 제거하고 결과 JSON에 실패·오류·생략·환경 일치 여부를 기록한다. `config/research_expected_failures_20261101.json`에 등록된 연구 모듈의 실패는 따로 세며 종료 코드에서 제외한다. 종료 코드 0과 함께 `expected_failures`, `unexpected_failures`, `environment.match`도 확인한다. 파일명에 따라 분류하므로 새 검사는 `scripts/test_suites.py`의 `CORE_PREFIXES`와 `LOCAL_DATA`를 함께 점검한다. `test_hospital_operations_http.mjs`는 Python HTTP 하네스가 실행한다.
+
+## 실행 환경과 CI
+
+공통 실행·배정 기준 검사는 `config/server_allocation_baseline_20261030.json`의 CPython 3.12.14, SQLite 3.53.1, OR-Tools 9.15.6755에 고정돼 있다. 다른 환경에서 발생한 기준 불일치는 기능 오류와 함께 별도 기록한다. 현재 터미널의 `python`이 고정 런타임인지 실행 전에 확인한다.
+
+`.github/workflows/core-tests.yml`은 main 대상 PR과 main 반영 시 Node 24 및 SHA-256으로 고정한 Python 배포본으로 `core`를 실행한다. 새 클론에서 필요한 의존성을 설치하고 이 결과를 제품 회귀의 기준으로 삼는다. 과거 실행의 누적 통과 수를 최신 실행 결과로 사용하지 않는다.
+
+연구 검사는 정확한 소스 바이트와 Git 제외 산출물에 묶인 경우가 있다. 과거 잠금을 현재 소스에 맞춰 다시 쓰면 원래 실험을 재현할 수 없으므로, 해당 소스·입력·결과를 함께 복원해 검사한다. 새 실험의 소스 해시는 `scripts/source_hash.py`를 사용한다. 재현 가능한 작은 입력은 저장소 안에 두고, 큰 원자료는 별도 백업의 위치·해시를 기록한다.
+
+## 변경 범위별 확인
+
+전체 검증 전에 변경한 부분을 먼저 확인할 수 있다. 다음 검사는 각각 새로운 임시 자료를 사용한다. 구체적인 실행 환경과 네트워크 허용 여부는 해당 검사의 설정을 따른다.
+
+```powershell
+python -m unittest test_voice_input test_voice_r1 test_voice_followup test_voice_connection_http -v
+node --test test_paramedic_recording_control.mjs test_paramedic_critical_review.mjs test_paramedic_patient_records.mjs test_paramedic_draft_recovery.mjs
+python -m unittest test_conversations test_transport_review test_arrival_accounting -v
+```
+
+음성 변경은 일반 항목 정확도 외에 수치 오답·누락, 증상 있음/없음/불확실, 시간·인용 문맥, 명령 오탐·누락을 확인한다. 저장·통합 변경은 같은 환자 ID, 버전 충돌, 응답 유실 후 동일 요청 재시도, 환자 전환 중 오래된 응답, 새로고침 복원을 확인한다. 임시 DB와 localhost HTTP를 쓰는 검사가 있어 샌드박스의 소켓 차단은 별도 실행 제한으로 기록한다.
+
+## 음성 자료와 사람 평가
+
+고정 합성 대본의 파서 결과와 실제 인식문 재처리는 회귀 자료다. 원음·화자·장비·시험 조건을 보관한 새 발화와 구분한다. CER/WER, 수치·부정 오류, 명령 오탐을 함께 보고, 실패·중단·무인식·결측을 원자료에 남긴다. 사용 흐름과 자료 수집은 [음성 안내](VOICE.md)를 따른다.
+
+```powershell
+python -m speech_eval evaluate --output outputs/speech_eval/new_reference_run
+python -m usability_eval prepare --output outputs/usability_eval/new_preparation
+python -m unittest test_usability_eval -v
+```
+
+사용성 시험은 같은 참여자·과업에서 수동/음성 순서를 교차 배치하고 입력부터 수정·검토·전송 완료까지 측정한다. 실제 관찰이 없는 준비 양식은 미측정이다. 화면·인식 엔진 버전이 다른 짝은 분리해 평가하며, 병원 문의 수를 병원의 검토시간으로 대신 쓰지 않는다.
+
+남은 실제 환경 검증은 새 발화의 조용함/실제 소음 짝시험, 실제 마이크·휴대전화·다른 물리 PC, 같은 Wi-Fi 연결, 절전·탭 전환·통신 장애 복구, 수동/음성 사용성과 병원 업무시간 실측이다. 자동 DOM·합성 음원·로컬 HTTP 검사의 결과는 각각 수행한 범위로 보고한다.
+
+## 병원 어댑터 통합 시연
+
+최신 전체 이송·오류 대조·재전송 검증본은 로컬 `.codex-build/hospital-full-demo-20261105/`에 있다. Git의 기본 `server/`·화면과 별도로 구성된 실행본이며 새 가상 DB를 사용한다. 구급대 등록부터 H01 수용·출발·도착, 가상 수신기 순서 오류, 선행 이벤트 복구와 동일 이벤트 재전송을 검증했다. 해당 폴더의 README와 `composition.json`, 실행별 `ready.json` 및 검증 영수증을 함께 확인한다. Git 클론만으로 이 로컬 폴더가 설치되지는 않는다.
+
+검증 기록에는 사용한 커밋/manifest, 환자 ID, 실행 모드와 워커 상태, 데이터 출처, 원본·결과 해시, 검사 명령과 종료 코드를 남긴다. 실제 기기의 3분 완주 리허설과 예비 녹화는 직접 시간을 재서 완료 여부를 정한다.
