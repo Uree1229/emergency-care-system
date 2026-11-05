@@ -1,0 +1,56 @@
+/* 수용 문의 탭의 간소화 배치 (A2 시안). 다른 탭의 .card/.panel 스타일은 그대로 둔다. */
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+/* 목록: 한 줄 카드 */
+.inq-card { width:100%; display:flex; gap:10px; align-items:center; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:inherit; text-align:left; }
+.inq-card.overdue { background:var(--orange-bg); border-color:var(--orange-line); }
+.inq-card.selected { border:2px solid var(--blue); padding:11px 13px; }
+.inq-card .inq-title { flex:1 1 auto; min-width:0; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inq-card .inq-time { font-variant-numeric:tabular-nums; font-size:14px; color:var(--muted); white-space:nowrap; }
+.inq-card.overdue .inq-time { color:var(--orange); font-weight:700; }
+.sev-dot { flex:0 0 auto; width:12px; height:12px; border-radius:50%; background:#8A93A0; }
+.sev-dot.t-gray { background:#8A93A0; }
+.sev-dot.t-high { background:var(--red); }
+.sev-dot.t-mid { background:var(--orange-line); }
+#openList { display:flex; flex-direction:column; gap:8px; }
+.recent-box > summary { padding:12px 0; cursor:pointer; color:var(--muted); font-size:14px; }
+.recent-box[open] > summary { margin-bottom:6px; }
+
+/* 상세: 핵심만 크게 */
+.inq-detail { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:24px; display:flex; flex-direction:column; gap:18px; }
+.inq-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.inq-tags .tag { font-size:13px; padding:3px 10px; }
+.tag.t-solid { color:#fff; background:var(--red); }
+.inq-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px; }
+.inq-head h3 { margin:0; font-size:30px; line-height:1.2; }
+.inq-eta { text-align:right; }
+.inq-eta .big { font-size:34px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+.inq-facts { display:flex; flex-wrap:wrap; gap:10px; }
+.inq-fact { flex:1 1 160px; background:#F5F6F8; border-radius:10px; padding:10px 14px; }
+.inq-fact .k { font-size:13px; color:var(--muted); }
+.inq-fact .v { font-size:18px; font-weight:700; overflow-wrap:anywhere; }
+.inq-fact.ok { background:#E3F4EA; } .inq-fact.ok .k,.inq-fact.ok .v { color:#1D5A3B; }
+.inq-fact.short { background:var(--red-bg); } .inq-fact.short .k,.inq-fact.short .v { color:var(--red); }
+.inq-fact.unknown { background:var(--orange-bg); } .inq-fact.unknown .k,.inq-fact.unknown .v { color:var(--orange); }
+.inq-detail .availability-warning,.inq-detail .danger,.inq-detail .qa { grid-column:auto; }
+.inq-decide { display:flex; flex-wrap:wrap; gap:10px; }
+.inq-decide button { min-height:64px; border-radius:12px; font-size:17px; font-weight:700; }
+.inq-decide .go-accept { flex:3 1 220px; border:0; background:#1D6B45; color:#fff; font-size:20px; }
+.inq-decide .go-check { flex:1 1 120px; border:2px solid var(--ink); background:#fff; color:var(--ink); }
+.inq-decide .go-decline { flex:1 1 120px; border:2px solid var(--orange); background:#fff; color:var(--orange); }
+.inq-decide .go-decline[aria-expanded="true"] { background:var(--orange-bg); }
+.inq-reasons { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:14px; border:1px dashed var(--orange-line); border-radius:12px; }
+.inq-reasons .chip { height:44px; padding:0 16px; border-radius:22px; }
+.inq-reasons .chip.on { border-color:var(--orange); color:var(--orange); }
+.inq-reasons .btn-decline { height:44px; margin-left:auto; border-color:var(--orange); color:var(--orange); }
+.inq-tools { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; border-top:1px solid #ECEEF2; padding-top:16px; }
+.inq-call { min-height:44px; display:inline-flex; gap:8px; align-items:center; padding:0 16px; border-radius:10px; background:var(--blue-bg); color:var(--blue); text-decoration:none; font-weight:700; }
+.inq-tools details { flex:1 1 260px; }
+.inq-tools details > summary { min-height:44px; display:flex; align-items:center; padding:0 16px; border:1px solid var(--line); border-radius:10px; cursor:pointer; list-style:none; }
+.inq-tools details > summary::-webkit-details-marker { display:none; }
+.inq-tools details .row { margin-top:8px; }
+.inq-tools .inq-hint { flex:0 1 auto; }
+.inq-tools .inq-hint > summary { width:44px; padding:0; justify-content:center; border-radius:22px; font-weight:700; }
+.inq-tools .inq-hint p { margin:8px 0 0; max-width:320px; }
+.inq-meta { font-size:13px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 14px; }
+@media(max-width:500px) { .inq-detail { padding:16px; } .inq-head h3 { font-size:24px; } .inq-eta .big { font-size:26px; } }

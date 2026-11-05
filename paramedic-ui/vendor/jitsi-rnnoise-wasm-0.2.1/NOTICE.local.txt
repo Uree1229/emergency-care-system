@@ -1,0 +1,36 @@
+Local vendoring notice (2026-10-31)
+
+Package: @jitsi/rnnoise-wasm 0.2.1
+Jitsi source: https://github.com/jitsi/rnnoise-wasm/tree/cb529a59a8478fe604e57986fc96afdaecfa6fb7
+RNNoise source: https://github.com/xiph/rnnoise/tree/372f7b4b76cde4ca1ec4605353dd17898a99de38
+
+rnnoise-sync.mjs is byte-for-byte package/dist/rnnoise-sync.js from the npm
+release. Only the filename extension was changed so Node can load the upstream
+ES module directly. Its embedded WASM is unchanged. No CDN or remote runtime
+dependency is used. PROVENANCE.json records the official npm SHA512 integrity,
+SHA1, source commits, asset SHA256 values and embedded WASM SHA256.
+
+The Jitsi wrapper is Apache-2.0 (LICENSE.apache-2.0.txt). RNNoise and bundled
+components carry the redistribution terms in COPYING.rnnoise.txt and source
+headers; these notices are retained. Upstream README/package/build files and
+small pinned RNNoise source/header files are preserved for reproducibility.
+The upstream build script is reference material only and is never executed.
+
+The sync artifact is RNNoise 0.2; the async artifact in this same release is an
+older RNNoise 0.1 build and is intentionally not used.
+
+Delay audit: denoise.upstream.h defines FRAME_SIZE=480 and WINDOW_SIZE=960.
+denoise.upstream.c uses one analysis overlap frame plus delayed_X. A direct
+embedded-WASM impulse at input sample 4873 peaks at output sample 5833: delay
+960 samples (20 ms at 48 kHz). The adapter flushes two zero frames, discards
+the leading 960 samples and returns the original sample count. This is offline
+alignment, not a zero-latency claim; filtering may smear or change transients.
+
+Input to RNNoise is normalized PCM multiplied by 32768; output is divided by
+32768, with only out-of-range output clipped and counted. No gain normalization
+is applied. RNNoise changes the waveform and may remove useful speech. Neither
+noise attenuation nor its internal VAD represents speech-recognition accuracy.
+
+Core PCM bound: 180 seconds / 8,640,000 mono Float32 samples / 34,560,000 bytes.
+A separate 20 MiB encoded input-file limit belongs to the comparison UI. The
+larger decoded PCM bound is needed because Float32 at 48 kHz is 192,000 B/s.

@@ -29,6 +29,7 @@ python -m venv .venv
 | 문의·배정 알고리즘과 연구 | [ALGORITHMS](docs/ALGORITHMS.md) |
 | 자동 검사와 사람·기기 검증 | [TESTING](docs/TESTING.md) |
 | 같은 환자의 전체 시연 | [DEMO](docs/DEMO.md) |
+| 팀원 화면 작업 시작 (dev1·dev2) | [팀 핸드오프](docs/team-handoff/20261102/README.md) |
 | 요청·응답 계약과 세부 자료 | [문서 안내](docs/README.md) |
 
 ## 구성

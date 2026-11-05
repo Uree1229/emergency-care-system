@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>병원 응답 사용성 실험</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fa;color:#182536;font-family:'Malgun Gothic',sans-serif;font-size:15px}main{max-width:1060px;margin:42px auto;padding:0 24px}h1{font-size:30px;margin-bottom:10px}h2{font-size:19px}p{line-height:1.65}.muted{color:#536478}.controls,.metrics,.hospital{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:22px 0}button,select{font:inherit;border:1px solid #bcc8d3;border-radius:7px;background:white;padding:11px 16px;min-height:44px;cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #007b83;outline-offset:3px}button:disabled{opacity:.5;cursor:default}.primary{background:#12686d;border-color:#12686d;color:white}.danger{color:#982c25}.card{background:white;border:1px solid #d5dfe8;border-radius:10px;padding:18px 20px;margin:12px 0}.row{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}.actions{display:flex;gap:8px;flex-wrap:wrap}.tag{background:#e9f0f5;padding:5px 9px;border-radius:5px;font-size:13px}.warn{color:#9b3800;font-weight:700}.metrics span{background:#fff;border:1px solid #d5dfe8;padding:12px;border-radius:7px}.hospital{padding:14px;background:#eaf0f4;border-radius:8px}dialog{border:1px solid #bcc8d3;border-radius:12px;width:min(470px,95vw);padding:25px}dialog::backdrop{background:#10202d66}small{line-height:1.7}#notice{min-height:24px;font-weight:bold}a{color:#12686d}
+</style>
+<main>
+<div class="muted">캡스톤 디자인 · 조작 실험용 화면</div>
+<h1>병원 수용 요청에 응답하기</h1>
+<p>각 가상 요청의 <strong>실험 지시</strong>에 맞게 응답하세요. 실제 병원으로 전송되지 않으며 솔버와 연결되지 않은 사용성 프로토타입입니다.</p>
+<div class="controls"><label>화면 <select id="mode"><option value="fast">간편 응답</option><option value="baseline">비교용 단계 응답</option></select></label><label>동시 문의 <select id="count"><option>1</option><option>5</option><option>10</option></select></label><button class="primary" id="start">실험 시작</button><button id="finish" disabled>실험 종료</button><button id="download" disabled>결과 JSON 저장</button></div>
+<small class="muted">60초 경과 시 화면 경고, 마지막 문의 후 120초부터 재문의 가능. 실험용 설정값입니다. 탭이 닫히거나 백그라운드인 경우 알림을 보장하지 않습니다.</small>
+<div class="hospital"><strong id="hospitalState">기관 상태 · 수용 가능</strong><button id="restrict" disabled>기관 제한 60초 시험</button><button id="confirm" disabled>수용 가능 재확인</button></div>
+<div id="notice" role="status" aria-live="polite"></div>
+<div id="metrics" class="metrics"></div><section id="requests" aria-label="가상 수용 요청"><p class="muted">화면과 문의 수를 선택한 뒤 실험을 시작하세요.</p></section>
+<p class="muted"><small>응답시간은 최초 요청 생성부터 응답까지입니다. 미응답률은 실험 종료 시 누락률로 해석합니다. 클릭 수는 요청 처리 영역의 버튼·선택 변경 횟수이며 기관 설정과 실험 제어는 제외합니다. P95는 최근접 순위법으로 계산하며 소수 표본에서는 불안정합니다. 비교 화면은 기존 현장 시스템을 재현한 것이 아닙니다.</small></p>
+</main>
+<dialog id="reply"><h2 id="dialogTitle"></h2><p id="instruction"></p><div id="replyFields"></div><p><button id="cancel">취소</button> <button class="primary" id="send">응답 기록</button></p></dialog>
+<script src="workflow.js"></script>
+<script>
+let state=null, selected=null, shownWarnings=0;
+const $=id=>document.getElementById(id), now=()=>performance.now();
+function announce(t){$('notice').textContent=t;}
+function render(){
+ if(!state)return;
+ Workflow.tick(state,now());
+ const labels={available:'수용 가능',restricted:'기관 제한 중',recheck:'재확인 필요'};
+ $('hospitalState').textContent='기관 상태 · '+labels[state.hospital.state];
+ const stopped=state.ended!==null;
+ $('confirm').disabled=stopped||state.hospital.state==='available';$('restrict').disabled=stopped;
+ const z=Workflow.summary(state), sec=v=>v===null?'—':v.toFixed(1)+'초';
+ $('metrics').innerHTML=`<span>완료 ${z.completed}/${z.total}</span><span>중앙값 ${sec(z.medianSeconds)}</span><span>P95 ${sec(z.p95Seconds)}</span><span>클릭 ${z.clicks}</span><span>미응답 ${(z.unansweredRate*100).toFixed(0)}%</span><span>오응답 ${z.errors}</span>`;
+ if(!$('requests').querySelector('.card')){
+  $('requests').innerHTML=state.requests.map(r=>`<article class="card" id="card-${r.id}"><div class="row"><div><strong>${r.id}</strong> <span class="tag">가상 환자</span><p>실험 지시 · ${r.target==='accept'?'수용 가능으로 응답':'인력 부족으로 수용 불가 응답'}</p><small class="status"></small></div><div class="actions"></div></div></article>`).join('');
+ }
+ for(const r of state.requests){
+  const card=$('card-'+r.id), pending=r.state==='pending', retry=now()-r.lastAttempt>=Workflow.limits.retry;
+  card.querySelector('.status').textContent=pending?`미확인 · 최초 문의 후 ${Math.floor(((stopped?state.ended:now())-r.created)/1000)}초 · 문의 ${r.attempts}회${r.warned?' · 응답 지연':''}`:`로컬 기록 완료 · ${r.state==='accept'?'수용 가능':'수용 불가 / '+r.reason}`;
+  card.querySelector('.status').className='status '+(r.warned&&pending?'warn':'muted');
+  const sig=[pending,retry,stopped,state.hospital.state,state.mode].join('|');
+  const box=card.querySelector('.actions');
+  if(box.dataset.sig!==sig){
+   box.dataset.sig=sig;
+   box.innerHTML=pending&&!stopped?(state.mode==='fast'?`<button class="primary" data-id="${r.id}" data-action="accept" ${state.hospital.state!=='available'?'disabled':''}>${r.id} 수용 가능</button><button class="danger" data-id="${r.id}" data-action="open">수용 불가</button>`:`<button data-id="${r.id}" data-action="open">응답 작성</button>`)+(retry?`<button data-id="${r.id}" data-action="retry">재문의</button>`:''):'';
+  }
+ }
+ const warnings=state.events.filter(e=>e.type==='warning'||e.type==='hospital_recheck').length;
+ if(warnings>shownWarnings){announce('응답 지연 또는 기관 제한 만료가 있습니다. 요청과 기관 상태를 확인하세요.');shownWarnings=warnings;}
+}
+$('start').onclick=()=>{
+ state=Workflow.create(Number($('count').value),now(),$('mode').value);shownWarnings=0;
+ $('requests').innerHTML='';$('start').disabled=true;$('count').disabled=true;$('mode').disabled=true;$('finish').disabled=false;$('download').disabled=true;
+ announce('실험을 시작했습니다. 각 요청의 지시에 맞게 응답하세요.');render();
+};
+$('requests').onclick=e=>{
+ const b=e.target.closest('button');if(!b||!state)return;const id=b.dataset.id,action=b.dataset.action;
+ if(action==='open'){
+  selected=id;Workflow.extraClick(state,id,now());const r=state.requests.find(r=>r.id===id);
+  $('dialogTitle').textContent=id+' 응답';$('instruction').textContent='실험 지시 · '+(r.target==='accept'?'수용 가능':'인력 부족으로 수용 불가');
+  $('replyFields').innerHTML=(state.mode==='baseline'?'<label>상태 <select id="statusChoice"><option value="">선택</option><option value="accept">수용 가능</option><option value="decline">수용 불가</option></select></label> ':'')+'<label>불가 사유 <select id="reason"><option value="">선택</option><option>인력</option><option>장비</option><option>병상</option><option>기타</option></select></label>';
+  $('reply').showModal();render();
+ }else{const ok=Workflow.act(state,id,action,now());announce(ok?id+' '+(action==='retry'?'동일 요청에 재문의 기록':'응답 기록 완료'):'기관 상태와 요청을 다시 확인하세요.');render();}
+};
+$('replyFields').onchange=()=>Workflow.extraClick(state,selected,now());
+$('send').onclick=()=>{const action=state.mode==='fast'?'decline':$('statusChoice').value;const ok=Workflow.act(state,selected,action,now(),$('reason').value);if(ok){$('reply').close();announce(selected+' 응답 기록 완료');}else{Workflow.extraClick(state,selected,now());alert('상태·사유 또는 기관의 재확인 필요 상태를 확인하세요.');}render();};
+$('cancel').onclick=()=>{Workflow.extraClick(state,selected,now());$('reply').close();render();};
+$('reply').addEventListener('cancel',()=>{Workflow.extraClick(state,selected,now());render();});
+$('restrict').onclick=()=>{Workflow.hospital(state,'restrict',now());announce('기관 제한을 60초로 설정했습니다. 만료 후에도 재확인이 필요합니다.');render();};
+$('confirm').onclick=()=>{Workflow.hospital(state,'confirm',now());announce('수용 가능 상태를 재확인했습니다.');render();};
+$('finish').onclick=()=>{state.ended=now();$('finish').disabled=true;$('start').disabled=false;$('count').disabled=false;$('mode').disabled=false;$('download').disabled=false;announce('실험 종료. 새 실험을 시작하기 전에 결과를 저장하세요.');render();};
+$('download').onclick=()=>{const payload={type:'synthetic_usability_session',savedAt:new Date().toISOString(),summary:Workflow.summary(state),session:state};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='usability-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+setInterval(render,500);
+</script></html>

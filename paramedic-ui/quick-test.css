@@ -223,6 +223,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 .qv-excluded h2{margin:0;font-size:13px;color:var(--amber-ink)}
 #recording-excluded-text{margin:0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 #recording-review{width:100%;resize:vertical;min-height:72px;border:1px solid var(--line-strong);border-radius:8px;padding:8px;font:inherit;font-size:13px;color:var(--text);background:var(--card)}
+#quick-command-policy{width:100%;min-height:40px;margin-bottom:6px;padding:8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--text);font:inherit;font-size:13px}
 
 @keyframes qv-pulse{0%{box-shadow:0 0 0 0 var(--rec-ring)}100%{box-shadow:0 0 0 14px rgba(201,60,60,0)}}
 @media (prefers-reduced-motion:reduce){.qv-mic[aria-pressed="true"]::before{animation:none}}

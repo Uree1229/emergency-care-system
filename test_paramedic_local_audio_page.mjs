@@ -10,6 +10,7 @@ import {encodeWav} from './paramedic-ui/speech.mjs';
 import {DRAFT_HANDOFF_KEY,writeDraftHandoff,readDraftHandoff,clearDraftHandoff} from './paramedic-ui/draft-handoff.mjs';
 import {MainFollowup,patientNavigation} from './paramedic-ui/main-followup.mjs';
 import {MainTreatmentReview} from './paramedic-ui/main-treatment-review.mjs';
+import {MainRecovery,findMainRecovery,emptyMainInput,MAIN_RECOVERY_PREFIX} from './paramedic-ui/main-recovery.mjs';
 
 // Runs actual app.js and VoiceClient with a simulated DOM/capture/server.
 // WAV bytes and download objects are synthetic and remain in memory. There is
@@ -28,7 +29,7 @@ class Element {
   get options(){return this.children;}
   get selectedOptions(){return this.children.filter(c=>c.selected);}
   get value(){return this.tagName==='select'&&this.children.length?this.children[this.selectedIndex]?.value:this._value;}
-  set value(value){const index=this.tagName==='select'?this.children.findIndex(c=>c.value===value):-1;if(index>=0)this.selectedIndex=index;else this._value=value;}
+  set value(value){value=String(value);const index=this.tagName==='select'?this.children.findIndex(c=>c.value===value):-1;if(index>=0)this.selectedIndex=index;else this._value=value;}
   append(...children){this.children.push(...children);}
   add(option){this.children.push(option);}
   replaceChildren(...children){this.children=[...children];this.selectedIndex=0;}
@@ -45,7 +46,7 @@ class Element {
   }
 }
 
-async function harness({browser=true,search='',initialStorage={},restoredSession=null,sessionGetStatus=200,allowClinicalWrites=false,expectConnected=true,storageWriteFailureKey=null,lostWriteResponses={},patientState='WAITING',conflictingApply=false,suggestionAvailable=false}={}){
+async function harness({browser=true,search='',initialStorage={},restoredSession=null,sessionGetStatus=200,allowClinicalWrites=false,expectConnected=true,storageWriteFailureKey=null,lostWriteResponses={},patientState='WAITING',conflictingApply=false,suggestionAvailable=false,initialCommittedWrites=[],followupAfterAnswer=null}={}){
   const elements=Object.fromEntries(idEntries.map(m=>[m[2],new Element(m[1])]));
   for(const m of idEntries)if(/\shidden(?:\s|>)/.test(m[0]))elements[m[2]].hidden=true;
   class Option extends Element{constructor(text,value){super('option');this.textContent=text;this.value=value;}}
@@ -57,7 +58,7 @@ async function harness({browser=true,search='',initialStorage={},restoredSession
   const makeId=()=>`fake-request-${++requestSequence}`;
   const response=data=>({ok:true,status:200,json:async()=>data});
   const existingPatient={id:'P-SYNTHETIC-HANDOFF',version:1,state:patientState,lat:37,lon:127,destination_hospital_id:patientState==='WAITING'?null:'H-SYNTHETIC'};
-  const committedWrites=new Map(),losses={...lostWriteResponses};
+  const committedWrites=new Map(initialCommittedWrites),losses={...lostWriteResponses};
   let serverSession=restoredSession;
   const treatmentProposal=(mode=suggestionAvailable?'suggested':'keep')=>({session_id:serverSession.id,session_version:serverSession.version,patient_version:existingPatient.version,token:'a'.repeat(64),selection:{mode},current:{treatment_profile_id:'TR_KEEP',required_capabilities:['응급의학'],resource_demands:{ed_bed:1,special_team:1},priority:4,priority_source:'expert'},proposed:{treatment_profile_id:mode==='keep'?'TR_KEEP':'TR_SUGGESTED',required_capabilities:['응급의학'],resource_demands:{ed_bed:1,special_team:1},priority:4,priority_source:'expert'},changes:mode==='keep'?[]:[{field:'treatment_profile_id',previous:'TR_KEEP',current:'TR_SUGGESTED'}],source_changes:[{field:'stemi_suspected',previous:'no',current:'yes',removed:false,needs_clarification:false}],reductions:[],unsupported_solver_resources:[],blockers:serverSession.confirmed?[]:['VOICE_CONFIRMATION_REQUIRED'],can_apply:serverSession.confirmed});
   const fetchImpl=async(url,options)=>{
@@ -81,7 +82,7 @@ async function harness({browser=true,search='',initialStorage={},restoredSession
       if(committedWrites.has(identity))return response({...committedWrites.get(identity),duplicate:true});
       if(writeAction==='apply'&&conflictingApply){conflictingApply=false;serverSession={...serverSession,version:serverSession.version+1};existingPatient.version++;return {ok:false,status:409,json:async()=>({error:'TREATMENT_REVIEW_STALE',message:'합성 충돌'})};}
       serverSession={...serverSession,version:serverSession.version+1,...(writeAction==='confirm'?{confirmed:true}:['submit','apply'].includes(writeAction)?{state:'SUBMITTED'}:{})};
-      if(writeAction==='answers')serverSession.followup={items:[{id:call.body.question_id,fields:['pulse'],askable:false,answer_status:call.body.unavailable?'unavailable':'answered'}],complete:true,unanswered_count:0};
+      if(writeAction==='answers')serverSession.followup=followupAfterAnswer||{items:[{id:call.body.question_id,fields:['pulse'],askable:false,answer_status:call.body.unavailable?'unavailable':'answered'}],complete:true,unanswered_count:0};
       if(['submit','apply'].includes(writeAction))existingPatient.version=2;
       const result={session:serverSession,...(['submit','apply'].includes(writeAction)?{patient:{...existingPatient}}:{}),...(writeAction==='answers'?{answer:{accepted:true,unavailable:call.body.unavailable===true}}:{})};
       committedWrites.set(identity,result);
@@ -120,10 +121,10 @@ async function harness({browser=true,search='',initialStorage={},restoredSession
   };
   const location={search,origin:'http://127.0.0.1:18042',pathname:'/paramedic/',hash:''};
   class TestURL extends URL{static createObjectURL(blob){const url=`blob:fake-local-${++objectSequence}`;objects.set(url,blob);return url;}static revokeObjectURL(url){revoked.push(url);}}
-  const context=vm.createContext({VoiceClient:TestClient,requestId:makeId,normalizeServer,VoiceCapture:FakeCapture,captureDescription,localAudioTestMetadata,readDraftHandoff,clearDraftHandoff,MainFollowup,patientNavigation,MainTreatmentReview,
+  const context=vm.createContext({VoiceClient:TestClient,requestId:makeId,normalizeServer,VoiceCapture:FakeCapture,captureDescription,localAudioTestMetadata,readDraftHandoff,clearDraftHandoff,MainFollowup,patientNavigation,MainTreatmentReview,MainRecovery,findMainRecovery,emptyMainInput,TextEncoder,
     document:{getElementById:id=>{assert.ok(elements[id],`Unknown element ${id}`);return elements[id];},createElement,querySelectorAll:()=>[]},
     window:{addEventListener:(name,callback)=>{events[name]=callback;},history:{replaceState(state,title,value){historyReplacements.push(value);const next=new URL(value,location.origin);location.search=next.search;location.pathname=next.pathname;location.hash=next.hash;}}},
-    sessionStorage:{getItem:key=>storage.has(key)?storage.get(key):null,setItem:(key,value)=>{if(key===storageWriteFailureKey)throw Error('Synthetic storage denied');storage.set(key,value);},removeItem:key=>storage.delete(key)},
+    sessionStorage:{get length(){return storage.size;},key:index=>[...storage.keys()][index]??null,getItem:key=>storage.has(key)?storage.get(key):null,setItem:(key,value)=>{if(key===storageWriteFailureKey)throw Error('Synthetic storage denied');storage.set(key,value);},removeItem:key=>storage.delete(key)},
     location,URLSearchParams,Option,Blob,Uint8Array,
     URL:TestURL,
     atob:value=>Buffer.from(value,'base64').toString('binary'),
@@ -133,7 +134,7 @@ async function harness({browser=true,search='',initialStorage={},restoredSession
   const click=async id=>{assert.equal(el(id).disabled,false,`${id} is enabled`);el(id).click();await flush();};
   const select=(id,value)=>{el(id).value=value;el(id).dispatch('change');};
   const local=()=>select('speech-provider','local_wav');
-  return {el,capture:captures[0],calls,objects,revoked,downloads,events,intervals,click,select,local,storage,historyReplacements,location,
+  return {el,capture:captures[0],calls,objects,revoked,downloads,events,intervals,click,select,local,storage,historyReplacements,location,committedWrites,serverSnapshot:()=>structuredClone(serverSession),
     runTimers:()=>{for(const timer of timers.splice(0))timer();}};
 }
 
@@ -142,9 +143,16 @@ function assertNoAudioOrClinicalWrites(calls){
   assert.ok(calls.every(c=>['/api/voice/capabilities','/api/voice/terms','/api/hospitals','/api/voice/sessions'].includes(c.path)));
   assert.equal(calls.filter(c=>/\/audio|\/transcripts|\/submit|\/patients/.test(c.path)).length,0);
 }
+async function startExplicitEmptyDraft(h){
+  assert.equal(h.calls.filter(c=>c.method!=='GET').length,0,'startup never automatically creates a draft');
+  assert.equal(h.el('record-button').disabled,true,'a draft is required before capture');
+  await h.click('new-case');
+  assert.equal(h.calls.filter(c=>c.method!=='GET').length,1,'one explicit draft creation is the only write');
+}
 
 test('local WAV stays available without Azure credentials and PCM controls follow the selected route',async()=>{
   const h=await harness();
+  await startExplicitEmptyDraft(h);
   assert.equal(h.el('speech-provider').value,'browser');assert.equal(h.el('audio-input-profile').disabled,true);
   assert.equal(h.el('speech-provider').querySelector('[value="azure"]').disabled,true);
   assert.equal(h.el('speech-provider').querySelector('[value="local_wav"]').disabled,false);
@@ -152,7 +160,7 @@ test('local WAV stays available without Azure credentials and PCM controls follo
   await h.click('record-button');assert.equal(h.capture.active,true);assert.equal(h.el('audio-input-profile').disabled,true);
   await h.click('record-button');assert.equal(h.capture.active,false);assert.equal(h.el('audio-input-profile').disabled,false);
   h.select('speech-provider','browser');assert.equal(h.el('audio-input-profile').disabled,true);
-  assert.equal(h.calls.length,4);assertNoAudioOrClinicalWrites(h.calls);
+  assert.equal(h.calls.length,7);assertNoAudioOrClinicalWrites(h.calls);
 });
 
 const HANDOFF_ORIGIN='http://127.0.0.1:18042';
@@ -289,12 +297,14 @@ test('success accepts a newer draft and removes only the handoff query parameter
   assert.equal(refreshed.el('recommendation-prep').hidden,true);
 });
 
-test('without the explicit handoff query a stored reference is ignored and normal startup stays unchanged',async()=>{
+test('without the explicit handoff query a stored reference is ignored and an empty draft requires an explicit new-record action',async()=>{
   const storage=handoffStorage(),raw=storage.get(DRAFT_HANDOFF_KEY);
   const h=await harness({initialStorage:storage});
-  assert.equal(h.calls.filter(call=>call.method==='POST').length,1);
+  assert.equal(h.calls.filter(call=>call.method==='POST').length,0);
   assert.equal(h.calls.some(call=>call.path==='/api/voice/sessions/VS-SYNTHETIC-HANDOFF'),false);
   assert.equal(storage.get(DRAFT_HANDOFF_KEY),raw);assert.equal(h.el('recommendation-prep').hidden,true);
+  await startExplicitEmptyDraft(h);
+  assert.equal(h.calls.filter(call=>call.method==='POST').length,1);assert.equal(storage.get(DRAFT_HANDOFF_KEY),raw);
 });
 
 test('after failed restoration only an explicit new-record button creates one fresh draft',async()=>{
@@ -373,6 +383,60 @@ test('main question unmeasured button uses offered question and preserves previo
   const h=await harness({search:'?voice_handoff=1',initialStorage:handoffStorage(),restoredSession:handoffSession({fields:{pulse:90},followup:{items:[q],next_question:q,unanswered_count:1}}),allowClinicalWrites:true});
   assert.equal(h.el('main-question-text').textContent,q.question);await h.click('main-answer-unavailable');const answer=h.calls.find(c=>c.path.endsWith('/followup/answers'));assert.equal(answer.body.question_id,'pulse');assert.equal(answer.body.unavailable,true);assert.equal(answer.body.profile,'voice_extended_v1');assert.match(h.el('main-followup-status').textContent,/미측정·확인 불가 1개/);assert.equal(h.el('main-followup').hidden,true);assert.equal(h.calls.some(c=>/submit|treatment-review\/apply/.test(c.path)),false);
 });
+
+for(const variant of [
+  {name:'accepted answer',input:'90',button:'main-answer-send',expected:''},
+  {name:'unavailable answer',input:'미측정',button:'main-answer-unavailable',expected:''},
+  {name:'separately edited input',input:'별도로 편집한 합성 답변',button:'main-answer-unavailable',expected:'별도로 편집한 합성 답변'}
+])test(`reloaded exact followup retry clears only the matching committed ${variant.name} before showing the next question`,async()=>{
+  const q={id:'pulse',fields:['pulse'],question:'맥박은 얼마인가요?',askable:true};
+  const next={id:'spo2',fields:['spo2'],question:'산소포화도는 얼마인가요?',askable:true};
+  const first=await harness({search:'?voice_handoff=1',initialStorage:handoffStorage(),restoredSession:handoffSession({fields:{pulse:90},followup:{items:[q],next_question:q,unanswered_count:1}}),allowClinicalWrites:true,lostWriteResponses:{answers:1},followupAfterAnswer:{items:[next],next_question:next,unanswered_count:1}});
+  first.el('main-answer').value=variant.input;first.el('main-answer').dispatch('input');await first.click(variant.button);
+  const original=first.calls.find(c=>c.path.endsWith('/followup/answers'));
+  assert.ok(original);assert.equal(first.el('retry-request').hidden,false);
+  const restored=await harness({initialStorage:first.storage,restoredSession:first.serverSnapshot(),allowClinicalWrites:true,initialCommittedWrites:first.committedWrites});
+  assert.equal(restored.calls.filter(c=>c.method!=='GET').length,0,'reload only reads, never retries by itself');
+  assert.equal(restored.el('main-answer').value,variant.input);
+  await restored.click('retry-request');
+  const retry=restored.calls.filter(c=>c.path.endsWith('/followup/answers'));
+  assert.equal(retry.length,1);assert.deepEqual(retry[0].body,original.body,'retry retains original question, utterance and request IDs');
+  assert.equal(restored.el('main-question-text').textContent,next.question);
+  assert.equal(restored.el('main-answer').value,variant.expected);
+  assert.equal(restored.el('session-meta').textContent,'새 환자 초안 · 버전 4','duplicate retry does not add a second revision');
+  assert.equal(restored.el('retry-request').hidden,true);
+  assert.equal(restored.calls.filter(c=>c.path==='/api/voice/sessions'&&c.method==='POST').length,0);
+});
+for(const action of ['new-case','load-patient'])test(`${action} clears the prior case answer and treatment reason before storing the next case`,async()=>{
+  const q={id:'pulse',fields:['pulse'],question:'맥박은 얼마인가요?',askable:true};
+  const h=await harness({search:'?voice_handoff=1',initialStorage:handoffStorage(),restoredSession:handoffSession({followup:{items:[q],next_question:q,unanswered_count:1}})});
+  const previousSession=h.serverSnapshot().id;
+  h.el('main-answer').value='이전 환자의 합성 답변 105';h.el('main-answer').dispatch('input');
+  h.el('treatment-reason').value='이전 환자에 대한 검토 사유';
+  if(action==='load-patient')h.el('resume-patient').value='P-SYNTHETIC-HANDOFF';
+  await h.click(action);
+  const nextSession=h.serverSnapshot().id;assert.notEqual(nextSession,previousSession);
+  assert.equal(h.el('main-answer').value,'');assert.equal(h.el('treatment-reason').value,'');
+  const records=[...h.storage.entries()].filter(([key])=>key.startsWith(MAIN_RECOVERY_PREFIX)).map(([,raw])=>JSON.parse(raw));
+  assert.equal(records.find(r=>r.sessionId===previousSession).ui.answer,'이전 환자의 합성 답변 105','old scoped input remains in its own recovery record');
+  assert.equal(records.find(r=>r.sessionId===nextSession).ui.answer,'','next case checkpoint cannot acquire the prior answer');
+  assert.equal(h.calls.filter(c=>c.path.endsWith('/followup/answers')).length,0,'case navigation never submits an answer');
+  const creates=h.calls.filter(c=>c.method==='POST'&&c.path==='/api/voice/sessions');assert.equal(creates.length,1);
+  assert.equal(creates[0].body.patient_id,action==='load-patient'?'P-SYNTHETIC-HANDOFF':undefined);
+});
+
+test('same-case reload restores an unsent answer without writing or carrying a transient treatment reason',async()=>{
+  const q={id:'pulse',fields:['pulse'],question:'맥박은 얼마인가요?',askable:true};
+  const first=await harness({search:'?voice_handoff=1',initialStorage:handoffStorage(),restoredSession:handoffSession({followup:{items:[q],next_question:q,unanswered_count:1}})});
+  first.el('main-answer').value='같은 환자의 미전송 답변 105';first.el('main-answer').dispatch('input');
+  first.el('treatment-reason').value='전송하지 않은 임시 검토 사유';
+  const restored=await harness({initialStorage:first.storage,restoredSession:first.serverSnapshot()});
+  assert.equal(restored.serverSnapshot().id,first.serverSnapshot().id);
+  assert.equal(restored.el('main-answer').value,'같은 환자의 미전송 답변 105');
+  assert.equal(restored.el('treatment-reason').value,'','clinical justification still requires a deliberate current review');
+  assert.equal(restored.calls.filter(c=>c.method!=='GET').length,0);
+});
+
 test('409 apply reloads latest patient/draft/token and clears prior explicit checks',async()=>{
   const h=await harness({search:'?voice_handoff=1',initialStorage:handoffStorage(),restoredSession:handoffSession({patient_id:'P-SYNTHETIC-HANDOFF'}),allowClinicalWrites:true,conflictingApply:true});
   await h.click('confirm-button');h.el('treatment-confirm').checked=true;h.el('treatment-confirm').dispatch('change');await h.click('treatment-apply');
@@ -394,6 +458,7 @@ test('initial unavailable server suggestion changes displayed choice to Keep wit
 
 test('actual app local route returns paired WAV/settings downloads without any audio or clinical API write',async()=>{
   const h=await harness({browser:false});
+  await startExplicitEmptyDraft(h);
   assert.equal(h.el('speech-provider').value,'local_wav');h.select('audio-input-profile','noise_suppressed');
   await h.click('record-button');await h.click('record-button');
   assert.equal(h.capture.starts.length,1);assert.equal(h.capture.starts[0].mode,'azure');
@@ -412,12 +477,12 @@ test('actual app local route returns paired WAV/settings downloads without any a
   assert.equal(metadata.reference_verified,false);assert.equal(metadata.speech_recognition_accuracy_measured,false);
   assert.equal(metadata.source,'unverified_microphone_audio');assert.doesNotMatch(JSON.stringify(metadata),/private-device|deviceId|actor_id|session_id/);
   assert.match(h.el('notice').textContent,/오디오 서버 전송은 실행하지 않았습니다/);
-  assert.equal(h.calls.length,4);assertNoAudioOrClinicalWrites(h.calls);
+  assert.equal(h.calls.length,7);assertNoAudioOrClinicalWrites(h.calls);
   h.runTimers();assert.ok(h.revoked.includes(exported.url));
 });
 
 test('recording again and starting a new case revoke prior WAV URLs and clear download metadata',async()=>{
-  const h=await harness({browser:false});await h.click('record-button');await h.click('record-button');
+  const h=await harness({browser:false});await startExplicitEmptyDraft(h);await h.click('record-button');await h.click('record-button');
   const first=h.el('audio-test-download').href;await h.click('record-button');
   assert.ok(h.revoked.includes(first));assert.equal(h.el('audio-test-download').hidden,true);assert.equal(h.el('audio-test-metadata').hidden,true);
   const before=h.downloads.length;h.el('audio-test-metadata').click();assert.equal(h.downloads.length,before,'cleared metadata cannot be downloaded');
@@ -425,16 +490,16 @@ test('recording again and starting a new case revoke prior WAV URLs and clear do
   await h.click('new-case');assert.ok(h.revoked.includes(second));
   assert.equal(h.el('audio-test-download').hidden,true);assert.equal(h.el('audio-test-metadata').hidden,true);
   h.el('audio-test-metadata').click();assert.equal(h.downloads.length,before);
-  assert.equal(h.calls.filter(c=>c.method==='POST').length,2,'only the initial and explicitly requested new empty drafts');
+  assert.equal(h.calls.filter(c=>c.method==='POST').length,2,'only the two explicitly requested new empty drafts');
   assertNoAudioOrClinicalWrites(h.calls);
 });
 
 test('pagehide clears saved URLs/metadata and releases an active local capture',async()=>{
-  const h=await harness({browser:false});await h.click('record-button');await h.click('record-button');
+  const h=await harness({browser:false});await startExplicitEmptyDraft(h);await h.click('record-button');await h.click('record-button');
   const old=h.el('audio-test-download').href;h.events.pagehide();
   assert.ok(h.revoked.includes(old));assert.equal(h.el('audio-test-download').hidden,true);assert.equal(h.el('audio-test-metadata').hidden,true);
   h.el('audio-test-metadata').click();assert.equal(h.downloads.length,0);
   await h.click('record-button');assert.equal(h.capture.active,true);h.events.pagehide();
   assert.equal(h.capture.active,false);assert.equal(h.intervals.size,0);
-  assert.equal(h.calls.length,4);assertNoAudioOrClinicalWrites(h.calls);
+  assert.equal(h.calls.length,7);assertNoAudioOrClinicalWrites(h.calls);
 });
