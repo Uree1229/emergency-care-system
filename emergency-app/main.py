@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Form, Query
 
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 
 from fastapi.staticfiles import StaticFiles
 
@@ -22,10 +22,6 @@ import xml.etree.ElementTree as ET
 
 from urllib.parse import quote
 from html import escape
-from datetime import datetime, timedelta, timezone
-from common_server import (CommonServerError, hospital_catalog, new_submission_id,
-                           build_episode_payload, create_episode, transport_url)
-from api_integrations import enrich_hospitals, enrich_hospitals_with_hira, enrich_hospitals_with_severe
 
 
 
@@ -41,7 +37,7 @@ def load_local_env():
 
         return
 
-    for line in env_file.read_text(encoding="utf-8").splitlines():
+    for line in env_file.read_text(encoding="utf-8-sig").splitlines():
 
         line = line.strip()
 
@@ -57,11 +53,13 @@ def load_local_env():
 
         if key and value:
 
-            os.environ.setdefault(key, value)
+            os.environ[key] = value
 
 
 
 load_local_env()
+
+from api_integrations import enrich_hospitals, enrich_hospitals_with_hira, enrich_hospitals_with_severe
 
 
 
@@ -125,7 +123,14 @@ def home():
 
 
 
-    return html_file.read_text(encoding="utf-8")
+    html = html_file.read_text(encoding="utf-8")
+    entry = '<div style="max-width:760px;margin:16px auto;padding:16px;border:1px solid #dbeafe;border-radius:14px;text-align:center;background:#eff6ff"><strong>🎤 AI 음성 문진</strong><p>말로 증상을 설명하고 주요 정보를 확인하세요.</p><a href="/voice-intake" style="display:inline-block;background:#2563eb;color:white;padding:12px 20px;border-radius:9px;text-decoration:none">음성 문진 시작하기</a></div>'
+    if "</body>" in html.lower():
+        import re
+        html = re.sub(r"</body>", entry + "</body>", html, count=1, flags=re.IGNORECASE)
+    else:
+        html = entry + html
+    return html
 
 
 
@@ -309,7 +314,7 @@ def patients_page():
 
                 <a href="/patients/{patient[0]}">
 
-                    {escape(str(patient[1]))}
+                    {patient[1]}
 
                 </a>
 
@@ -317,11 +322,11 @@ def patients_page():
 
 
 
-            <td>{escape(str(patient[2] or ""))}</td>
+            <td>{patient[2] or ""}</td>
 
 
 
-            <td>{escape(str(patient[3] or ""))}</td>
+            <td>{patient[3] or ""}</td>
 
 
 
@@ -631,7 +636,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    이름: {escape(str(patient[1]))}
+                    이름: {patient[1]}
 
                 </div>
 
@@ -639,7 +644,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    생년월일: {escape(str(patient[2] or "등록되지 않음"))}
+                    생년월일: {patient[2] or "등록되지 않음"}
 
                 </div>
 
@@ -647,7 +652,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    전화번호: {escape(str(patient[3] or "등록되지 않음"))}
+                    전화번호: {patient[3] or "등록되지 않음"}
 
                 </div>
 
@@ -655,7 +660,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    주소: {escape(str(patient[4] or "등록되지 않음"))}
+                    주소: {patient[4] or "등록되지 않음"}
 
                 </div>
 
@@ -663,7 +668,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    보호자: {escape(str(patient[5] or "등록되지 않음"))}
+                    보호자: {patient[5] or "등록되지 않음"}
 
                 </div>
 
@@ -673,7 +678,7 @@ def patient_detail(patient_id: int):
 
                     보호자 전화번호:
 
-                    {escape(str(patient[6] or "등록되지 않음"))}
+                    {patient[6] or "등록되지 않음"}
 
                 </div>
 
@@ -729,6 +734,11 @@ def patient_detail(patient_id: int):
 
 
 
+
+@app.get("/voice-intake", response_class=HTMLResponse)
+def voice_intake_page():
+    return HTMLResponse((BASE_DIR / "templates" / "voice_intake.html").read_text(encoding="utf-8"))
+
 @app.get("/emergency", response_class=HTMLResponse)
 
 def emergency_page():
@@ -751,7 +761,7 @@ def emergency_page():
 
         <option value="{patient[0]}">
 
-            {escape(str(patient[1]))}
+            {patient[1]}
 
         </option>
 
@@ -1032,6 +1042,19 @@ def emergency_page():
 
 
             <div class="container">
+                <a href="/voice-intake" style="display:block;text-align:center;margin:12px 0;padding:12px;background:#e0f2fe;border-radius:10px;color:#075985;font-weight:bold">🎤 음성으로 증상 설명하기</a>
+                <div id="voice-summary" style="display:none;padding:14px;border-radius:10px;background:#f0fdf4;margin:12px 0;white-space:pre-line"></div>
+                <script>
+                (function() {{
+                    try {{
+                        const data=JSON.parse(sessionStorage.getItem('emergencyVoiceIntake')||'null');
+                        if(!data) return;
+                        const el=document.getElementById('voice-summary');
+                        el.textContent='🎤 음성 문진 결과\n'+'기존 질환: '+data.conditions+'\n통증 부위: '+data.areas+'\n증상: '+data.symptoms+'\n발생 시점: '+data.onset+'\n원문: '+data.transcript;
+                        el.style.display='block';
+                    }} catch(e) {{}}
+                }})();
+                </script>
 
 
 
@@ -1195,7 +1218,7 @@ def emergency_check(patient_id: str = ""):
 
 
 
-        patient_name = escape(str(patient[1]))
+        patient_name = patient[1]
 
 
 
@@ -1521,7 +1544,6 @@ def emergency_breathing(
 
 
 
-    consciousness = consciousness if consciousness in ("yes", "no") else "unknown"
     patient = None
 
 
@@ -1550,7 +1572,7 @@ def emergency_breathing(
 
 
 
-        patient_name = escape(str(patient[1]))
+        patient_name = patient[1]
 
 
 
@@ -1880,8 +1902,6 @@ def emergency_symptoms(
 
 
 
-    consciousness = consciousness if consciousness in ("yes", "no") else "unknown"
-    breathing = breathing if breathing in ("yes", "no") else "unknown"
     patient = None
 
 
@@ -1910,7 +1930,7 @@ def emergency_symptoms(
 
 
 
-        patient_name = escape(str(patient[1]))
+        patient_name = patient[1]
 
 
 
@@ -2170,7 +2190,7 @@ def emergency_symptoms(
 
                 <div class="question">해당하는 증상을 모두 선택해주세요.</div>
 
-                <form action="/emergency/result" method="get">
+                <form action="/emergency/bodymap" method="get">
 
                     <input type="hidden" name="patient_id" value="{patient_id_value}">
 
@@ -2192,7 +2212,7 @@ def emergency_symptoms(
 
                     </div>
 
-                    <button type="submit">선택 완료 · 다음으로</button>
+                    <button type="submit">증상 선택 완료 · 다음으로</button>
 
                 </form>
 
@@ -2212,6 +2232,70 @@ def emergency_symptoms(
 
 
 
+
+
+# ==================================================
+# 📍 아픈 부위 선택 (증상 선택과 별도 페이지)
+# ==================================================
+
+@app.get("/emergency/bodymap", response_class=HTMLResponse)
+def emergency_bodymap(
+    patient_id: int | None = None,
+    consciousness: str = "",
+    breathing: str = "",
+    symptom: list[str] = Query(default=[]),
+):
+    allowed_symptoms = {"가슴 통증", "호흡 곤란", "출혈", "의식 저하", "기타"}
+    selected_symptoms = list(dict.fromkeys(x for x in symptom if x in allowed_symptoms))
+    patient = get_patient(patient_id) if patient_id else None
+    patient_name = escape(str(patient[1])) if patient else "미등록 환자"
+    patient_id_value = patient[0] if patient else 0
+    hidden_symptoms = "".join(
+        f'<input type="hidden" name="symptom" value="{escape(x, quote=True)}">'
+        for x in selected_symptoms
+    )
+    return HTMLResponse(f"""
+    <!DOCTYPE html>
+    <html lang="ko"><head><meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>아픈 부위 선택</title>
+    <style>
+    * {{box-sizing:border-box}}
+    body {{margin:0;min-height:100vh;background:#f2f4f7;font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;padding:22px 0}}
+    .container {{width:90%;max-width:500px;background:white;border-radius:20px;padding:32px;text-align:center}}
+    .choice {{display:flex;gap:12px;align-items:center;text-align:left;padding:14px;margin-bottom:9px;border:2px solid #d9e3f0;border-radius:12px;background:#f8fafc;cursor:pointer}}
+    .choice:has(input:checked) {{background:#e3f2fd;border-color:#1976d2;font-weight:bold}}
+    input[type=checkbox] {{width:21px;height:21px;accent-color:#1976d2}}
+    button {{width:100%;padding:17px;border:0;border-radius:12px;background:#1976d2;color:white;font-size:17px;font-weight:bold;cursor:pointer;margin-top:14px}}
+    p {{color:#64748b;line-height:1.6}}
+    </style></head><body>
+    <div class="container">
+      <h1>📍 아픈 부위 선택</h1>
+      <p>환자: <strong>{patient_name}</strong></p>
+      <p>아픈 부위를 모두 선택해 주세요. 해당 사항이 없다면 선택하지 않고 진행할 수 있습니다.</p>
+      <svg viewBox="0 0 160 245" width="160" height="245" role="img" aria-label="인체 앞면 안내 그림" style="display:block;margin:0 auto 15px;">
+        <circle cx="80" cy="26" r="19" fill="#cbd5e1" stroke="#64748b"/>
+        <path d="M66 47 L49 55 L35 118 L45 123 L61 79 L62 145 L65 227 L78 227 L82 153 L86 227 L99 227 L102 145 L103 79 L119 123 L129 118 L111 55 L94 47 Z" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/>
+        <text x="80" y="30" text-anchor="middle" font-size="10">머리</text>
+        <text x="80" y="88" text-anchor="middle" font-size="10">가슴</text>
+        <text x="80" y="126" text-anchor="middle" font-size="10">복부</text>
+      </svg>
+      <form action="/emergency/report" method="get">
+        <input type="hidden" name="patient_id" value="{patient_id_value}">
+        <input type="hidden" name="consciousness" value="{escape(consciousness, quote=True)}">
+        <input type="hidden" name="breathing" value="{escape(breathing, quote=True)}">
+        {hidden_symptoms}
+        <label class="choice"><input type="checkbox" name="body_part" value="머리">머리</label>
+        <label class="choice"><input type="checkbox" name="body_part" value="가슴">가슴</label>
+        <label class="choice"><input type="checkbox" name="body_part" value="복부">복부</label>
+        <label class="choice"><input type="checkbox" name="body_part" value="오른팔">오른팔</label>
+        <label class="choice"><input type="checkbox" name="body_part" value="왼팔">왼팔</label>
+        <label class="choice"><input type="checkbox" name="body_part" value="오른다리">오른다리</label>
+        <label class="choice"><input type="checkbox" name="body_part" value="왼다리">왼다리</label>
+        <button type="submit">선택 완료 · 구급대 전달 정보 확인</button>
+      </form>
+    </div></body></html>
+    """)
 
 
 # ==================================================
@@ -2602,7 +2686,7 @@ def fetch_emergency_hospitals(lat, lon):
 
         )
 
-        return hospitals[:10], None
+        return hospitals[:5], None
 
     except urllib.error.HTTPError as e:
 
@@ -2632,169 +2716,434 @@ def fetch_emergency_hospitals(lat, lon):
 
 
 
-def _observed_state(value, yes_text, no_text):
-    if value == "yes":
-        return yes_text, "normal"
-    if value == "no":
-        return no_text, "warning"
-    return "미확인", "unknown"
-
-
-def _display_value(value):
-    return escape(str(value)) if value is not None and value != "" else "미확인"
-
-
-def _display_time(value):
-    if not isinstance(value, (int, float)) or not math.isfinite(value):
-        return "미확인"
-    try:
-        return datetime.fromtimestamp(value, timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S KST")
-    except (ValueError, OverflowError, OSError):
-        return "미확인"
-
-
-def _stored_hospital_cards(hospitals, latitude, longitude):
-    """Read-only display: public observations never become operational capacities."""
-    resource_labels = {'ed_bed': '진료 자리', 'special_team': '전문팀'}
-    state_labels = {'available': '확인됨', 'limited': '제한', 'unknown': '미확인'}
-    source_labels = {'synthetic': '가상 시연', 'hospital_input': '병원 입력', 'public': '공공 관측'}
-    def distance(hospital):
-        if latitude is None or longitude is None:
-            return math.inf
-        try:
-            return calculate_distance_km(latitude, longitude, float(hospital['lat']), float(hospital['lon']))
-        except (TypeError, ValueError, KeyError):
-            return math.inf
-
-    listed = sorted(hospitals, key=lambda item: (distance(item), str(item.get('id', ''))))
-    cards = []
-    for hospital in listed[:5]:
-        km = distance(hospital)
-        location = f"약 {km:.1f}km (직선거리)" if math.isfinite(km) else "현재 위치 미확인 · 거리 미표시"
-        caps = hospital.get('capabilities') or []
-        capability_text = ', '.join(str(item) for item in caps) or "미확인"
-        if hospital.get('capabilities_status') == 'unknown':
-            capability_text += " · 진료 역량 미확인"
-        operational = []
-        for resource in hospital.get('resources') or []:
-            operational.append(
-                '<div class="hospital-detail">' + _display_value(resource_labels.get(resource.get('resource_type'), resource.get('resource_type')))
-                + ' · 상태 ' + _display_value(state_labels.get(resource.get('status'), resource.get('status')))
-                + ' · 총량 ' + _display_value(resource.get('capacity'))
-                + ' · 점유 ' + _display_value(resource.get('occupied'))
-                + ' · 갱신 ' + _display_time(resource.get('updated_at'))
-                + ' · 출처 ' + _display_value(source_labels.get(resource.get('source'), resource.get('source'))) + '</div>')
-        observations = []
-        for snapshot in hospital.get('public_data') or []:
-            detail = escape(json.dumps(snapshot.get('data'), ensure_ascii=False, indent=2))
-            observations.append(
-                '<details class="hospital-detail"><summary>' + _display_value(snapshot.get('endpoint'))
-                + '</summary><div>관측 시각: ' + _display_time(snapshot.get('source_observed_at'))
-                + '<br>서버 수집 시각: ' + _display_time(snapshot.get('fetched_at'))
-                + '<br>갱신 상태: ' + ('미확인' if snapshot.get('stale') is None else '오래된 관측' if snapshot.get('stale') else '관측 기준 이내')
-                + '</div><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;">'
-                + detail + '</pre></details>')
-        cards.append(
-            '<div class="hospital-card"><div class="hospital-name">🏥 ' + _display_value(hospital.get('name'))
-            + '</div><div class="hospital-tag">공통 서버 저장정보 · ' + _display_value(hospital.get('source'))
-            + '</div><div class="hospital-detail"><strong>거리:</strong> ' + escape(location)
-            + '</div><div class="hospital-detail"><strong>응급실 전화:</strong> ' + _display_value(hospital.get('phone'))
-            + '</div><div class="hospital-address">' + _display_value(hospital.get('address'))
-            + '</div><div class="hospital-detail"><strong>등록된 진료 분야:</strong> ' + escape(capability_text)
-            + '</div><div class="hospital-detail muted">저장된 정보는 해당 환자에 대한 수용 확답이 아닙니다. 공공 관측값과 병원이 입력한 운영 자원은 별도입니다.</div>'
-            + '<details class="hospital-detail"><summary><strong>병원 입력 운영 자원</strong></summary>'
-            + (''.join(operational) or '<div>운영 자원 미확인</div>')
-            + '</details><details class="hospital-detail"><summary><strong>공공 API 저장 관측정보 (현재 수용 확약 아님)</strong></summary>'
-            + (''.join(observations) or '<div>저장된 관측정보 없음 · 미확인</div>')
-            + '</details></div>')
-    return ''.join(cards) or '<div class="location">공통 서버에 저장된 병원 목록이 없습니다.</div>'
-
-
-def _connect_form_html(hospitals, patient_id, consciousness, breathing, symptom, latitude, longitude,
-                       submission_id, reporter_role, required_capabilities, special_team, consent, inquiry_policy, error):
-    selected = set(required_capabilities or [])
-    capabilities = sorted({str(cap) for hospital in hospitals for cap in hospital.get('capabilities', [])})
-    # Keep values visible on an error even if the hospital catalogue became unavailable.
-    capabilities = sorted(set(capabilities) | selected)
-    labels = {'pediatrics': '소아 진료', 'obstetrics': '산과', 'cardiology': '심장 진료',
-              'neurology': '신경 진료', 'trauma': '외상', 'surgery': '외과', 'emergency': '응급 진료'}
-    options = ''.join('<label style="display:block;margin:9px 0;"><input type="checkbox" name="required_capabilities" value="'
-                      + escape(cap, quote=True) + '"' + (' checked' if cap in selected else '')
-                      + '> ' + escape(labels.get(cap, cap)) + '</label>' for cap in capabilities)
-    roles = ''.join('<option value="' + value + '"' + (' selected' if reporter_role == value else '')
-                    + '>' + label + '</option>' for value, label in (('', '입력자 선택'), ('self', '환자 본인'),
-                                                                   ('guardian', '보호자'), ('transporter', '구급대·이송자')))
-    policies = ''.join('<option value="' + value + '"' + (' selected' if inquiry_policy == value else '')
-                       + '>' + label + '</option>' for value, label in (('fixed_1', '고정 1곳'), ('fixed_3', '고정 3곳 (기본)'),
-                                                                      ('fixed_5', '고정 5곳'), ('observed_v2', '관측 기반 V2'), ('observed_v3', '관측 기반 V3')))
-    error_html = '<div id="connect-error" role="alert" style="padding:14px;border:1px solid #d32f2f;border-radius:10px;color:#b71c1c;">' + escape(error) + '</div>' if error else ''
-    return f"""<section style="margin-top:25px;">
-        <div class="section-title">🔗 병원 탐색 요청</div>
-        {error_html}
-        <div class="location">위 화면은 저장정보 확인입니다. 아래 버튼을 눌러야 별도의 이송 건이 공통 서버에 생성되고 병원 문의가 시작됩니다.</div>
-        <form id="common-connect-form" action="/emergency/connect" method="post">
-            <input type="hidden" name="submission_id" value="{escape(submission_id, quote=True)}">
-            <input type="hidden" name="patient_id" value="{escape(str(patient_id or 0), quote=True)}">
-            <input type="hidden" name="consciousness" value="{escape(consciousness, quote=True)}">
-            <input type="hidden" name="breathing" value="{escape(breathing, quote=True)}">
-            <input type="hidden" name="symptom" value="{escape(symptom, quote=True)}">
-            <div class="info"><label for="reporter-role">입력자</label><br>
-                <select id="reporter-role" name="reporter_role" required style="width:100%;padding:12px;margin-top:8px;">{roles}</select></div>
-            <div class="info"><strong>환자가 실제로 있는 위치</strong><p class="muted">현재 위치 확인 버튼으로 측정하거나, 실제 관측한 좌표를 입력하세요. 예시 좌표는 자동으로 채우지 않습니다.</p>
-                <label for="connect-latitude">위도</label><input id="connect-latitude" name="latitude" inputmode="decimal" required value="{escape(str(latitude if latitude is not None else ''), quote=True)}" style="width:100%;padding:12px;margin:8px 0;">
-                <label for="connect-longitude">경도</label><input id="connect-longitude" name="longitude" inputmode="decimal" required value="{escape(str(longitude if longitude is not None else ''), quote=True)}" style="width:100%;padding:12px;margin:8px 0;"></div>
-            <div class="info"><strong>확인된 필요 진료 분야 (직접 선택)</strong><p class="muted">증상으로 진단하거나 필요한 분야를 자동 추정하지 않습니다. 확인되지 않은 분야는 선택하지 마세요.</p>
-                {options or '<div class="muted">등록된 진료 분야 없음 · 미확인</div>'}</div>
-            <details class="info"><summary>개발 시연 설정</summary>
-                <label style="display:block;margin:12px 0;"><input name="special_team" type="checkbox" value="yes"{' checked' if special_team else ''}> 가상 전문팀 1개 필요 (합성 데이터 시험 전용)</label>
-                <label for="inquiry-policy">문의 정책 (실험 설정)</label><select id="inquiry-policy" name="inquiry_policy" style="width:100%;padding:12px;margin-top:8px;">{policies}</select></details>
-            <label style="display:flex;gap:10px;align-items:flex-start;padding:15px 0;"><input id="connect-consent" type="checkbox" name="consent" value="yes" required{' checked' if consent else ''}> 입력한 환자 상태·위치·연락 정보를 수용 확인에 필요한 병원과 공통 서버에 전달하는 것에 동의합니다.</label>
-            <button id="connect-submit" class="button" type="submit" style="border:0;cursor:pointer;width:100%;">정보 전송 및 병원 탐색 시작</button>
-        </form></section>"""
-
-
 @app.get("/emergency/report", response_class=HTMLResponse)
-def emergency_report(patient_id: int | None = None, consciousness: str = "", breathing: str = "", symptom: str = "",
-                     latitude: float | None = None, longitude: float | None = None, accuracy: float | None = None):
-    # This GET reads stored common-server data only. It cannot create an episode or inquiry.
-    return _render_emergency_report(patient_id, consciousness, breathing, symptom, latitude, longitude, accuracy)
+def emergency_report(
+    patient_id: int | None = None,
+    consciousness: str = "",
+    breathing: str = "",
+    symptom: list[str] = Query(default=[]),
+    body_part: list[str] = Query(default=[]),
+):
+    """구급대 전달용 환자 요약. 병원 조회는 다음 페이지에서 수행."""
+    patient = get_patient(patient_id) if patient_id and patient_id > 0 else None
+    fields = (
+        ("이름", patient[1] if patient else "미등록 환자"),
+        ("생년월일", patient[2] if patient else "등록되지 않음"),
+        ("전화번호", patient[3] if patient else "등록되지 않음"),
+        ("주소", patient[4] if patient else "등록되지 않음"),
+        ("보호자", patient[5] if patient else "등록되지 않음"),
+        ("보호자 전화번호", patient[6] if patient else "등록되지 않음"),
+        ("의식", "있음" if consciousness == "yes" else "없음" if consciousness == "no" else "미확인"),
+        ("호흡", "정상" if breathing == "yes" else "비정상" if breathing == "no" else "미확인"),
+        ("주요 증상", ", ".join(symptom) or "선택 없음"),
+        ("아픈 부위", ", ".join(body_part) or "선택 없음"),
+    )
+    rows = "".join(
+        '<div class="info"><span class="label">' + escape(label) + '</span>'
+        + '<strong>' + escape(str(value or "등록되지 않음")) + '</strong></div>'
+        for label, value in fields
+    )
+    hidden = "".join(
+        '<input type="hidden" name="' + escape(key, quote=True)
+        + '" value="' + escape(str(value), quote=True) + '">'
+        for key, values in (
+            ("patient_id", [patient_id or 0]),
+            ("consciousness", [consciousness]),
+            ("breathing", [breathing]),
+            ("symptom", symptom),
+            ("body_part", body_part),
+        )
+        for value in values
+    )
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>구급대 전달 정보</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:24px 12px;background:#f2f4f7;font-family:Arial,sans-serif}
+.container{max-width:520px;margin:auto;background:white;border-radius:18px;padding:28px}
+h1{text-align:center;font-size:25px}.description{text-align:center;color:#64748b;line-height:1.6}
+.info{display:flex;justify-content:space-between;gap:16px;padding:15px 8px;border-bottom:1px solid #e5e7eb;line-height:1.5}
+.label{color:#64748b;min-width:110px}.info strong{text-align:right;overflow-wrap:anywhere}
+button{display:block;width:100%;padding:17px;background:#1976d2;color:white;border:0;border-radius:12px;font-size:17px;font-weight:bold;cursor:pointer;margin-top:24px}
+.notice{color:#b91c1c;font-size:13px;line-height:1.5;margin-top:20px}
+</style></head><body><main class="container"><h1>🚑 구급대 전달 정보</h1>
+<p class="description">현재 확인된 환자 정보와 응급상태를 정리했습니다.</p>
+""" + rows + """
+<section id="voice-report" style="display:none;margin-top:24px;padding:18px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff">
+<h2 style="margin:0 0 10px;font-size:19px">🎤 음성 문진으로 확인한 정보</h2>
+<p style="font-size:12px;color:#475569;line-height:1.5">음성에서 자동 추출한 내용입니다. 환자·보호자 진술을 바탕으로 하며 진단이나 검증된 병력이 아닙니다.</p>
+<div id="voice-report-fields"></div>
+<p style="font-size:12px;color:#b45309;line-height:1.5">오인식·누락 가능성이 있으므로 구급대에 전달하기 전에 확인해 주세요.</p>
+<button type="button" id="voice-report-clear" style="background:#64748b;padding:10px;font-size:14px;margin-top:10px">음성 문진 정보 지우기</button>
+</section>
+<script>
+(function(){
+  const container=document.getElementById('voice-report');
+  const fields=document.getElementById('voice-report-fields');
+  let data;
+  try { data=JSON.parse(sessionStorage.getItem('emergencyVoiceIntake')||'null'); } catch(e) { return; }
+  if(!data || typeof data!=='object' || !data.transcript) return;
+  const entries=[['기존 질환 언급',data.conditions],['통증 부위',data.areas],['현재 증상',data.symptoms],['발생 시점',data.onset],['환자·보호자 진술 원문',data.transcript]];
+  for(const [label,value] of entries){
+    const row=document.createElement('div');row.className='info';
+    const key=document.createElement('span');key.className='label';key.textContent=label;
+    const val=document.createElement('strong');val.textContent=typeof value==='string'?value:'확인 필요';
+    row.append(key,val);fields.appendChild(row);
+  }
+  container.style.display='block';
+  document.getElementById('voice-report-clear').addEventListener('click',()=>{
+    sessionStorage.removeItem('emergencyVoiceIntake');container.style.display='none';fields.replaceChildren();
+  });
+})();
+</script>
+<p class="notice">의식이 없거나 호흡이 비정상이라면 추가 입력보다 즉시 119 신고와 안내를 우선하세요.</p>
+<form action="/emergency/hospitals" method="get">""" + hidden + """
+<button type="submit">📍 다음: 현재 위치 및 주변 응급실</button></form>
+</main></body></html>""")
 
 
-def _render_emergency_report(patient_id=None, consciousness="", breathing="", symptom="", latitude=None, longitude=None,
-                             accuracy=None, *, submission_id=None, reporter_role="", required_capabilities=None,
-                             special_team=False, consent=False, inquiry_policy="fixed_3", error="", status_code=200):
-    patient = get_patient(patient_id) if patient_id not in (None, 0) else None
-    values = [escape(str(item or "등록되지 않음")) for item in patient[1:7]] if patient else ["미등록 환자"] + ["등록되지 않음"] * 5
-    patient_name, birth, phone, address, guardian, guardian_phone = values
-    consciousness = consciousness if consciousness in ("yes", "no") else "unknown"
-    breathing = breathing if breathing in ("yes", "no") else "unknown"
-    consciousness_text, consciousness_class = _observed_state(consciousness, "있음", "없음")
-    breathing_text, breathing_class = _observed_state(breathing, "정상", "비정상")
-    symptom_text = escape(symptom or "확인되지 않음")
-    hospitals = []
-    try:
-        hospitals = hospital_catalog()
-    except CommonServerError as exc:
-        catalog_error = str(exc)
+@app.get("/emergency/hospitals", response_class=HTMLResponse)
+
+def emergency_hospitals(
+
+    patient_id: int | None = None,
+
+    consciousness: str = "",
+
+    breathing: str = "",
+
+    symptom: list[str] = Query(default=[]),
+
+    body_part: list[str] = Query(default=[]),
+
+    latitude: float | None = None,
+
+    longitude: float | None = None,
+
+    accuracy: float | None = None
+
+):
+
+
+
+    patient = None
+
+
+
+    if patient_id is not None and patient_id != 0:
+
+        patient = get_patient(patient_id)
+
+
+
+    if patient is None:
+
+
+
+        patient_name = "미등록 환자"
+
+        birth = "등록되지 않음"
+
+        phone = "등록되지 않음"
+
+        address = "등록되지 않음"
+
+        guardian = "등록되지 않음"
+
+        guardian_phone = "등록되지 않음"
+
+
+
     else:
-        catalog_error = ""
-    # Retain bad coordinate strings on validation errors without calculating a fake distance.
-    try:
-        lat = float(latitude) if latitude not in (None, "") else None
-        lon = float(longitude) if longitude not in (None, "") else None
-        if lat is None or lon is None or not math.isfinite(lat) or not math.isfinite(lon) or not (-90 <= lat <= 90 and -180 <= lon <= 180):
-            lat = lon = None
-    except (TypeError, ValueError):
-        lat = lon = None
-    hospital_cards = _stored_hospital_cards(hospitals, lat, lon)
-    if catalog_error:
-        hospital_cards = '<div class="location" role="status">저장된 병원 정보를 읽지 못했습니다. ' + escape(catalog_error) + '</div>'
-    token = submission_id if submission_id is not None else new_submission_id()
-    connect_form = _connect_form_html(hospitals, patient_id, consciousness, breathing, symptom, latitude, longitude,
-                                      token, reporter_role, required_capabilities, special_team, consent, inquiry_policy, error)
-    location_summary = ('<strong>위치 확인 완료</strong><br>위도: ' + escape(str(latitude)) + '<br>경도: '
-                        + escape(str(longitude)) + ('<br>정확도: 약 ' + escape(str(round(accuracy, 1))) + 'm'
-                        if isinstance(accuracy, (int, float)) and math.isfinite(accuracy) else '')) if lat is not None and lon is not None else "현재 위치를 확인하거나 아래 전송 폼에 실제 좌표를 입력해주세요."
+
+
+
+        patient_name = patient[1]
+
+        birth = patient[2] or "등록되지 않음"
+
+        phone = patient[3] or "등록되지 않음"
+
+        address = patient[4] or "등록되지 않음"
+
+        guardian = patient[5] or "등록되지 않음"
+
+        guardian_phone = patient[6] or "등록되지 않음"
+
+
+
+    if consciousness == "yes":
+
+        consciousness_text = "있음"
+
+        consciousness_class = "normal"
+
+    else:
+
+        consciousness_text = "없음"
+
+        consciousness_class = "warning"
+
+
+
+    if breathing == "yes":
+
+        breathing_text = "정상"
+
+        breathing_class = "normal"
+
+    else:
+
+        breathing_text = "비정상"
+
+        breathing_class = "warning"
+
+
+
+    allowed_symptoms = {"가슴 통증", "호흡 곤란", "출혈", "의식 저하", "기타"}
+    selected_symptoms = list(dict.fromkeys(x for x in symptom if x in allowed_symptoms))
+    symptom_text = ", ".join(selected_symptoms) if selected_symptoms else "확인되지 않음"
+    allowed_parts = {"머리", "가슴", "복부", "오른팔", "왼팔", "오른다리", "왼다리"}
+    selected_parts = list(dict.fromkeys(x for x in body_part if x in allowed_parts))
+    body_part_text = ", ".join(selected_parts) if selected_parts else "선택하지 않음"
+
+
+
+    if latitude is not None and longitude is not None:
+
+        sorted_hospitals, hospital_error = fetch_emergency_hospitals(latitude, longitude)
+
+        if sorted_hospitals:
+            sorted_hospitals = enrich_hospitals(sorted_hospitals, latitude, longitude)
+            sorted_hospitals = enrich_hospitals_with_hira(sorted_hospitals)
+            severe_stage1, severe_stage2 = reverse_geocode(latitude, longitude)
+            severe_stage1 = {"경기도":"경기", "서울특별시":"서울", "인천광역시":"인천", "부산광역시":"부산", "대구광역시":"대구", "광주광역시":"광주", "대전광역시":"대전", "울산광역시":"울산", "세종특별자치시":"세종", "충청북도":"충북", "충청남도":"충남", "전라북도":"전북", "전북특별자치도":"전북", "전라남도":"전남", "경상북도":"경북", "경상남도":"경남", "강원특별자치도":"강원", "강원도":"강원", "제주특별자치도":"제주"}.get(severe_stage1, severe_stage1)
+            sorted_hospitals = enrich_hospitals_with_severe(sorted_hospitals, severe_stage1, severe_stage2)
+
+            hospital_cards = ""
+
+            for hospital in sorted_hospitals[:5]:
+
+                distance = calculate_distance_km(
+
+                    latitude, longitude, hospital["lat"], hospital["lon"]
+
+                )
+
+                phone_html = f'<div class="hospital-detail"><strong>응급실 전화:</strong> {hospital["phone"]}</div>' if hospital["phone"] else ""
+
+                road = hospital.get("road", {})
+                if road.get("status") == "조회됨":
+                    road_html = (f'<div class="hospital-detail"><strong>도로거리:</strong> '
+                                 f'{road["distance_km"]}km · <strong>예상 이동시간:</strong> '
+                                 f'약 {road["duration_min"]}분 (일반 차량 기준)</div>')
+                else:
+                    road_html = (f'<div class="hospital-detail"><strong>도로거리·예상시간:</strong> '
+                                 f'{escape(road.get("status", "확인 불가"))}</div>')
+                hira = hospital.get("hira", {})
+                if hira.get("status") == "조회됨":
+                    dept_items = hira.get("departments", [])
+                    dept_labels = [escape(d["name"]) + (f" (전문의 {d['specialists']}명)" if d.get("specialists") is not None else " (전문의 수 미확인)") for d in dept_items]
+                    dept_text = ', '.join(dept_labels) if dept_labels else escape(hira.get("department_status", "진료과목 응답 없음"))
+                    facility = hira.get("facility", {})
+                    if facility.get("status") == "조회됨":
+                        facility_text = ', '.join(escape(k) + f" {v}" + ("실" if k in ("수술실", "분만실", "물리치료실") else "병상") for k, v in facility.get("items", {}).items())
+                    else:
+                        facility_text = escape(facility.get("status", "미확인"))
+                    equipment = hira.get("equipment", {})
+                    if equipment.get("status") == "조회됨":
+                        equipment_text = ', '.join(escape(e["name"]) + f" {e['count']}대" for e in equipment.get("items", []))
+                    else:
+                        equipment_text = escape(equipment.get("status", "미확인"))
+                    hira_html = (
+                        '<details class="hospital-detail"><summary><strong>진료과·전문의 / 시설·장비 보유 현황 보기</strong></summary>'
+                        + '<div class="hospital-detail"><strong>심평원 진료과·전문의 수 (현재 근무 인원 아님):</strong> ' + dept_text + '</div>'
+                        + '<div class="hospital-detail"><strong>시설 보유 현황 (실시간 가용 아님):</strong> ' + facility_text + '</div>'
+                        + '<div class="hospital-detail"><strong>의료장비 보유 현황 (실시간 가용 아님):</strong> ' + equipment_text + '</div></details>'
+                    )
+                else:
+                    hira_html = ('<div class="hospital-detail muted"><strong>심평원 진료과·시설·장비:</strong> '
+                                 + escape(hira.get("status", "미확인")) + '</div>')
+                # V9: 증상은 진단이 아니며, 진료과 개설 여부는 응급 수용 가능 여부가 아닙니다.
+                # 중증질환 MKioskTy 코드는 공식 매핑 전까지 자동 매칭하지 않습니다.
+                symptom_department_map = {
+                    "가슴 통증": ("응급의학과", "내과", "심장혈관흉부외과"),
+                    "호흡 곤란": ("응급의학과", "내과", "심장혈관흉부외과"),
+                    "출혈": ("응급의학과", "외과"),
+                    "의식 저하": ("응급의학과", "신경과", "신경외과"),
+                    "기타": ("응급의학과",),
+                }
+                selected_symptoms = [s.strip() for s in symptom_text.split(",") if s.strip() in symptom_department_map]
+                relevant_departments = list(dict.fromkeys(
+                    department for symptom_name in selected_symptoms
+                    for department in symptom_department_map[symptom_name]
+                ))
+                available_departments = {
+                    str(d.get("name", "")).strip() for d in hira.get("departments", [])
+                } if hira.get("status") == "조회됨" else set()
+                if relevant_departments:
+                    department_rows = []
+                    for department in relevant_departments:
+                        if hira.get("status") != "조회됨":
+                            state = "개설 여부 미확인"
+                        elif department in available_departments:
+                            state = "개설 정보 있음 · 현재 진료 가능 여부 미확인"
+                        else:
+                            state = "개설 정보 확인 안 됨 · 진료 불가 단정 금지"
+                        department_rows.append(
+                            '<div class="hospital-detail">' + escape(department) + ': ' + escape(state) + '</div>'
+                        )
+                    symptom_support_html = (
+                        '<details class="hospital-detail" open><summary><strong>환자 증상 관련 진료과 참고정보</strong></summary>'
+                        + '<div class="hospital-detail"><strong>선택 증상:</strong> '
+                        + escape(', '.join(selected_symptoms)) + '</div>'
+                        + ''.join(department_rows)
+                        + '<div class="muted">증상-진료과 연결은 안내용 예시입니다. 질환 진단, 응급 수용 가능 판정, 병원 추천 순위에 사용하지 않습니다.</div>'
+                        + '</details>'
+                    )
+                else:
+                    symptom_support_html = (
+                        '<div class="hospital-detail muted">선택된 증상이 없어 관련 진료과 참고정보를 표시하지 않습니다.</div>'
+                    )
+                verification_html = (
+                    '<details class="hospital-detail"><summary><strong>119·병원에 확인할 사항</strong></summary>'
+                    '<div class="hospital-detail">① 현재 환자의 증상·중증도에 따른 실제 수용 가능 여부</div>'
+                    '<div class="hospital-detail">② 필요한 전문의·검사·처치 가능 여부와 예상 대기시간</div>'
+                    '<div class="hospital-detail">③ 응급실·중환자실·수술실 실제 이용 가능 여부</div>'
+                    '<div class="hospital-detail">④ 중증질환 API의 세부 제한 조건 및 이송 전 연락 필요 여부</div>'
+                    '<div class="muted">응급상황에서는 119의 판단과 지시에 따르세요.</div></details>'
+                )
+                resources = hospital.get("resources", {})
+                # 실시간 자원 수치는 시설 보유 개수와 다를 수 있으며, 수용 확약이 아닙니다.
+                resource_html = (
+                    '<details class="hospital-detail"><summary><strong>수술실·중환자실·CT/MRI 자원정보 보기</strong></summary>'
+                    + '<div class="hospital-detail"><strong>수술실 가용 정보 (hvoc):</strong> '
+                    + escape(resources.get("operating_room", "미확인")) + '</div>'
+                    + '<div class="hospital-detail"><strong>일반 중환자실 가용 정보 (hvicc):</strong> '
+                    + escape(resources.get("icu_general", "미확인")) + '</div>'
+                    + '<div class="hospital-detail"><strong>신경 중환자실 가용 정보 (hvcc):</strong> '
+                    + escape(resources.get("icu_neuro", "미확인")) + '</div>'
+                    + '<div class="hospital-detail"><strong>CT 장비 가용 표시:</strong> '
+                    + escape(resources.get("ct", "미확인")) + '</div>'
+                    + '<div class="hospital-detail"><strong>MRI 장비 가용 표시:</strong> '
+                    + escape(resources.get("mri", "미확인")) + '</div>'
+                    + '<div class="muted">공공 API 보고값이며 실제 수용 가능 여부는 병원에 확인해야 합니다.</div></details>'
+                )
+                # V7: 공식 질환 코드표 확인 전에는 명칭이나 증상별 적합도를 추정하지 않습니다.
+                severe = hospital.get("severe", {})
+                if severe.get("status") == "조회됨":
+                    entries = severe.get("items", [])
+                    yes_count = sum(1 for e in entries if str(e.get("value", "")).upper() == "Y")
+                    no_count = sum(1 for e in entries if str(e.get("value", "")).upper() == "N")
+                    unknown_count = len(entries) - yes_count - no_count
+                    notes = [e for e in entries if e.get("message")]
+                    severe_parts = []
+                    for entry in entries:
+                        raw = str(entry.get("value", "정보미제공"))
+                        label = ("가능 표시 · 확인 필요" if raw.upper() == "Y" else
+                                 "불가 표시" if raw.upper() == "N" else "정보 없음 · 불가 아님")
+                        code = escape(str(entry.get("code", "")))
+                        msg = escape(str(entry.get("message", "")))
+                        extra = ('<div style="margin-top:5px;color:#7c2d12;">⚠️ 조건·참고: ' + msg + '</div>') if msg else ''
+                        severe_parts.append('<div style="padding:9px 0;border-bottom:1px solid #e5e7eb;">'
+                                            + '<strong>' + code + '</strong> · ' + escape(label) + extra + '</div>')
+                    note_html = ''.join('<div style="padding:7px 0;border-bottom:1px solid #f1f5f9;">'
+                                        + '<strong>' + escape(str(e.get("code", ""))) + '</strong>: '
+                                        + escape(str(e.get("message", ""))) + '</div>' for e in notes)
+                    if not note_html:
+                        note_html = '<div>별도로 제공된 제한·참고 설명 없음 (제한이 없다는 의미는 아님)</div>'
+                    severe_html = (
+                        '<div class="hospital-detail"><strong>중증질환 수용정보 요약 (코드 기준)</strong>'
+                        + '<div style="margin-top:7px;">가능 표시 ' + str(yes_count)
+                        + '개 · 불가 표시 ' + str(no_count) + '개 · 정보 없음/기타 '
+                        + str(unknown_count) + '개</div>'
+                        + '<div class="muted" style="margin-top:5px;">※ 각 코드의 질환명은 공식 매핑 미확인. 숫자는 병원의 전체 수용능력 점수가 아닙니다.</div></div>'
+                        + (('<details class="hospital-detail"><summary><strong>⚠️ 제한 조건·참고 설명 ('
+                        + str(len(notes)) + '건) 펼쳐보기</strong></summary><div>' + note_html + '</div></details>') if notes else '')
+                        + '<details class="hospital-detail"><summary><strong>전체 중증질환 코드 ('
+                        + str(len(entries)) + '건) 펼쳐보기</strong></summary><div>'
+                        + ''.join(severe_parts) + '</div></details>'
+                    )
+                else:
+                    severe_html = ('<div class="hospital-detail"><strong>중증질환 수용정보:</strong> '
+                                   + escape(severe.get("status", "미확인")) + '</div>')
+                severe_html += '<div class="hospital-detail muted">중증질환 코드는 공식 명칭 확인 전입니다. Y는 수용 확약이 아니며, 정보 없음은 불가가 아닙니다. 119·병원에 최종 확인하세요.</div>'
+                phone = str(hospital.get("phone") or "미확인")
+                phone_digits = "".join(c for c in phone if c.isdigit() or c in "+-")
+                phone_label = escape(phone)
+                phone_link = (f'<a href="tel:{escape(phone_digits)}">{phone_label}</a>'
+                              if any(c.isdigit() for c in phone) else phone_label)
+                name = escape(str(hospital.get("name", "병원명 미확인")))
+                beds_label = escape(str(hospital.get("emergency_beds", "미확인")))
+                address = escape(str(hospital.get("address", "주소 미확인")))
+                hospital_cards += f"""
+                    <details class="hospital-card" style="margin-bottom:12px;">
+                        <summary style="cursor:pointer;list-style-position:inside;line-height:1.9;">
+                            <strong style="font-size:1.1rem;">🏥 {name}</strong><br>
+                            <span>📍 직선거리 <strong>{distance:.1f}km</strong></span> ·
+                            <span>🛏️ 가용 병상 <strong>{beds_label}</strong></span><br>
+                            <span>☎️ 응급실 전화 <strong>{phone_label}</strong></span><br>
+                            <span class="muted" style="font-size:.85rem;">상세정보 펼치기 ▾</span>
+                        </summary>
+                        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
+                            <div class="hospital-detail"><strong>주소:</strong> {address}</div>
+                            <div class="hospital-detail"><strong>전화:</strong> {phone_link}</div>
+                            {road_html}
+                            <div class="hospital-detail"><strong>응급실 가용 병상(API 보고값):</strong> {beds_label}</div>
+                            <div class="hospital-detail muted">※ 병상 수는 실시간 수용 확약이 아닙니다. 119 또는 병원에 확인하세요.</div>
+                            {symptom_support_html}
+                            {verification_html}
+                            {severe_html}
+                            {resource_html}
+                            {hira_html}
+                        </div>
+                    </details>
+                """
+
+            hospital_cards = (
+                '<div class="location" style="margin-bottom:12px;">'
+                '<strong>📍 현재 위치 기준 가까운 응급실 최대 5곳</strong><br>'
+                '거리순으로 표시됩니다. 병원을 누르면 자세한 정보를 확인할 수 있습니다. '
+                '병상은 공공 API 보고값이며 실제 수용 가능 여부는 119·병원에 확인하세요.'
+                '</div>' + hospital_cards
+            )
+
+        else:
+
+            hospital_cards = f"""
+
+                <div class="location">
+
+                    <strong>전국 응급의료 API 조회를 완료하지 못했습니다.</strong><br>
+
+                    {hospital_error}<br><br>
+
+                    <strong>설정 방법</strong><br>
+
+                    1. 공공데이터포털에서 ‘국립중앙의료원_전국 응급의료기관 정보 조회 서비스’를 신청합니다.<br>
+
+                    2. 발급받은 인증키를 서버 실행 전 환경변수 <code>EMERGENCY_API_KEY</code>에 설정합니다.<br>
+
+                    3. 서버를 다시 실행한 뒤 현재 위치를 다시 확인합니다.
+
+                </div>
+
+            """
+
+    else:
+
+        hospital_cards = """
+
+            <div class="location">
+
+                전국 응급의료기관을 현재 위치 기준으로 조회하려면 먼저 현재 위치를 확인해주세요.
+
+            </div>
+
+        """
+
+
+
     return HTMLResponse(f"""
 
         <!DOCTYPE html>
@@ -2809,7 +3158,7 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
 
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-            <title>구급대 전달 정보</title>
+            <title>현재 위치 및 주변 응급실</title>
 
 
 
@@ -3177,125 +3526,12 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
 
 
 
-                <h1>🚑 구급대 전달 정보</h1>
-
-
+                <h1>📍 현재 위치 및 주변 응급실</h1>
 
                 <div class="description">
-
-                    현재 확인된 환자 정보를<br>
-
-                    구급대 전달용으로 정리했습니다.
-
+                    위치를 확인하고 주변 응급의료기관의 정보를 조회합니다.<br>
+                    응급환자 정보는 이전 페이지에서 확인할 수 있습니다.
                 </div>
-
-
-
-                <div class="section-title">
-
-                    👤 환자 정보
-
-                </div>
-
-
-
-                <div class="info">
-
-                    <div class="label">이름</div>
-
-                    <div class="value">{patient_name}</div>
-
-                </div>
-
-
-
-                <div class="info">
-
-                    <div class="label">생년월일</div>
-
-                    <div class="value">{birth}</div>
-
-                </div>
-
-
-
-                <div class="info">
-
-                    <div class="label">전화번호</div>
-
-                    <div class="value">{phone}</div>
-
-                </div>
-
-
-
-                <div class="info">
-
-                    <div class="label">주소</div>
-
-                    <div class="value">{address}</div>
-
-                </div>
-
-
-
-                <div class="info">
-
-                    <div class="label">보호자</div>
-
-                    <div class="value">{guardian}</div>
-
-                </div>
-
-
-
-                <div class="info">
-
-                    <div class="label">보호자 전화번호</div>
-
-                    <div class="value">{guardian_phone}</div>
-
-                </div>
-
-
-
-                <div class="section-title">
-
-                    🚨 응급 상태
-
-                </div>
-
-
-
-                <div class="emergency {consciousness_class}">
-
-                    <div class="label">의식</div>
-
-                    <div class="value">{consciousness_text}</div>
-
-                </div>
-
-
-
-                <div class="emergency {breathing_class}">
-
-                    <div class="label">호흡</div>
-
-                    <div class="value">{breathing_text}</div>
-
-                </div>
-
-
-
-                <div class="symptom">
-
-                    <div class="label">주요 증상</div>
-
-                    <div class="value">{symptom_text}</div>
-
-                </div>
-
-
 
                 <div class="section-title">
 
@@ -3307,33 +3543,12 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
 
                 <div class="location" id="location-box">
 
-                    {location_summary}
+                    {("<strong>위치 확인 완료</strong><br>위도: " + str(latitude) + "<br>경도: " + str(longitude) + "<br>정확도: 약 " + str(round(accuracy, 1)) + "m") if latitude is not None and longitude is not None else "현재 위치를 자동으로 확인하고 있습니다..."}
 
                 </div>
 
 
 
-                <button
-
-                    type="button"
-
-                    class="location-button"
-
-                    id="location-button"
-
-                    onclick="getCurrentLocation()"
-
-                >
-
-                    📍 현재 위치 확인
-
-                </button>
-
-
-
-                {connect_form}
-
-                <details style="margin-top:24px;"><summary style="font-weight:bold;cursor:pointer;">저장된 주변 병원 정보 보기</summary>
                 <div class="section-title">
 
                     🏥 주변 응급실
@@ -3344,16 +3559,15 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
 
                 <div class="location" style="margin-bottom: 12px;">
 
-                    공통 서버에 저장된 병원 정보를 확인합니다. 위치가 있으면 직선거리순 최대 5곳을 표시합니다.<br>
+                    현재 위치가 전국 어느 지역이든 해당 지역의 응급의료기관을 공공 API로 조회합니다.<br>
 
-                    관측 출처와 갱신 시각을 함께 표시하며, 없는 정보는 미확인으로 유지합니다. 조회만으로 수용 여부를 판단하지 않습니다.
+                    표시되는 가용 병상은 응급실 기준이며, 세부 진료과는 기관별 기본정보 API에서 조회하며, 정보가 제공되지 않는 경우 미확인으로 표시합니다.
 
                 </div>
 
 
 
                 {hospital_cards}
-                </details>
 
 
 
@@ -3366,8 +3580,6 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
 
 
                         const locationBox = document.getElementById("location-box");
-
-                        const locationButton = document.getElementById("location-button");
 
 
 
@@ -3386,10 +3598,6 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
                         }}
 
 
-
-                        locationButton.disabled = true;
-
-                        locationButton.textContent = "📍 현재 위치 확인 중...";
 
 
 
@@ -3415,11 +3623,19 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
 
 
 
-                                document.getElementById("connect-latitude").value = latitude;
-                                document.getElementById("connect-longitude").value = longitude;
-                                locationBox.textContent = "위치 확인 완료: 위도 " + latitude + ", 경도 " + longitude + " (정확도 약 " + Math.round(accuracy) + "m). 아래 폼에서 확인 후 전송하세요.";
-                                locationButton.disabled = false;
-                                locationButton.textContent = "📍 위치 다시 확인";
+                                const url = new URL(window.location.href);
+
+
+
+                                url.searchParams.set("latitude", latitude);
+
+                                url.searchParams.set("longitude", longitude);
+
+                                url.searchParams.set("accuracy", accuracy);
+
+
+
+                                window.location.href = url.toString();
 
                             }},
 
@@ -3451,9 +3667,7 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
 
                                 locationBox.innerHTML = message;
 
-                                locationButton.disabled = false;
-
-                                locationButton.textContent = "📍 다시 위치 확인";
+                                locationBox.innerHTML += "<br>위치 권한을 확인한 뒤 페이지를 새로고침해주세요.";
 
                             }},
 
@@ -3474,6 +3688,13 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
                     }}
 
 
+
+                    document.addEventListener("DOMContentLoaded", function() {{
+                        const url = new URL(window.location.href);
+                        if (!url.searchParams.has("latitude") || !url.searchParams.has("longitude")) {{
+                            getCurrentLocation();
+                        }}
+                    }});
 
                 </script>
 
@@ -3502,789 +3723,6 @@ def _render_emergency_report(patient_id=None, consciousness="", breathing="", sy
                 >
 
                     응급상황 다시 시작
-
-                </a>
-
-
-
-            </div>
-
-
-
-        </body>
-
-
-
-        </html>
-
-    """, status_code=status_code)
-
-
-
-
-
-@app.post("/emergency/connect", response_class=HTMLResponse)
-def emergency_connect(submission_id: str = Form(""), patient_id: str = Form("0"),
-                      consciousness: str = Form("unknown"), breathing: str = Form("unknown"),
-                      symptom: str = Form(""), latitude: str = Form(""), longitude: str = Form(""),
-                      reporter_role: str = Form(""), consent: str = Form(""),
-                      required_capabilities: list[str] = Form(default=[]), special_team: str = Form(""),
-                      inquiry_policy: str = Form("fixed_3")):
-    local_id = None
-    try:
-        try:
-            local_id = int(patient_id or "0")
-        except (TypeError, ValueError) as exc:
-            raise CommonServerError("선택한 로컬 환자 정보가 올바르지 않습니다.", 400) from exc
-        profile = get_patient(local_id) if local_id else None
-        if local_id and profile is None:
-            raise CommonServerError("선택한 환자 프로필을 찾을 수 없습니다. 환자를 다시 선택해주세요.", 400)
-        try:
-            lat, lon = float(latitude), float(longitude)
-        except (TypeError, ValueError) as exc:
-            raise CommonServerError("환자의 실제 위도와 경도를 입력해주세요.", 400) from exc
-        if not math.isfinite(lat) or not math.isfinite(lon) or not (-90 <= lat <= 90 and -180 <= lon <= 180) or (lat, lon) == (0, 0):
-            raise CommonServerError("환자의 실제 위치 범위에 맞는 좌표를 입력해주세요.", 400)
-        catalog = hospital_catalog()
-        known_caps = {str(cap) for hospital in catalog for cap in hospital.get('capabilities', [])}
-        if not set(required_capabilities) <= known_caps:
-            raise CommonServerError("선택한 진료 분야가 현재 저장된 병원 목록에 없습니다. 정보를 확인해주세요.", 400)
-        payload = build_episode_payload(profile=profile, reporter_role=reporter_role, consciousness=consciousness,
-                                        breathing=breathing, symptoms=symptom, required_capabilities=required_capabilities,
-                                        special_team=special_team == "yes", lat=lat, lon=lon, consent=consent == "yes",
-                                        inquiry_policy=inquiry_policy)
-        patient = create_episode(payload, submission_id)
-    except CommonServerError as exc:
-        return _render_emergency_report(local_id, consciousness, breathing, symptom, latitude, longitude,
-                                         submission_id=submission_id, reporter_role=reporter_role,
-                                         required_capabilities=required_capabilities, special_team=special_team == "yes",
-                                         consent=consent == "yes", inquiry_policy=inquiry_policy,
-                                         error=str(exc), status_code=exc.status)
-    return RedirectResponse(transport_url(patient['id']), status_code=303)
-
-
-# 📋 응급환자 최종 정보
-
-# ==================================================
-
-
-
-@app.get("/emergency/result", response_class=HTMLResponse)
-
-def emergency_result(
-
-    patient_id: int | None = None,
-
-    consciousness: str = "",
-
-    breathing: str = "",
-
-    symptom: list[str] = Query(default=[])
-
-):
-
-
-
-    allowed_symptoms = {"가슴 통증", "호흡 곤란", "출혈", "의식 저하", "기타"}
-
-    selected = list(dict.fromkeys(x for x in symptom if x in allowed_symptoms))
-
-    symptom = ", ".join(selected) if selected else "확인되지 않음"
-
-
-
-    patient = None
-
-
-
-    if patient_id is not None and patient_id != 0:
-
-
-
-        patient = get_patient(patient_id)
-
-
-
-    if patient is None:
-
-
-
-        patient_name = "미등록 환자"
-
-
-
-        birth = "등록되지 않음"
-
-        phone = "등록되지 않음"
-
-        address = "등록되지 않음"
-
-        guardian = "등록되지 않음"
-
-        guardian_phone = "등록되지 않음"
-
-
-
-    else:
-
-
-
-        patient_name = escape(str(patient[1]))
-
-
-
-        birth = escape(str(patient[2] or "등록되지 않음"))
-
-        phone = escape(str(patient[3] or "등록되지 않음"))
-
-        address = escape(str(patient[4] or "등록되지 않음"))
-
-        guardian = escape(str(patient[5] or "등록되지 않음"))
-
-        guardian_phone = escape(str(patient[6] or "등록되지 않음"))
-
-
-
-
-
-    consciousness = consciousness if consciousness in ("yes", "no") else "unknown"
-    breathing = breathing if breathing in ("yes", "no") else "unknown"
-    consciousness_text, consciousness_class = _observed_state(consciousness, "있음", "없음")
-    breathing_text, breathing_class = _observed_state(breathing, "정상", "비정상")
-
-    return HTMLResponse(f"""
-
-        <!DOCTYPE html>
-
-
-
-        <html lang="ko">
-
-
-
-        <head>
-
-
-
-            <meta charset="UTF-8">
-
-
-
-            <meta
-
-                name="viewport"
-
-                content="width=device-width, initial-scale=1.0"
-
-            >
-
-
-
-            <title>응급환자 정보</title>
-
-
-
-            <style>
-
-
-
-                * {{
-
-                    box-sizing: border-box;
-
-                }}
-
-
-
-                body {{
-
-                    margin: 0;
-
-
-
-                    font-family: Arial, sans-serif;
-
-
-
-                    background-color: #f2f4f7;
-
-
-
-                    min-height: 100vh;
-
-
-
-                    padding: 30px 0;
-
-                }}
-
-
-
-                .container {{
-
-                    width: 90%;
-
-
-
-                    max-width: 500px;
-
-
-
-                    margin: auto;
-
-
-
-                    background-color: white;
-
-
-
-                    padding: 30px;
-
-
-
-                    border-radius: 20px;
-
-                }}
-
-
-
-                h1 {{
-
-                    text-align: center;
-
-
-
-                    margin-bottom: 30px;
-
-                }}
-
-
-
-                .section-title {{
-
-                    font-size: 19px;
-
-
-
-                    font-weight: bold;
-
-
-
-                    margin-top: 25px;
-
-
-
-                    margin-bottom: 12px;
-
-                }}
-
-
-
-                .info {{
-
-                    background-color: #f5f5f5;
-
-
-
-                    padding: 16px;
-
-
-
-                    margin-bottom: 10px;
-
-
-
-                    border-radius: 10px;
-
-                }}
-
-
-
-                .label {{
-
-                    font-weight: bold;
-
-
-
-                    margin-bottom: 5px;
-
-                }}
-
-
-
-                .value {{
-
-                    font-size: 17px;
-
-                }}
-
-
-
-                .emergency {{
-
-                    padding: 16px;
-
-
-
-                    margin-bottom: 10px;
-
-
-
-                    border-radius: 10px;
-
-                }}
-
-
-
-                /* 정상 상태 */
-
-
-
-                .normal {{
-
-                    background-color: #e3f2fd;
-
-
-
-                    border-left: 5px solid #1976d2;
-
-                }}
-
-
-
-                /* 주의가 필요한 상태 */
-
-
-
-                .warning {{
-
-                    background-color: #ffebee;
-
-
-
-                    border-left: 5px solid #d32f2f;
-
-                }}
-
-
-
-                /* 증상 */
-
-
-
-                .symptom {{
-
-                    background-color: #fff8e1;
-
-
-
-                    border-left: 5px solid #f9a825;
-
-
-
-                    padding: 16px;
-
-
-
-                    margin-bottom: 10px;
-
-
-
-                    border-radius: 10px;
-
-                }}
-
-
-
-                .button {{
-
-                    display: block;
-
-
-
-                    width: 100%;
-
-
-
-                    padding: 18px;
-
-
-
-                    margin-top: 25px;
-
-
-
-                    background-color: #d32f2f;
-
-
-
-                    color: white;
-
-
-
-                    text-decoration: none;
-
-
-
-                    text-align: center;
-
-
-
-                    border-radius: 12px;
-
-
-
-                    font-size: 18px;
-
-
-
-                    font-weight: bold;
-
-                }}
-
-
-
-                .home {{
-
-                    display: block;
-
-
-
-                    text-align: center;
-
-
-
-                    margin-top: 20px;
-
-
-
-                    color: #555;
-
-
-
-                    text-decoration: none;
-
-                }}
-
-
-
-            </style>
-
-
-
-        </head>
-
-
-
-        <body>
-
-
-
-            <div class="container">
-
-
-
-                <h1>
-
-                    🚨 응급환자 정보
-
-                </h1>
-
-
-
-
-
-                <!-- ============================ -->
-
-                <!-- 환자 정보 -->
-
-                <!-- ============================ -->
-
-
-
-                <div class="section-title">
-
-                    👤 환자 정보
-
-                </div>
-
-
-
-                <div class="info">
-
-
-
-                    <div class="label">
-
-                        이름
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {patient_name}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-                <div class="info">
-
-
-
-                    <div class="label">
-
-                        생년월일
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {birth}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-                <div class="info">
-
-
-
-                    <div class="label">
-
-                        전화번호
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {phone}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-                <div class="info">
-
-
-
-                    <div class="label">
-
-                        주소
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {address}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-                <div class="info">
-
-
-
-                    <div class="label">
-
-                        보호자
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {guardian}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-                <div class="info">
-
-
-
-                    <div class="label">
-
-                        보호자 전화번호
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {guardian_phone}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-
-
-                <!-- ============================ -->
-
-                <!-- 현재 응급상태 -->
-
-                <!-- ============================ -->
-
-
-
-                <div class="section-title">
-
-                    🚨 현재 응급상태
-
-                </div>
-
-
-
-
-
-                <div class="emergency {consciousness_class}">
-
-
-
-                    <div class="label">
-
-                        의식
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {consciousness_text}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-
-
-                <div class="emergency {breathing_class}">
-
-
-
-                    <div class="label">
-
-                        호흡
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {breathing_text}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-
-
-                <div class="symptom">
-
-
-
-                    <div class="label">
-
-                        주요 증상
-
-                    </div>
-
-
-
-                    <div class="value">
-
-                        {symptom}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-
-
-                <!-- ============================ -->
-
-                <!-- 구급대 전달 -->
-
-                <!-- ============================ -->
-
-
-
-                <a
-
-                    href="/emergency/report?patient_id={patient_id or 0}&consciousness={consciousness}&breathing={breathing}&symptom={quote(symptom)}"
-
-                    class="button"
-
-                >
-
-                    📋 구급대 전달 정보 확인
-
-                </a>
-
-
-
-
-
-                <a
-
-                    href="/"
-
-                    class="home"
-
-                >
-
-                    처음으로 돌아가기
 
                 </a>
 

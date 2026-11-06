@@ -1,16 +1,14 @@
 import sqlite3
-import os
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = Path(os.environ.get("EMERGENCY_PROFILE_DB", str(BASE_DIR / "emergency.db")))
+DB_PATH = BASE_DIR / "emergency.db"
 
 
 # 데이터베이스 생성
 def create_database():
 
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
 
     cursor = conn.cursor()
