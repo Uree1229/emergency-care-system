@@ -204,6 +204,8 @@ let fetchedAt = Date.now();
 let selectedId = null;
 let declineReason = null;
 let declineOpen = false;         // 수용 불가 사유 선택 영역 펼침
+// 추가 질문 초안과 다른 문의를 보는 동안 도착한 응답 결과. 서버·병원·문의별로 메모리에만 둔다.
+const questionDrafts = new Map(), inquiryNotices = new Map();
 let busy = false;
 const seen = new Set();          // 이미 본 문의 id (새 문의 표시용)
 const newUntil = new Map();      // id -> 새 문의 표시 종료 시각
@@ -261,6 +263,7 @@ function stateLabel(q) {
 function demands(p) {
   return Object.entries(p.resource_demands || {}).map(([k, n]) => `${RESOURCE[k] || k} ${n}`).join(' · ') || '-';
 }
+function inquiryKey(id) { return JSON.stringify([serverBase, hid, id]); }
 function shortElapsed(q) {
   const s = q.elapsed_seconds + Math.floor((Date.now() - fetchedAt) / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -410,9 +413,14 @@ async function poll() {
   } finally { polling = false; }
 }
 
-async function respond(action, extra = {}) {
+async function respond(action, extra = {}, draft = null) {
   const q = current();
   if (!q) return;
+  const key = inquiryKey(q.id), version = contextVersion;
+  const report = (text, isErr) => {
+    if (version !== contextVersion) return;
+    if (selectedId === q.id) notice(text, isErr); else inquiryNotices.set(key, { text, isErr });
+  };
   const handler = $('handler').value.trim();
   if (!handler) { notice('담당자 이름을 먼저 입력하세요.', true); $('handler').focus(); return; }
   if(action==='accept' && acceptAvailability(q.patient).blocked) { notice('현재 수용 제한 또는 확인된 자원 부족이 있습니다. 상세 안내를 확인하세요.',true);renderDetail();return; }
@@ -423,15 +431,16 @@ async function respond(action, extra = {}) {
     const r = await api(`/api/inquiries/${q.id}/respond`, { method: 'POST', body: JSON.stringify(body) });
     const done = { accept: '수용 가능으로 응답했습니다.', decline: `수용 불가(${extra.reason})로 응답했습니다.`,
                    checking: '확인 중으로 회신했습니다.', question: '추가 질문을 보냈습니다.' }[action];
-    notice(r.duplicate ? '이미 같은 응답이 반영되어 있습니다.' : done + (r.warning ? ` (주의: ${r.warning})` : ''), false);
-    declineReason = null; declineOpen = false;
+    report(r.duplicate ? '이미 같은 응답이 반영되어 있습니다.' : done + (r.warning ? ` (주의: ${r.warning})` : ''), false);
+    if (selectedId === q.id) { declineReason = null; declineOpen = false; }
+    if (draft !== null && questionDrafts.get(key) === draft) questionDrafts.delete(key);
   } catch (e) {
     let msg = e.message;
     if (e.body?.error === 'CONFLICT') msg = '다른 담당자가 먼저 처리했습니다. 목록을 새로 불러왔습니다.';
     if (e.body?.shortfalls?.length) {
       msg += ' 부족: ' + e.body.shortfalls.map((s) => `${RESOURCE[s.resource_type] || s.resource_type}`).join(', ');
     }
-    notice(msg, true);
+    report(msg, true);
   } finally {
     busy = false;
     lockContext();
@@ -465,7 +474,7 @@ function render() {
   $('openList').innerHTML = open.length ? open.map((q) => {
     const p = q.patient, [sev, sevCls] = severityTag(p), [st, stCls] = stateLabel(q);
     const isNew = (newUntil.get(q.id) || 0) > Date.now();
-    const badge = isNew ? '<span class="tag t-new">새 문의</span>' : q.overdue ? '<span class="tag t-mid">미응답</span>'
+    const badge = inquiryNotices.get(inquiryKey(q.id))?.isErr ? '<span class="tag t-high">응답 실패</span>' : isNew ? '<span class="tag t-new">새 문의</span>' : q.overdue ? '<span class="tag t-mid">미응답</span>'
       : q.state === 'PENDING' ? '' : `<span class="tag ${stCls}">${esc(st)}</span>`;
     return `<button type="button" class="inq-card ${q.id === selectedId ? 'selected' : ''} ${q.overdue ? 'overdue' : ''}" data-id="${q.id}">
       <span class="sev-dot ${sevCls}" aria-hidden="true" title="${esc(sev)}"></span><span class="sr-only">${esc(sev)}</span>
@@ -486,23 +495,24 @@ function render() {
 
 function renderDetail() {
   const q = current();
-  if (!q) { $('detail').innerHTML = '<div class="empty">왼쪽에서 문의를 선택하세요.</div>'; syncWorkflow(); return; }
+  if (!q) { delete $('detail').dataset.inquiry; $('detail').innerHTML = '<div class="empty">왼쪽에서 문의를 선택하세요.</div>'; syncWorkflow(); return; }
   const p = q.patient, [sev, sevCls] = severityTag(p), [st, stCls] = stateLabel(q);
   const isOpen = data.open.some((x) => x.id === q.id);
   const availability = acceptAvailability(p);
   const dis = busy ? 'disabled' : '';
-  const prevInput = $('questionInput');
-  const prevText = prevInput ? prevInput.value : '';
-  const hadFocus = document.activeElement === prevInput;
-  // 3초 조회로 다시 그려도 같은 문의에서 펼쳐 둔 접기 영역은 유지한다.
-  const keepOpen = $('detail').dataset.inquiry === String(q.id)
-    ? new Set([...$('detail').querySelectorAll('details[open][data-keep]')].map((d) => d.dataset.keep)) : new Set();
-  if (prevText) keepOpen.add('question');
+  const key = inquiryKey(q.id), draft = questionDrafts.get(key) || '';
+  // 3초 조회로 다시 그려도 같은 문의에서는 펼침·포커스·커서를 유지하고, 다른 문의로는 넘기지 않는다.
+  const sameInquiry = $('detail').dataset.inquiry === key;
+  const prevInput = sameInquiry ? $('questionInput') : null;
+  const hadFocus = !!prevInput && document.activeElement === prevInput;
+  const caret = hadFocus ? [prevInput.selectionStart, prevInput.selectionEnd] : null;
+  const keepOpen = sameInquiry
+    ? new Set([...$('detail').querySelectorAll('details[open][data-keep]')].map((d) => d.dataset.keep)) : new Set(draft ? ['question'] : []);
   const opened = (key) => (keepOpen.has(key) ? 'open' : '');
   const remaining = etaRemaining(p), capacity = ownCapacity(p);
   const showReasons = declineOpen || !!declineReason;
 
-  $('detail').dataset.inquiry = String(q.id);
+  $('detail').dataset.inquiry = key;
   $('detail').innerHTML = `<div class="inq-detail">
     <div class="inq-tags">
       <span class="tag ${sevCls === 't-high' ? 't-solid' : sevCls}">${esc(sev)}</span>
@@ -548,8 +558,8 @@ function renderDetail() {
     </div>
   </div>`;
   const input = $('questionInput');
-  if (input && prevText) input.value = prevText;
-  if (input && hadFocus) input.focus();
+  if (input) input.value = draft;
+  if (input && hadFocus) { input.focus(); input.setSelectionRange(caret[0], caret[1]); }
   if(activeTab==='inquiries')syncWorkflow();
 }
 
@@ -768,7 +778,15 @@ $('chatForm').addEventListener('submit',sendChat);
 $('openList').addEventListener('click', (e) => {
   const card = e.target.closest('[data-id]');
   if (!card) return;
-  selectedId = Number(card.dataset.id); declineReason = null; declineOpen = false; notice('', false); render();
+  selectedId = Number(card.dataset.id); declineReason = null; declineOpen = false;
+  const key = inquiryKey(selectedId), saved = inquiryNotices.get(key);
+  inquiryNotices.delete(key);
+  notice(saved ? saved.text : '', !!saved?.isErr); render();
+});
+$('detail').addEventListener('input', (e) => {
+  if (e.target.id !== 'questionInput') return;
+  const key = inquiryKey(selectedId);
+  if (e.target.value) questionDrafts.set(key, e.target.value); else questionDrafts.delete(key);
 });
 $('detail').addEventListener('click', (e) => {
   const tab=e.target.closest('[data-open-tab]');if(tab){setTab(tab.dataset.openTab);return;}
@@ -780,9 +798,9 @@ $('detail').addEventListener('click', (e) => {
   if (act === 'decline-open') { declineOpen = !(declineOpen || declineReason); if (!declineOpen) declineReason = null; renderDetail(); return; }
   if (act === 'decline') respond('decline', { reason: declineReason });
   else if (act === 'question') {
-    const text = $('questionInput').value.trim();
+    const raw = $('questionInput').value, text = raw.trim();
     if (!text) { notice('질문 내용을 입력하세요.', true); return; }
-    respond('question', { question: text });
+    respond('question', { question: text }, raw);
   } else respond(act);
 });
 $('hospital').addEventListener('change', () => {
@@ -802,7 +820,7 @@ function resetWorkspace(){
   workflowPatient=null;
   seen.clear();newUntil.clear();firstLoad=true;lastSig='';incomingSig='';resourceSig='';
   data={open:[],recent:[]};incomingData={incoming:[],affected:[],planning:[]};hospitalData=null;
-  reviewDrafts.clear();resourceDrafts.clear();externalDraft={resource_type:null,amount:'1',note:''};restrictionDraft={scope:'all',reason:'',duration:'3600',note:''};resetChat();
+  questionDrafts.clear();inquiryNotices.clear();reviewDrafts.clear();resourceDrafts.clear();externalDraft={resource_type:null,amount:'1',note:''};restrictionDraft={scope:'all',reason:'',duration:'3600',note:''};resetChat();
   render();renderIncoming();renderResources();renderRestrictions();notice('',false);
   renderHospitalContext();
   if(operations){operations.sync();if(activeTab==='operations')operations.refresh();if(activeTab==='resources')operations.refreshExternal();}
