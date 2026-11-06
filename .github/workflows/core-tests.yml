@@ -32,6 +32,6 @@ jobs:
         with:
           node-version: '24'
       - name: Install server dependencies
-        run: python3 -m pip install -r requirements-server.txt
+        run: python3 -m pip install -r requirements-server.txt -r requirements-intake-test.txt
       - name: Core suite
         run: python3 scripts/test_suites.py core
