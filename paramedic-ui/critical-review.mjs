@@ -31,6 +31,12 @@ function stable(value){
 }
 const same=(a,b)=>JSON.stringify(stable(a))===JSON.stringify(stable(b));
 const validList=value=>Array.isArray(value)&&value.every(item=>typeof item==='string'&&!!item.trim());
+// Unknown is a missing observation, never a reported zero, denial or normal state.
+const unknownValue=(field,values,kind)=>!own(values,field)||values[field]===null||values[field]===undefined||(kind==='enum'&&values[field]==='unknown');
+function unavailableField(session,metadata,field,questionId){
+  return (own(metadata,field)&&record(metadata[field])&&own(metadata[field],'followup_unavailable_for')&&metadata[field].followup_unavailable_for===questionId)||
+    (Array.isArray(session?.followup?.items)&&session.followup.items.some(item=>record(item)&&own(item,'id')&&item.id===questionId&&own(item,'answer_status')&&item.answer_status==='unavailable'));
+}
 function conflicts(values){
   const seen=new Map(),conflicting=new Set();
   for(const field of SYMPTOMS)for(const symptom of validList(values[field])?values[field]:[]){
@@ -57,7 +63,7 @@ function fieldText(field,values,flagged,invalidFields,kind){
   if(flagged.includes(field))return `${LABELS[field]} 재확인 필요`;
   if(invalidFields.includes(field))return `${LABELS[field]} 값 확인 필요`;
   const value=values[field];
-  if(!own(values,field)||value===null||value===undefined)return `${LABELS[field]} 미확인`;
+  if(unknownValue(field,values,kind))return `${LABELS[field]} 모름·미측정`;
   if(kind==='number')return numericText(field,value);
   if(kind==='enum')return ENUMS[field][value];
   if(!value.length)return `${LABELS[field]} 목록이 비어 있습니다`;
@@ -69,19 +75,22 @@ export function buildCriticalReview(session){
   const values=record(session?.fields)?session.fields:{},metadata=record(session?.field_metadata)?session.field_metadata:{};
   const items=[];
   for(const group of GROUPS){
-    const present=group.fields.filter(field=>own(values,field)),clarificationFields=group.fields.filter(field=>own(metadata,field)&&metadata[field]?.needs_clarification===true);
-    if(!present.length&&!clarificationFields.length)continue;
+    const questionId=group.kind==='symptoms'?'symptoms':group.id;
+    const present=group.fields.filter(field=>own(values,field));
+    const unavailableFields=group.fields.filter(field=>unknownValue(field,values,group.kind)&&unavailableField(session,metadata,field,questionId));
+    const clarificationFields=group.fields.filter(field=>own(metadata,field)&&metadata[field]?.needs_clarification===true&&!unavailableFields.includes(field));
+    if(!present.some(field=>!unknownValue(field,values,group.kind))&&!clarificationFields.length)continue;
     const itemValues=Object.fromEntries(present.map(field=>[field,copy(values[field])]));
-    const invalidFields=present.filter(field=>invalid(field,values[field],group.kind));
+    const invalidFields=present.filter(field=>!unknownValue(field,values,group.kind)&&invalid(field,values[field],group.kind));
     const collision=group.kind==='symptoms'?conflicts(itemValues):new Set();
     for(const field of collision)if(!invalidFields.includes(field))invalidFields.push(field);
-    const currentValues=Object.fromEntries(present.filter(field=>!clarificationFields.includes(field)&&!invalidFields.includes(field)&&values[field]!==null&&values[field]!==undefined).map(field=>[field,copy(values[field])]));
+    const currentValues=Object.fromEntries(present.filter(field=>!clarificationFields.includes(field)&&!invalidFields.includes(field)&&!unknownValue(field,values,group.kind)).map(field=>[field,copy(values[field])]));
     const previousValues=Object.fromEntries(present.filter(field=>clarificationFields.includes(field)).map(field=>[field,copy(values[field])]));
     let text;
     if(group.id==='blood_pressure'&&group.fields.every(field=>own(currentValues,field)))text=`수축기 혈압 ${values.systolic_bp}, 이완기 혈압 ${values.diastolic_bp} 밀리미터 수은주`;
     else if(collision.size)text='증상 기록의 긍정·부정·미확인 분류가 충돌하여 재확인이 필요합니다';
     else text=(group.kind==='symptoms'?group.fields.filter(field=>present.includes(field)||clarificationFields.includes(field)):group.fields).map(field=>fieldText(field,itemValues,clarificationFields,invalidFields,group.kind)).join('. ');
-    const signature='critical-v1:'+JSON.stringify(stable({id:group.id,fields:group.fields.map(field=>({field,present:own(values,field),value:values[field],metadata:own(metadata,field)?metadata[field]:undefined}))}));
+    const signature='critical-v1:'+JSON.stringify(stable({id:group.id,fields:group.fields.map(field=>({field,present:own(values,field),value:values[field],metadata:own(metadata,field)?metadata[field]:undefined})),...(unavailableFields.length?{unavailableFields}:{})}));
     items.push({id:group.id,label:group.label,text,signature,fields:[...group.fields],editable:true,values:itemValues,currentValues,previousValues,clarificationFields,needsClarification:clarificationFields.length>0,invalidFields,confirmable:!clarificationFields.length&&!invalidFields.length});
   }
   return items;

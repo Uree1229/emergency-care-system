@@ -20,8 +20,8 @@ test('all nine structured critical groups are emitted in a deterministic order, 
 for(const [field,value,expected]of [
   ['pulse',90,'맥박 분당 90회'],['spo2',97,'산소포화도 97퍼센트'],['temperature',36.5,'체온 36.5도'],
   ['respiratory_rate',20,'호흡수 분당 20회'],['glucose',100,'혈당 100밀리그램 퍼 데시리터'],
-  ['systolic_bp',120,'수축기 혈압 120 밀리미터 수은주. 이완기 혈압 미확인'],
-  ['diastolic_bp',80,'수축기 혈압 미확인. 이완기 혈압 80 밀리미터 수은주'],
+  ['systolic_bp',120,'수축기 혈압 120 밀리미터 수은주. 이완기 혈압 모름·미측정'],
+  ['diastolic_bp',80,'수축기 혈압 모름·미측정. 이완기 혈압 80 밀리미터 수은주'],
 ])test(`structured ${field} is read literally without inferring another measurement`,()=>{assert.equal(build({[field]:value})[0].text,expected);});
 test('blood pressure pair is one atomic item with the requested clear labels',()=>{
   const item=get({systolic_bp:120,diastolic_bp:80},'blood_pressure');
@@ -31,12 +31,11 @@ for(const field of ['systolic_bp','diastolic_bp','pulse','spo2','temperature','r
   const item=build({[field]:0})[0];assert.equal(item.currentValues[field],0);assert.match(item.text,/0/);assert.equal(item.confirmable,true);
 });
 for(const [field,value,text]of [
-  ['consciousness','alert','의식 명료'],['consciousness','impaired','의식 저하'],['consciousness','unresponsive','의식 반응 없음'],['consciousness','unknown','의식 미확인'],
-  ['breathing','normal','호흡 정상'],['breathing','abnormal','호흡 비정상'],['breathing','absent','호흡 없음'],['breathing','unknown','호흡 미확인'],
+  ['consciousness','alert','의식 명료'],['consciousness','impaired','의식 저하'],['consciousness','unresponsive','의식 반응 없음'],
+  ['breathing','normal','호흡 정상'],['breathing','abnormal','호흡 비정상'],['breathing','absent','호흡 없음'],
 ])test(`enum ${field}=${value} preserves its exact meaning`,()=>assert.equal(build({[field]:value})[0].text,text));
-test('null numeric/enum values are unknown, never zero, normal, or absent breathing',()=>{
-  assert.equal(get({pulse:null},'pulse').text,'맥박 미확인');assert.deepEqual(get({pulse:null},'pulse').currentValues,{});
-  assert.equal(get({breathing:null},'breathing').text,'호흡 미확인');assert.doesNotMatch(get({breathing:null},'breathing').text,/정상|없음/);
+test('explicit null and unknown enums are missing observations instead of critical values to confirm',()=>{
+  for(const fields of [{pulse:null},{breathing:null},{consciousness:'unknown'},{breathing:'unknown'},{denied_symptoms:null}])assert.deepEqual(build(fields),[]);
 });
 for(const [field,value]of [['pulse','90'],['spo2',false],['temperature',Infinity],['respiratory_rate',NaN],['glucose',{}],['breathing','none'],['consciousness',true]])test(`invalid structured ${field} is not spoken as a verified clinical value`,()=>{
   const item=build({[field]:value})[0];assert.match(item.text,/값 확인 필요/);assert.equal(item.confirmable,false);assert.ok(item.invalidFields.includes(field));assert.deepEqual(item.currentValues,{});
@@ -49,7 +48,7 @@ for(const [field,expected]of [['symptoms','확인된 증상 목록이 비어 있
   const item=get({[field]:[]},'symptom_polarity');assert.equal(item.text,expected);assert.doesNotMatch(item.text,/모든.*없|증상 없음/);assert.deepEqual(item.values,{[field]:[]});
 });
 test('an absent denied list does not manufacture any denial from a positive list',()=>{const item=get({symptoms:['흉통']},'symptom_polarity');assert.equal(item.text,'확인된 증상 흉통');assert.equal(Object.hasOwn(item.values,'denied_symptoms'),false);});
-for(const value of ['구토',null,[null],['']])test(`malformed symptom list ${JSON.stringify(value)} cannot be confirmed`,()=>{const item=get({denied_symptoms:value},'symptom_polarity');assert.equal(item.confirmable,false);assert.match(item.text,/값 확인 필요/);});
+for(const value of ['구토',[null],['']])test(`malformed symptom list ${JSON.stringify(value)} cannot be confirmed`,()=>{const item=get({denied_symptoms:value},'symptom_polarity');assert.equal(item.confirmable,false);assert.match(item.text,/값 확인 필요/);});
 test('contradictory symptom polarities are identified without speaking them both as current truth',()=>{
   const item=get({symptoms:['출혈'],denied_symptoms:['출혈']},'symptom_polarity');assert.equal(item.confirmable,false);assert.match(item.text,/분류가 충돌/);assert.doesNotMatch(item.text,/출혈 없음/);
 });
@@ -109,7 +108,7 @@ for(const raw of ['unknown','미확인'])test(`enum ${raw} is explicit unknown, 
 test('blank enum removes the field while normal/absent retain their meanings',()=>{
   const item=get({breathing:'normal'},'breathing');assert.deepEqual(planCriticalCorrection(item,{breathing:''}),{changes:{},unset_fields:['breathing']});assert.deepEqual(planCriticalCorrection(item,{breathing:'absent'}),{changes:{breathing:'absent'},unset_fields:[]});
 });
-for(const [field,value]of [['consciousness','normal'],['breathing','alert'],['breathing','없음'],['breathing',false]])test(`cross-enum or implicit value ${field}/${value} is rejected`,()=>assert.throws(()=>planCriticalCorrection(build({[field]:'unknown'})[0],{[field]:value})));
+for(const [field,value]of [['consciousness','normal'],['breathing','alert'],['breathing','없음'],['breathing',false]])test(`cross-enum or implicit value ${field}/${value} is rejected`,()=>assert.throws(()=>planCriticalCorrection(build({[field]:field==='breathing'?'normal':'alert'})[0],{[field]:value})));
 test('symptom correction atomically moves a finding between positive and denied lists',()=>{
   const item=get({symptoms:['출혈'],denied_symptoms:['구토'],uncertain_symptoms:['흉통']},'symptom_polarity'),before=clone(item);
   const result=planCriticalCorrection(item,{symptoms:[],denied_symptoms:['구토','출혈'],uncertain_symptoms:['흉통']});
@@ -138,3 +137,70 @@ test('a plain correction object from a browser VM realm is supported',()=>assert
 for(const phrase of ['네','예','응','맞아','맞아요','맞습니다','확인했어','확인했어요','확인했습니다','네 맞아요','예 맞습니다',' 맞아요. ','예。'])test(`dedicated confirmation context accepts exact affirmative: ${phrase}`,()=>assert.equal(classifyCriticalReply(phrase),'confirm'));
 for(const phrase of ['아니','아니요','아니오','아니야','틀렸어','틀렸어요','틀렸습니다','수정','수정할게요','수정하겠습니다','고칠게요','아니요.'])test(`dedicated confirmation context accepts exact correction: ${phrase}`,()=>assert.equal(classifyCriticalReply(phrase),'correct'));
 for(const phrase of ['네 혈압90','맞지않아요','맞지 않아요','맞아요라고 환자가 말함','종료','중단','병원 추천해줘','맥박 90 맞아요','아니요 혈압은 80','네 그런데 호흡이 없어요','환자가 네라고 했어요','맞아요?','맞아요...','','모르겠어요',null,undefined,42])test(`clinical additions, quotations, negations and controls never blanket-confirm: ${String(phrase)}`,()=>assert.equal(classifyCriticalReply(phrase),'unknown'));
+
+// Changed contract: explicit unknowns are displayed as unknown by the page; they
+// are not observations for critical confirmation. Unavailable only clears a
+// value-less review flag, never a stored measurement or malformed value.
+for(const field of ['pulse','spo2','temperature','respiratory_rate','glucose'])test(`unavailable value-less ${field} is excluded without changing the session`,()=>{
+  const session={fields:{},field_metadata:{[field]:{needs_clarification:true,followup_unavailable_for:field,clarification_evidence:['synthetic unavailable']}},followup:{items:[]}};
+  const before=clone(session);assert.deepEqual(buildCriticalReview(session),[]);assert.deepEqual(session,before);
+});
+test('followup unavailable status alone is sufficient for a matching value-less field',()=>{
+  const session={fields:{},field_metadata:{temperature:{needs_clarification:true}},followup:{items:[{id:'temperature',answer_status:'unavailable',askable:false}]}};
+  assert.deepEqual(buildCriticalReview(session),[]);
+});
+test('a missing clarification without a matching unavailable disposition still blocks',()=>{
+  for(const marker of ['pulse','temperature-extra',true,['temperature'],null]){
+    const item=build({}, {temperature:{needs_clarification:true,followup_unavailable_for:marker}})[0];assert.equal(item.confirmable,false);assert.equal(item.id,'temperature');
+  }
+  for(const followup of [{items:[{id:'pulse',answer_status:'unavailable'}]},{items:[{id:'temperature',answer_status:'unanswered',askable:false}]},{items:'unavailable'}])assert.equal(buildCriticalReview({fields:{},field_metadata:{temperature:{needs_clarification:true}},followup})[0].confirmable,false);
+});
+test('inherited unavailable markers and inherited followup item fields are not trusted',()=>{
+  const metadata={temperature:Object.assign(Object.create({followup_unavailable_for:'temperature'}),{needs_clarification:true})};
+  assert.equal(buildCriticalReview({fields:{},field_metadata:metadata})[0].confirmable,false);
+  const item=Object.create({id:'temperature',answer_status:'unavailable'});
+  assert.equal(buildCriticalReview({fields:{},field_metadata:{temperature:{needs_clarification:true}},followup:{items:[item]}})[0].confirmable,false);
+});
+for(const [field,value]of [['temperature',38.2],['pulse',90],['consciousness','impaired'],['breathing','absent'],['symptoms',['흉통']],['uncertain_symptoms',['경련']]])test(`unavailable never hides stored flagged ${field}`,()=>{
+  const qid=['symptoms','uncertain_symptoms'].includes(field)?'symptoms':field;
+  const session={fields:{[field]:value},field_metadata:{[field]:{needs_clarification:true,followup_unavailable_for:qid}},followup:{items:[{id:qid,answer_status:'unavailable'}]}};
+  const before=clone(session),item=buildCriticalReview(session)[0];assert.equal(item.confirmable,false);assert.deepEqual(item.previousValues,{[field]:value});assert.match(item.text,/재확인 필요/);assert.deepEqual(session,before);
+});
+for(const field of ['systolic_bp','diastolic_bp','pulse','spo2','temperature','respiratory_rate','glucose'])test(`unavailable does not discard numeric zero ${field} or its clarification flag`,()=>{
+  const qid=field.endsWith('_bp')?'blood_pressure':field;
+  const item=build({[field]:0},{[field]:{needs_clarification:true,followup_unavailable_for:qid}})[0];assert.equal(item.confirmable,false);assert.equal(item.previousValues[field],0);
+});
+for(const [field,value]of [['pulse','90'],['spo2',false],['temperature',Infinity],['respiratory_rate',NaN],['glucose',{}],['breathing','none'],['consciousness',true],['denied_symptoms',[null]]])test(`unavailable never discards invalid ${field}=${String(value)}`,()=>{
+  const qid=field==='denied_symptoms'?'symptoms':field;
+  const session={fields:{[field]:value},field_metadata:{[field]:{followup_unavailable_for:qid}},followup:{items:[{id:qid,answer_status:'unavailable'}]}};
+  const item=buildCriticalReview(session)[0];assert.equal(item.confirmable,false);assert.ok(item.invalidFields.includes(field));assert.match(item.text,/값 확인 필요/);
+});
+test('partial pressure reads the reported systolic and treats the unavailable missing diastolic as unknown',()=>{
+  const session={fields:{systolic_bp:120},field_metadata:{diastolic_bp:{needs_clarification:true,followup_unavailable_for:'blood_pressure'}}};
+  const before=clone(session),item=buildCriticalReview(session)[0];assert.equal(item.confirmable,true);assert.equal(item.text,'수축기 혈압 120 밀리미터 수은주. 이완기 혈압 모름·미측정');assert.deepEqual(item.currentValues,{systolic_bp:120});assert.deepEqual(item.previousValues,{});assert.deepEqual(session,before);
+});
+test('partial pressure preserves the reported diastolic when the systolic is explicitly null and unavailable',()=>{
+  const session={fields:{systolic_bp:null,diastolic_bp:80},field_metadata:{systolic_bp:{needs_clarification:true}},followup:{items:[{id:'blood_pressure',answer_status:'unavailable'}]}};
+  const item=buildCriticalReview(session)[0];assert.equal(item.confirmable,true);assert.equal(item.text,'수축기 혈압 모름·미측정. 이완기 혈압 80 밀리미터 수은주');assert.deepEqual(item.currentValues,{diastolic_bp:80});assert.equal(item.values.systolic_bp,null);
+});
+test('an unavailable missing sibling cannot clear a real pressure clarification',()=>{
+  const session={fields:{systolic_bp:120},field_metadata:{systolic_bp:{needs_clarification:true},diastolic_bp:{needs_clarification:true}},followup:{items:[{id:'blood_pressure',answer_status:'unavailable'}]}};
+  const item=buildCriticalReview(session)[0];assert.equal(item.confirmable,false);assert.deepEqual(item.clarificationFields,['systolic_bp']);assert.deepEqual(item.previousValues,{systolic_bp:120});assert.equal(item.text,'수축기 혈압 재확인 필요. 이완기 혈압 모름·미측정');
+});
+test('the symptom critical group uses the actual symptoms question id for unavailable missing siblings',()=>{
+  const session={fields:{symptoms:['흉통'],denied_symptoms:null},field_metadata:{denied_symptoms:{needs_clarification:true,followup_unavailable_for:'symptoms'}}};
+  const item=buildCriticalReview(session)[0];assert.equal(item.confirmable,true);assert.match(item.text,/확인된 증상 흉통/);assert.match(item.text,/없다고 확인한 증상 모름·미측정/);assert.deepEqual(item.currentValues,{symptoms:['흉통']});
+  assert.deepEqual(build({}, {denied_symptoms:{needs_clarification:true,followup_unavailable_for:'symptoms'}}),[]);
+});
+test('symptom polarity conflicts remain blocked even if the entire question is unavailable',()=>{
+  const item=buildCriticalReview({fields:{symptoms:['출혈'],denied_symptoms:['출혈']},field_metadata:{},followup:{items:[{id:'symptoms',answer_status:'unavailable'}]}})[0];
+  assert.equal(item.confirmable,false);assert.match(item.text,/분류가 충돌/);assert.equal(item.invalidFields.length,2);
+});
+test('a known valid observation is still read literally when unavailable metadata has no clarification flag',()=>{
+  const item=build({pulse:90},{pulse:{followup_unavailable_for:'pulse'}})[0];assert.equal(item.confirmable,true);assert.equal(item.text,'맥박 분당 90회');assert.deepEqual(item.currentValues,{pulse:90});
+});
+test('followup-only unknown disposition changes the affected signature and leaves other groups stable',()=>{
+  const session={fields:{systolic_bp:120,pulse:90},field_metadata:{diastolic_bp:{needs_clarification:true}}};
+  const old=buildCriticalReview(session),next=buildCriticalReview({...session,followup:{items:[{id:'blood_pressure',answer_status:'unavailable'}]}});
+  assert.notEqual(old.find(i=>i.id==='blood_pressure').signature,next.find(i=>i.id==='blood_pressure').signature);assert.equal(old.find(i=>i.id==='pulse').signature,next.find(i=>i.id==='pulse').signature);
+});

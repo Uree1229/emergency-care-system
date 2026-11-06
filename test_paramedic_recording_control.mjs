@@ -1,9 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {RECORDING_LIMITS,splitStopCommand,findVoiceTrigger} from './paramedic-ui/recording-control.mjs';
+import {RECORDING_LIMITS,splitStopCommand,findVoiceTrigger,matchesRecordedVoiceTrigger} from './paramedic-ui/recording-control.mjs';
 
 test('recording limits distinguish toggle, hold, and API text',()=>{
   assert.deepEqual(RECORDING_LIMITS,{toggle:180,hold:30,text:4000});
+});
+
+test('new connected recording controls preserve old non-command observations without changing live parsing',()=>{
+  const text='혈압 120에 80. 녹음 중단하고 맥박 90';
+  const current=findVoiceTrigger(text);
+  assert.equal(current.action,'stop');assert.equal(current.command,'녹음 중단하고');
+  assert.equal(current.prefix,'혈압 120에 80.');assert.equal(current.suffix,'맥박 90');
+  assert.equal(matchesRecordedVoiceTrigger(text,null),true);
+  assert.equal(matchesRecordedVoiceTrigger(text,current),true);
+  assert.equal(matchesRecordedVoiceTrigger(text,{...current,suffix:'changed'}),false);
+});
+
+test('connected recording controls retain the complete time-particle guard and later explicit action',()=>{
+  const text='종료 시각과 발생 시각은 다릅니다. 녹음 종료하고 맥박 90';
+  const result=findVoiceTrigger(text);
+  assert.equal(result.command,'녹음 종료하고');assert.equal(result.prefix,'종료 시각과 발생 시각은 다릅니다.');
+  assert.equal(result.suffix,'맥박 90');
+  assert.equal(findVoiceTrigger('종료 시각과 발생 시각은 다릅니다.'),null);
 });
 
 for(const [raw,prefix,command] of [
@@ -39,6 +57,11 @@ const TRIGGER_CASES = [
   ['중단','stop','','중단',''],
   ['종료','stop','','종료',''],
   ['녹음 중단','stop','','녹음 중단',''],
+  ['녹음 중단하고','stop','','녹음 중단하고',''],
+  ['녹음 종료하고','stop','','녹음 종료하고',''],
+  ['녹음중단하고 이명박','stop','','녹음중단하고','이명박'],
+  ['47세 남성 중간 녹음 중단하고 이명박','stop','47세 남성 중간','녹음 중단하고','이명박'],
+  ['혈압 120에 80. 녹음 종료하고 추가 말은 검토해','stop','혈압 120에 80.','녹음 종료하고','추가 말은 검토해'],
   ['음성 입력 중단해 주세요','stop','','음성 입력 중단해 주세요',''],
   ['음성종료해주세요','stop','','음성종료해주세요',''],
   ['말하기 그만할게요','stop','','말하기 그만할게요',''],
@@ -115,6 +138,14 @@ const NON_TRIGGER_CASES = [
   '산소 공급은 지금 바로 중단','처치 진행을 즉시 중단','압박을 잠시만 중단',
   '아직은 종료','절대로 중단','중단 마세요','종료 됐습니다','종료 했습니다',
   '종료 요청했습니다',
+  '중단하고 혈압을 확인', '종료하고 혈압을 확인', '투약 중단하고 관찰',
+  '처치를 중단하고 혈압을 확인', 'CPR 종료하고 맥박 확인',
+  '녹음 중단하고 싶어', '녹음 종료하고 싶지 않아', '녹음 중단하고 있습니다',
+  '녹음 종료하고 있었어요', '녹음 중단하고 나서 기록했다', '녹음 종료하고 나면 확인',
+  '녹음 중단하고 보니 기록이 없다', '녹음 중단하고 하지 마',
+  '환자가 녹음 중단하고', '보호자가 녹음 종료하고', '명령어 녹음 중단하고',
+  '아직 녹음 종료하고', '절대 녹음 중단하고', '“녹음 중단하고”',
+  '녹음 중단하고 라고 했다', '녹음 종료하고 하라고 말했다',
 ];
 
 for(const raw of NON_TRIGGER_CASES)test(`clinical, negative, quoted, or non-imperative is not a trigger: ${raw}`,()=>{
@@ -127,6 +158,18 @@ test('combined final fragments locate the complete recommendation command once',
     action:'recommend',prefix:'혈압 120에 80',command:'병원 추천해줘',suffix:'맥박 90',
     index:combined.indexOf('병원'),end:combined.indexOf(' 맥박'),
   });
+});
+
+test('a recording-scoped conjunction preserves the actual damaged STT on each side',()=>{
+  const raw='47세 남성 20분 전부터 흉통 의식 명료 혈압 120 80 92 파이 12 중간 녹음 중단하고 이명박';
+  const result=findVoiceTrigger(raw);
+  assert.equal(result.action,'stop');
+  assert.equal(result.prefix,'47세 남성 20분 전부터 흉통 의식 명료 혈압 120 80 92 파이 12 중간');
+  assert.equal(result.command,'녹음 중단하고');
+  assert.equal(result.suffix,'이명박','unrecognized following speech remains available for review, never repaired');
+  assert.equal(splitStopCommand(raw),null,'terminal compatibility helper does not consume following speech');
+  assert.equal(findVoiceTrigger(raw,{isFinal:false}),null);
+  assert.equal(findVoiceTrigger(['혈압 120에 80','녹음','중단하고','추가 원문'].join(' ')).suffix,'추가 원문');
 });
 
 test('the terminal compatibility helper never consumes a middle command or recommendation',()=>{

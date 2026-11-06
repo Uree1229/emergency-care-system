@@ -1,0 +1,54 @@
+.field-flow .app-shell { display:block; }
+.field-flow .main-content { max-width:920px; margin:0 auto; padding:24px 28px 40px; }
+.field-flow .workspace-grid { display:block; }
+.field-flow .workspace-grid > .panel { width:100%; margin:0; }
+.field-flow .page-header { margin-bottom:18px; }
+.field-flow .page-header h1 { font-size:26px; }
+.field-flow .page-header .eyebrow { display:none; }
+.field-flow .demo-banner { margin-bottom:14px; }
+.staged-nav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.staged-step { display:flex; align-items:center; justify-content:center; gap:8px; min-height:54px; padding:10px 8px; border:1px solid var(--line); border-radius:10px; color:var(--muted); background:#fff; font-weight:700; }
+.staged-step.is-current { color:var(--teal-dark); border:2px solid var(--teal); background:var(--teal-soft); }
+.staged-step:disabled { opacity:.7; }
+.staged-number { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:#edf1f4; font-size:12px; flex-shrink:0; }
+.staged-step.is-current .staged-number { color:white; background:var(--teal); }
+.staged-status { padding:14px 2px; color:#496176; min-height:50px; }
+.field-flow .feedback-region { margin-bottom:12px; }
+.field-flow .feedback-region :is(.notice,.error):empty { display:none; }
+.field-flow #recommendation-prep[data-state="ready"] { display:none; }
+.field-flow.field-has-unapplied #recommendation-prep[data-state="ready"] { display:block; }
+.staged-settings { margin-top:20px; border:1px solid var(--line); border-radius:10px; background:white; }
+.staged-settings > summary,.staged-source > summary,.staged-review-details > summary { padding:14px 16px; font-weight:650; color:#4b6273; cursor:pointer; }
+.staged-settings-body { padding:0 16px 16px; }
+.field-flow .staged-settings .sidebar { position:static; width:auto; height:auto; background:#f4f7f9; color:var(--text); border-radius:8px; padding:16px; display:block; overflow:visible; }
+.field-flow .staged-settings .sidebar .brand,.field-flow .staged-settings .workflow-nav,.field-flow .staged-settings .sidebar-footnote { display:none; }
+.field-flow .staged-settings .new-case { margin-top:0; width:auto; }
+.field-flow .staged-settings .sidebar-bottom { margin:0; padding-top:18px; }
+.field-flow .staged-settings .sidebar-label,.field-flow .staged-settings .connection-status { color:var(--muted); }
+.field-flow .staged-settings .button-sidebar { color:var(--text); border:1px solid var(--line); background:white; }
+.field-flow .staged-settings .session-bar { margin:14px 0 0; }
+.field-flow #staged-full-view { display:inline-block; margin-top:12px; }
+.staged-source,.staged-review-details { border:1px solid var(--line); border-radius:8px; margin:0 0 18px; }
+.staged-source[open],.staged-review-details[open] { padding:0 16px 16px; }
+.staged-source[open] > summary,.staged-review-details[open] > summary { margin:0 -16px; }
+.staged-source > :not(summary) { margin-top:12px; }
+.staged-source.is-unapplied { border-color:#e1ac51; background:#fff9ec; }
+.field-flow #review-confirm-actions { margin-top:24px; padding-top:20px; border-top:1px solid var(--line); }
+.field-flow #confirm-button { width:100%; min-height:52px; background:var(--teal); color:white; border-color:var(--teal); font-size:16px; }
+.field-flow #submit-button { width:100%; min-height:52px; font-size:16px; }
+.staged-patient { padding:0 0 20px; }
+.staged-patient #patient-navigation { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+.staged-patient #patient-navigation .button { min-height:52px; text-decoration:none; white-space:normal; text-align:center; }
+.field-flow.field-navigation-blocked #patient-navigation a { opacity:.5; cursor:not-allowed; }
+.field-flow .candidate-list { margin-top:18px; }
+.field-flow #hospital-section .section-description { margin-top:8px; }
+@media(max-width:620px) {
+  .field-flow .main-content { padding:18px 14px 30px; }
+  .field-flow .page-header { display:block; }
+  .field-flow .page-header .header-actions { margin-top:12px; justify-content:space-between; }
+  .field-flow .page-header h1 { font-size:23px; }
+  .staged-nav { gap:5px; }
+  .staged-step { flex-direction:column; gap:4px; min-height:66px; padding:8px 2px; font-size:12px; }
+  .staged-patient #patient-navigation { grid-template-columns:1fr; }
+  .field-flow .panel { padding:20px 16px; }
+}

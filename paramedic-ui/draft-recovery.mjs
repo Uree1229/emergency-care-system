@@ -1,5 +1,5 @@
 /** Explicitly retained text and retry references only; no audio or clinical auto-apply. */
-import {normalizeCorrection} from './quick-session.mjs';
+import {normalizeCorrection,validateWorkflowRecovery,WORKFLOW_PHASES,REVIEW_FIELDS} from './quick-session.mjs';
 import {normalizeRecognitionAlternatives} from './recognition-context.mjs';
 export const RECOVERY_KEY = 'paramedic.voice.quick-recovery.v1';
 const TTL_MS = 12 * 60 * 60 * 1000;
@@ -62,9 +62,10 @@ function boundedJSON(value){
 function validateAttempt(attempt,job,payload){
   keys(attempt,ATTEMPT);
   const correct=job.phase==='correct';
-  if(!['transcript','answer','correction'].includes(attempt.target)||!MODES.includes(attempt.mode)||typeof attempt.manual!=='boolean')fail();
+  const workflow=WORKFLOW_PHASES.includes(job.phase);
+  if(!['transcript','answer','correction','workflow'].includes(attempt.target)||!MODES.includes(attempt.mode)||typeof attempt.manual!=='boolean')fail();
   if(attempt.questionId!==null)identifier(attempt.questionId);
-  text(attempt.questionText,2000);text(attempt.apiText,4000,!correct);
+  text(attempt.questionText,2000);text(attempt.apiText,4000,!correct&&!workflow);
   for(const field of ['sourceText','excludedText','unappliedBefore','copiedFrom'])text(attempt[field],16000);
   integer(attempt.beforeVersion);if(attempt.beforeVersion>payload.version)fail();
   if(!Array.isArray(attempt.beforeFlagged)||attempt.beforeFlagged.length>64)fail();
@@ -73,6 +74,12 @@ function validateAttempt(attempt,job,payload){
     keys(attempt.trigger,['action','command']);
     if(!['stop','recommend','new_patient','previous_patient','handoff_summary'].includes(attempt.trigger.action))fail();
     text(attempt.trigger.command,100,true);
+  }
+  if(workflow){
+    if(attempt.target!=='workflow'||attempt.mode!=='dictation'||attempt.questionId!==null||attempt.questionText!==''||
+      attempt.apiText!==''||attempt.sourceText!==''||attempt.excludedText!==''||attempt.unappliedBefore!==''||
+      attempt.manual!==false||attempt.copiedFrom!==''||attempt.trigger!==null)fail();
+    return;
   }
   if(correct){
     if(attempt.target!=='correction'||attempt.mode!=='dictation'||attempt.questionId!==null||attempt.questionText!==''||
@@ -87,6 +94,10 @@ function validatePending(pending,payload){
   if(pending===null)return;
   keys(pending,['request','job','attempt']);
   const {request,job,attempt}=pending;
+  if(WORKFLOW_PHASES.includes(job?.phase)){
+    validateWorkflowRecovery(request,job,{actorId:payload.actorId,sessionId:payload.sessionId,version:payload.version});
+    validateAttempt(attempt,job,payload);return;
+  }
   keys(request,['path','method','body']);
   if(typeof request.path!=='string')fail();
   const create=request.path==='/api/voice/sessions';
@@ -129,9 +140,21 @@ function validatePending(pending,payload){
   if(transcript&&job.mode!==request.body.mode)fail();
   validateAttempt(attempt,job,payload);
 }
+function validateWorkflowUI(ui,payload){
+  keys(ui,['sessionId','version','step','lat','lon','consent','requiredCapabilities','editor','editorDirty']);
+  if(ui.sessionId!==null)identifier(ui.sessionId);
+  integer(ui.version);
+  if(ui.sessionId!==payload.sessionId||ui.version>payload.version||(ui.sessionId===null&&ui.version!==0)||(ui.sessionId!==null&&ui.version===0))fail();
+  if(![null,'review','submit','hospital'].includes(ui.step)||typeof ui.consent!=='boolean'||typeof ui.editorDirty!=='boolean')fail();
+  text(ui.lat,128);text(ui.lon,128);
+  if(!Array.isArray(ui.requiredCapabilities)||ui.requiredCapabilities.length>128||new Set(ui.requiredCapabilities).size!==ui.requiredCapabilities.length)fail();
+  for(const item of ui.requiredCapabilities){text(item,256,true);if(!item.trim()||/[\u0000-\u001f\u007f]/.test(item))fail();}
+  keys(ui.editor,[],REVIEW_FIELDS);
+  for(const value of Object.values(ui.editor))text(value,16000);
+}
 function normalized(payload,stored=false){
   boundedJSON(payload);
-  keys(payload,stored?[...TOP,'createdAt','expiresAt']:TOP);
+  keys(payload,stored?[...TOP,'createdAt','expiresAt']:TOP,['workflowUI']);
   identifier(payload.actorId,80);
   integer(payload.version);
   if(payload.sessionId===null){if(payload.version!==0)fail();}
@@ -140,6 +163,7 @@ function normalized(payload,stored=false){
   if(!MODES.includes(payload.mode)||!['toggle','hold'].includes(payload.recordingMode))fail();
   const serverOrigin=origin(payload.serverOrigin);
   validatePending(payload.pending,payload);
+  if(Object.hasOwn(payload,'workflowUI'))validateWorkflowUI(payload.workflowUI,payload);
   // Roundtrip makes an independent snapshot without reordering the retry body.
   const copy=JSON.parse(JSON.stringify(payload));
   return {...copy,serverOrigin};

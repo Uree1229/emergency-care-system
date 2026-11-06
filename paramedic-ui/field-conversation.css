@@ -1,0 +1,55 @@
+/* Progressive disclosure over Claude's existing conversation; no clinical state changes. */
+.field-step-nav,.field-stage-hint,.field-next-actions{display:none}
+.qv-patients>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;color:var(--teal-ink);font-size:14px}
+.field-patient-toggle{font-size:12px;font-weight:400;white-space:nowrap}
+.field-flow .field-step-nav,.field-flow .field-stage-hint,.field-flow .field-next-actions{display:block}
+.field-flow{max-width:720px;height:auto;min-height:100dvh;padding-bottom:16px}
+.field-flow .qv-top{padding:14px 16px 8px}
+.field-step-nav{padding:4px 16px 10px}
+.field-step-nav ol{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));list-style:none;padding:0;margin:0;gap:6px}
+.field-step-nav li{display:flex;align-items:center;justify-content:center;gap:5px;min-height:42px;padding:5px 2px;border-radius:10px;background:var(--card);color:var(--muted);font-size:12px;font-weight:600;border:1px solid var(--line)}
+.field-step-nav li[aria-current=step]{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-ink)}
+.field-step-nav b{font-size:13px}
+.field-stage-hint{margin:0 16px 10px;font-size:13px;line-height:1.65;color:var(--text-2)}
+.field-flow .field-type{display:block;align-self:flex-end;margin:0 16px 4px;padding:8px 0;background:none;border:0;color:var(--teal-ink);font-size:12px;text-decoration:underline;text-underline-offset:3px}
+.field-flow .qv-patients{margin:0 16px 8px;padding:4px 12px;border-width:1px;max-height:none}
+.field-flow .qv-summary{margin-left:16px;margin-right:16px}
+.field-flow:not(.has-saved-fields) #summary-chips{display:none}
+.field-flow:not(.field-review) #critical-panel{display:none}
+.field-flow:not(:has(#settings:not([hidden]))) #handoff-panel,.field-flow:not(:has(#settings:not([hidden]))) #observation-history-panel{display:none}
+.field-flow .qv-timeline{flex:1;min-height:100px;overflow:visible;padding:10px 16px}
+.field-flow .qv-recovery:not(.needs-attention):not(:has(.is-warning,.is-danger,[open])){display:none}
+.field-flow:has(#settings:not([hidden])) .qv-recovery{display:block}
+.field-flow .qv-dock{position:static;order:20;padding:14px 16px 4px;border-radius:20px;margin:4px 16px 0;box-shadow:none;border:1px solid var(--line);width:auto}
+.field-next-actions{order:21;margin:12px 16px 0}
+.field-next-actions button{min-height:52px;width:100%;padding:13px 16px;border:0;border-radius:12px;background:var(--teal);color:white;font:inherit;font-size:15px;font-weight:700}
+.field-next-actions button:disabled{background:var(--grey-soft);color:var(--muted);cursor:not-allowed}
+.field-next-actions #field-back{min-height:42px;margin-bottom:8px;background:var(--card);border:1px solid var(--line-strong);color:var(--text-2);font-size:13px}
+.field-next-actions p{font-size:12px;line-height:1.65;color:var(--muted);margin:8px 4px 0}
+.field-next-actions #field-next-status{margin:0 0 10px}
+.field-next-actions #field-next-status.needs-review{padding:12px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--text-2)}
+.field-next-actions #field-review-pending{margin-bottom:8px;background:var(--teal-soft);color:var(--teal-ink);border:1px solid var(--teal)}
+.field-next-actions #field-review-voice,.field-next-actions #field-review-stop{margin-bottom:8px}
+.field-next-actions #field-review-stop{background:var(--card);color:var(--text-2);border:1px solid var(--line-strong)}
+.critical-conversation{margin:12px 0;padding:14px;border-radius:12px;border:1px solid var(--teal);background:var(--teal-soft)}
+.critical-conversation h3{font-size:14px;margin:0 0 6px}.critical-conversation-status{font-size:14px;line-height:1.65;color:var(--teal-ink);margin:8px 0 0;overflow-wrap:anywhere}
+.critical-conversation .qv-chip-btn{min-height:44px}.critical-conversation [hidden]{display:none!important}
+.field-flow.field-review .qv-greeting,.field-flow.field-review #quick-history,.field-flow.field-review .qv-dock .qv-mic-row,.field-flow.field-review #followup-card,.field-flow.field-review .qv-status-line{display:none}
+.field-flow.field-review .qv-summary{max-height:none;overflow:visible}
+.field-flow.field-review .qv-timeline{flex:none;min-height:0;padding-top:0}
+.field-flow.field-review .qv-critical{margin-top:0}
+.field-flow.workflow-open .qv-summary,.field-flow.workflow-open .qv-timeline,.field-flow.workflow-open .qv-dock,.field-flow.workflow-open .field-next-actions{display:none}
+.field-flow #field-workflow-host{margin:8px 16px 0}
+.field-flow #field-workflow-host[hidden],.field-flow #field-operation-recovery[hidden]{display:none}
+.field-flow #field-operation-recovery{margin:10px 16px}
+.field-flow #field-unapplied-note{margin:10px 16px;display:block;overflow-wrap:anywhere;white-space:normal}
+.field-flow #field-unapplied-note[hidden]{display:none}
+#field-unapplied-text{white-space:pre-wrap}
+.field-step-nav li button{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;min-height:38px;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.field-step-nav li button:disabled{cursor:default;opacity:.65}
+.field-flow #recommendation-prep{display:none}
+.field-flow #followup-remaining-unavailable{width:100%;min-height:44px;margin:8px 0;padding:10px 12px}
+@media(min-width:760px){body.qv:has(.field-flow){padding:18px 0}.field-flow{height:auto;min-height:calc(100dvh - 36px);border:1px solid var(--line);border-radius:22px;background:var(--bg);box-shadow:0 10px 45px #1724300c}}
+@media(max-width:380px){.field-step-nav{padding-left:10px;padding-right:10px}.field-step-nav li{font-size:11px;gap:3px}}
+
+.field-original{margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:13px;line-height:1.7}.field-original summary{cursor:pointer;font-weight:600}.field-original pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}

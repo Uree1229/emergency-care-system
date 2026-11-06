@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {VoiceClient} from './paramedic-ui/voice-client.mjs';
-import {QuickSession,normalizeCorrection,CORRECTION_FIELDS} from './paramedic-ui/quick-session.mjs';
+import {QuickSession,normalizeCorrection,CORRECTION_FIELDS,normalizeReviewFields,normalizeSubmitContext,REVIEW_FIELDS} from './paramedic-ui/quick-session.mjs';
 import vm from 'node:vm';
 
 const response = (data, status=200) => ({ok:status<400,status,json:async()=>data});
@@ -487,4 +487,92 @@ for(const [name,mutate] of [
     change_kind:'correction',actor_id:'QUICK-VOICE-TEST',client_request_id:'saved-correction',expected_version:3}},
     job:{phase:'correct',changes:{pulse:91},unsetFields:['glucose']}};
   mutate(saved);assert.throws(()=>flow.restoreRecovery(saved));assert.equal(calls.length,0);assert.equal(flow.job,null);
+});
+
+const submitContext=()=>({consent:true,lat:37.5051,lon:126.9573,required_capabilities:['응급의학'],resource_demands:{ed_bed:1}});
+const invokeWorkflow=(flow,phase)=>phase==='confirm'?flow.confirm():phase==='submit'?flow.submit(submitContext()):flow.reviewFields({changes:{age:47,avpu:'A',consciousness:'alert',pre_ktas:'unclassified'},unset_fields:['glucose']});
+
+test('one client and session continue from speech through reviewed fields, explicit confirmation and registration',async()=>{
+  const {flow,client,calls}=setup((call,n)=>{
+    if(call.url.endsWith('/api/voice/sessions'))return response({session:session(1)});
+    if(call.url.endsWith('/transcripts'))return response({session:session(2,{age:47})});
+    if(call.url.endsWith('/fields'))return response({session:session(3,{age:47,avpu:'A',pre_ktas:'unclassified'})});
+    if(call.url.endsWith('/confirm'))return response({session:{...session(3,{age:47,avpu:'A',pre_ktas:'unclassified'}),confirmed:true}});
+    return response({session:{...session(3,{age:47,avpu:'A',pre_ktas:'unclassified'}),state:'SUBMITTED',patient_id:'P-ONE'},patient:{id:'P-ONE'}});
+  });
+  await flow.apply('47세 남성');await flow.reviewFields({changes:{avpu:'A',pre_ktas:'unclassified'}});await flow.confirm();const result=await flow.submit(submitContext());
+  assert.equal(calls.length,5);assert.equal(result.patient.id,'P-ONE');assert.equal(client.session.state,'SUBMITTED');
+  assert.deepEqual(calls.slice(1).map(call=>call.body.expected_version),[1,2,3,3]);
+  assert.ok(calls.every(call=>call.url.endsWith('/api/voice/sessions')||call.url.includes('/VS-QUICK/')));
+  assert.deepEqual(calls.at(-1).body.context,submitContext());assert.equal(calls.at(-1).body.start_inquiry,false);
+  assert.equal(flow.job,null);assert.equal(client.pending,null);
+});
+
+for(const phase of ['confirm','submit','review-fields'])test(`workflow ${phase} has a valid synchronous checkpoint before network dispatch`,async()=>{
+  const {client,flow,calls}=setup(()=>response({session:{...session(4),confirmed:true}}));client.session={...session(3,{age:47}),confirmed:true};let checkpoint;
+  client.beforeWrite=()=>{checkpoint=flow.exportRecovery();};await invokeWorkflow(flow,phase);
+  assert.equal(checkpoint.job.phase,phase);assert.deepEqual(checkpoint.pending.body,calls[0].body);assert.equal(checkpoint.pending.body.expected_version,3);
+});
+
+for(const phase of ['confirm','submit','review-fields'])test(`lost ${phase} response restores exact request after GET-first and requires an explicit idempotent retry`,async()=>{
+  let applied=null,mutations=0;
+  const fresh={...session(5,{age:47}),confirmed:true,...(phase==='submit'?{state:'SUBMITTED',patient_id:'P-ONE'}:{})};
+  const handler=call=>{
+    if(call.method==='GET')return response({session:fresh});
+    if(applied){assert.deepEqual(call.body,applied);return response({session:fresh,duplicate:true,...(phase==='submit'?{patient:{id:'P-ONE'}}:{})});}
+    mutations++;applied=structuredClone(call.body);throw Error('server committed but response was lost');
+  };
+  const first=setup(handler);first.client.session={...session(3,{age:47}),confirmed:true};
+  await assert.rejects(invokeWorkflow(first.flow,phase),error=>error.uncertain);
+  const saved=first.flow.exportRecovery();assert.equal(saved.job.phase,phase);
+  const reloaded=setup(handler);await reloaded.client.sync('VS-QUICK');reloaded.flow.restoreRecovery(saved);
+  assert.equal(reloaded.calls.length,1,'restoration never posts');assert.equal(reloaded.calls[0].method,'GET');
+  await reloaded.flow.retry();assert.deepEqual(reloaded.calls[1].body,applied);assert.equal(reloaded.calls[1].body.expected_version,3);
+  assert.equal(reloaded.calls[2].method,'GET');assert.equal(mutations,1);assert.equal(reloaded.flow.job,null);assert.equal(reloaded.client.pending,null);
+  assert.equal(reloaded.client.session.state,fresh.state);
+});
+
+test('workflow new writes reject missing/submitted sessions and registration requires explicit current confirmation',async()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});
+  await assert.rejects(flow.confirm());await assert.rejects(flow.reviewFields({changes:{age:47}}));await assert.rejects(flow.submit(submitContext()));
+  client.session=session(3,{age:47});await assert.rejects(flow.submit(submitContext()));
+  client.session={...session(3,{age:47}),confirmed:true,state:'SUBMITTED',patient_id:'P-ONE'};
+  await assert.rejects(flow.confirm());await assert.rejects(flow.reviewFields({changes:{age:48}}));await assert.rejects(flow.submit(submitContext()));
+  client.session={...session(3,{age:47}),confirmed:true,patient_id:'P-ONE'};await assert.rejects(flow.submit(submitContext()));
+  assert.equal(calls.length,0);assert.equal(flow.job,null);
+});
+
+test('full review supports all observation and R1 fields without expanding the narrow correction API',()=>{
+  const changes={age:47,age_group:'40대',sex:'male',symptoms:['흉통'],denied_symptoms:['구토'],uncertain_symptoms:[],
+    consciousness:'alert',breathing:'unknown',systolic_bp:120,diastolic_bp:80,pulse:92,spo2:97,temperature:37.2,respiratory_rate:20,glucose:105,onset_at:1_800_000_000,
+    avpu:'A',chief_complaint:'cardiac',age_category:'adult',pre_ktas:'unclassified',stemi_suspected:'unmeasured',injury_region:'limb',labor:'no',pregnancy_weeks:20,
+    seizure_ongoing:'no',bleeding_risk:'no',high_risk_mechanism:'no',pain_score:0,gcs:15};
+  assert.equal(REVIEW_FIELDS.length,29);assert.deepEqual(normalizeReviewFields({changes}),{changes,unsetFields:[]});
+  assert.deepEqual(normalizeReviewFields(vm.runInNewContext('('+JSON.stringify({changes})+')')),normalizeReviewFields({changes}));
+  assert.throws(()=>normalizeCorrection({changes:{age:47,pre_ktas:2}}));
+  assert.deepEqual(normalizeReviewFields({unset_fields:['age','pre_ktas']}),{changes:{},unsetFields:['age','pre_ktas']});
+});
+
+for(const changes of [{age:'47'},{age:true},{age:131},{age_group:'47대'},{onset_at:Infinity},{pre_ktas:'2'},{pre_ktas:0},{gcs:2},{pain_score:10.5},
+  {pregnancy_weeks:46},{avpu:'A',consciousness:'impaired'},{age:47,age_group:'50대'},{symptoms:['흉통'],denied_symptoms:['흉통']},{priority:4},{patient_id:'P-OTHER'}])
+test(`full review rejects unsafe or inconsistent edit ${JSON.stringify(changes)} before dispatch`,async()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});client.session=session(3);
+  await assert.rejects(flow.reviewFields({changes}));assert.equal(calls.length,0);assert.equal(flow.job,null);
+});
+
+for(const mutate of [ctx=>ctx.consent=false,ctx=>ctx.lat='37.5',ctx=>ctx.lat=NaN,ctx=>ctx.lon=181,ctx=>ctx.resource_demands.ed_bed=2,
+  ctx=>ctx.resource_demands.icu=1,ctx=>ctx.start_inquiry=true,ctx=>ctx.required_capabilities=[''],ctx=>ctx.required_capabilities=['응급의학','응급의학'],ctx=>ctx.required_capabilities=[false]])
+test(`registration context is bounded and never smuggles inquiry or condition changes (${String(mutate)})`,async()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});client.session={...session(3,{age:47}),confirmed:true};
+  const context=submitContext();mutate(context);assert.throws(()=>normalizeSubmitContext(context));await assert.rejects(flow.submit(context));assert.equal(calls.length,0);assert.equal(flow.job,null);
+});
+
+for(const [name,mutate] of [
+  ['changed context',s=>s.job.context.lat=38],['automatic inquiry',s=>s.pending.body.start_inquiry=true],['wrong actor',s=>s.pending.body.actor_id='OTHER'],
+  ['wrong session',s=>s.pending.path='/api/voice/sessions/VS-OTHER/submit'],['future version',s=>s.pending.body.expected_version=6],
+  ['unknown phase',s=>s.job.phase='patient-create'],['unapproved job field',s=>s.job.start_inquiry=true],['changed method',s=>s.pending.method='PATCH']])
+test(`workflow recovery rejects ${name} and never replaces an existing pending write`,()=>{
+  const {client,flow,calls}=setup(()=>{throw Error('must not dispatch');});client.session={...session(5,{age:47}),state:'SUBMITTED',patient_id:'P-ONE'};
+  const saved={pending:{path:'/api/voice/sessions/VS-QUICK/submit',method:'POST',body:{actor_id:'QUICK-VOICE-TEST',client_request_id:'R-SAVE',expected_version:3,context:submitContext(),start_inquiry:false}},job:{phase:'submit',context:submitContext()}};
+  mutate(saved);assert.throws(()=>flow.restoreRecovery(saved));assert.equal(client.pending,null);assert.equal(flow.job,null);assert.equal(calls.length,0);
 });
