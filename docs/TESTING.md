@@ -1,16 +1,18 @@
 # 검증과 테스트
 
-2026-11-05 기준. 테스트는 저장소 루트에서 실행한다. 현재 소스의 기능 회귀, 과거 실험 재현, 실제 사용자 측정을 구분해 기록한다.
+2026-11-07 기준. 테스트는 저장소 루트에서 실행한다. 현재 소스의 기능 회귀, 과거 실험 재현, 실제 사용자 측정을 구분해 기록한다.
 
 ## 기본 실행
 
 ```powershell
-python -m pip install -r requirements-server.txt
+python -m pip install -r requirements-server.txt -r requirements-intake-test.txt
 python scripts/test_suites.py list
 python scripts/test_suites.py core
 ```
 
 `list`는 현재 파일명으로 테스트를 분류한다. 모듈 수와 통과 수는 실행 결과를 기준으로 읽는다. `core`는 Python 제품 검사와 Node 화면 검사를 함께 실행한다. Node는 `--node` 인자, `TEST_NODE`, PATH 순서로 선택한다.
+
+`requirements-intake-test.txt`는 별도 환자 입력 앱의 FastAPI 경로를 실제 시험 클라이언트로 검사하기 위한 의존성이다. `test_patient_workflow_dev1_*`는 이 앱의 새 화면, 음성 기록 범위, HTML·JavaScript, 공통 이송 연결과 새 합성 DB의 이송 흐름을 검증한다. 프로필 DB는 임시 경로로 지정하며 외부 의료·지도 API를 시험 중 호출하지 않는다.
 
 | 묶음 | 목적 | 필요한 자료 |
 |---|---|---|
