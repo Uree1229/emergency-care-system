@@ -30,7 +30,7 @@ CORE_PREFIXES = (
     'test_conversations', 'test_important_events', 'test_enroute_', 'test_data_provenance',
     'test_call_', 'test_backend_measurement', 'test_external_arrivals', 'test_accounting_reconciliation',
     'test_arrival_accounting', 'test_recovery_rehearsal', 'test_flow_', 'test_speech_eval',
-    'test_usability_eval', 'test_viewer_server', 'test_transport_review', 'test_transport_reassignment',
+    'test_usability_', 'test_viewer_server', 'test_transport_review', 'test_transport_reassignment',
     'test_treatment_', 'test_solver_improved', 'test_planning', 'test_datasets', 'test_public_data',
     'test_recommendation_contract', 'test_system_status', 'test_inquiry_workflow',
     'test_allocation_input_review', 'test_allocation_baseline', 'test_audio_noise_benchmark',

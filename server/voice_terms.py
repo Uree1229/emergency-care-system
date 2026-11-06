@@ -44,6 +44,12 @@ _NUM_DECIMAL = (_NUM_INTEGER + r'\s{0,3}점\s{0,3}[0-9영공일이삼사오육�
 _NUM = r'(?:' + _NUM_DECIMAL + r'|[-−]?[0-9]{1,4}(?:\.[0-9]{1,2})?|' + _NUM_INTEGER + r')'
 _SPACE = r'\s{0,8}'
 _BP_SEPARATOR = r'(?:/|에|대|의|하고|\s{1,8})'
+_BP_PAIR_SEPARATOR = r'(?:' + _BP_SEPARATOR + r'|[-–−])'
+_BP_DASHES = frozenset('-–−')
+# Only an explicit connector or whitespace joins adjacent symptom mentions.
+# A predicate, comma, contrast or another field ends a shared trailing state.
+_SYMPTOM_LIST_LINK = re.compile(r'(?:\s{1,8}|\s{0,8}(?:과|와|및|하고|도)\s{0,8})')
+_SYMPTOM_EXPLICIT_LINK = re.compile(r'\s{0,8}(?:과|와|및|하고|도)\s{0,8}')
 _EXPLICIT_MEASUREMENT_UNIT = (
     r'\s{0,3}(?:mmHg|mg(?:/dL)?|mmol(?:/L)?|밀리그램|퍼센트|%|도|℃|회|번|bpm)'
     r'(?=$|[\s.,，/]|으로|로|은|는|이|가|까지|입니다|이에요|이요|요|이고|이며|였다|나왔|측정)')
@@ -80,6 +86,12 @@ _NATIVE = {'한': 1, '하나': 1, '두': 2, '둘': 2, '세': 3, '셋': 3,
            '아홉': 9, '열': 10, '스물': 20, '스무': 20, '서른': 30, '마흔': 40,
            '쉰': 50, '예순': 60, '일흔': 70, '여든': 80, '아흔': 90}
 _OTHER_FIELD = re.compile(r'의식|호흡(?!\s{0,2}곤란)|혈압|맥박|심박|산소\s{0,2}포화도|체온|혈당|나이|성별|연령')
+
+
+def _symptom_uncertain(local):
+    return bool(_UNCERTAIN.search(local) or
+                (any(word in local for word in ('없', '부인')) and
+                 re.search(r'않|아니|아님|아닌|아닙|아닐|지는', local)))
 
 
 def _fail(message):
@@ -322,6 +334,42 @@ def _segments(clause):
     return out
 
 
+def _isolated_uncertain_symptoms(clause, mentions, context):
+    """Return mention indexes in a complete, unqualified symptom-list report.
+
+    A bare STT list can lose separate predicates. Share its uncertainty only
+    when an entire comma segment consists of known symptoms and a closed tail;
+    mixed narrative, vital signs and quoted/example text keep their old scope.
+    """
+    # Keep the original input context: _current may have removed an earlier
+    # history/quote segment before this helper receives the remaining clause.
+    if (re.search(r'["\x27“”‘’「」『』]|예시|예문|인용|라고|라는|라며|냐고', context)
+            or _HISTORY.search(context)):
+        return set()
+    uncertain = set()
+    for offset, segment in _segments(clause):
+        end = offset + len(segment)
+        members = [(index, start, stop) for index, (start, stop, _) in enumerate(mentions)
+                   if offset <= start < stop <= end]
+        if len({mentions[index][2] for index, _, _ in members}) < 2:
+            continue
+        # Canonical symptom names describe a list. Other catalog aliases can
+        # already assert a state ("토함", "부어 있음"); do not overwrite it.
+        if not all(re.fullmatch(_alias_pattern(mentions[index][2]), clause[start:stop], re.I)
+                   for index, start, stop in members):
+            continue
+        prefix = clause[offset:members[0][1]]
+        tail = clause[members[-1][2]:end]
+        if not re.fullmatch(r'\s{0,8}(?:증상(?:은|는)?\s{0,3}:?\s{0,8})?', prefix):
+            continue
+        if not re.fullmatch(r'\s{0,8}(?:의심|미확인|여부\s{0,3}미확인)\s{0,8}', tail):
+            continue
+        if all(_SYMPTOM_LIST_LINK.fullmatch(clause[left[2]:right[1]])
+               for left, right in zip(members, members[1:])):
+            uncertain.update(index for index, _, _ in members)
+    return uncertain
+
+
 def _current(clause):
     """과거력·가족 정보·질문 구간을 빼고 현재 관찰 구간만 남긴다. (남긴 문장, 뺀 이유 집합).
 
@@ -403,34 +451,48 @@ def extract(text, observed_at):
             if not any(item[0] < x[1] and x[0] < item[1] for x in selected):
                 selected.append(item)
         selected.sort()
+        isolated_uncertain = _isolated_uncertain_symptoms(clause, selected, text)
         for index, (start, end, symptom) in enumerate(selected):
             after = clause[end:selected[index + 1][0] if index + 1 < len(selected) else len(clause)]
             before = clause[0 if index == 0 else selected[index - 1][1]:start]
             boundary = _OTHER_FIELD.search(after)
+            scope_ended = bool(boundary)
             if boundary:
                 after = after[:boundary.start()]
             comma = re.search(r'[,，]', after)   # 뒤 쉼표 구간의 '의심·없음'은 이 증상을 꾸미지 않는다('흉통, ST 상승 의심')
             if comma:
                 after = after[:comma.start()]
+                scope_ended = True
             # Prefix qualifiers are used only before the first symptom; other
             # prefixes can belong to the previous symptom's negation.
             prefix = before.rsplit(',', 1)[-1] if index == 0 else ''
             if _OTHER_FIELD.search(prefix):
                 prefix = ''
             local = prefix + clause[start:end] + after
-            if re.fullmatch(r'\s{0,8}(?:과|와|및|하고|도)\s{0,8}', after):
+            if not scope_ended and _SYMPTOM_LIST_LINK.fullmatch(after):
                 # A coordinated list can share a trailing denial/uncertainty.
+                bare_link = not _SYMPTOM_EXPLICIT_LINK.fullmatch(after)
                 for later in range(index + 1, len(selected)):
                     next_end = selected[later][1]
                     following = clause[next_end:selected[later + 1][0] if later + 1 < len(selected) else len(clause)]
                     boundary = _OTHER_FIELD.search(following)
+                    following_ended = bool(boundary)
                     if boundary:
                         following = following[:boundary.start()]
-                    if not re.fullmatch(r'\s{0,8}(?:과|와|및|하고|도)\s{0,8}', following):
-                        after = following
-                        local += following
+                    comma = re.search(r'[,，]', following)
+                    if comma:
+                        following = following[:comma.start()]
+                        following_ended = True
+                    if following_ended or not _SYMPTOM_LIST_LINK.fullmatch(following):
+                        # Bare lists gain only a clear shared denial. An ASR
+                        # string can lose separate predicates, so do not spread
+                        # an ambiguous trailing uncertainty over that list.
+                        if not bare_link or (_NEGATIVE.search(following) and not _symptom_uncertain(following)):
+                            after = following
+                            local += following
                         break
-            if _UNCERTAIN.search(local) or (any(x in local for x in ('없', '부인')) and re.search(r'않|아니|지는', local)):
+                    bare_link = bare_link or not _SYMPTOM_EXPLICIT_LINK.fullmatch(following)
+            if index in isolated_uncertain or _symptom_uncertain(local):
                 key = 'uncertain_symptoms'
                 warn('미확인·불확실한 증상은 있음으로 입력하지 않았습니다. 확인해 주세요.')
             elif _NEGATIVE.search(after) or (index == 0 and re.search(r'없(?:는|던)\s{0,3}$', before)):
@@ -496,7 +558,7 @@ def extract(text, observed_at):
             if boundary:
                 local_tail = local_tail[:boundary.start()]
             if (any(scope(*span)) or re.match(r'[0-9]|\.[0-9]', tail) or
-                    re.match(r'\s{0,3}(?:점|[~∼-]|에서|대|정도|쯤|이상|이하|미만|인지|또는|혹은|아니면|이나|이거나)', tail) or
+                    re.match(r'\s{0,3}(?:점|[~∼–−-]|에서|대|정도|쯤|이상|이하|미만|인지|또는|혹은|아니면|이나|이거나)', tail) or
                     (_CHANGE.search(local_tail) and _UNCERTAIN.search(local_tail))):
                 warn(f'{_LABELS[key]}의 수치·단위가 모호하여 입력하지 않았습니다. 확인해 주세요.')
                 return
@@ -526,13 +588,39 @@ def extract(text, observed_at):
                          '(?P<new_d>' + _NUM + ')' + r'(?:\s{0,2}mmHg)?' + change_suffix)
         bp_transitions = list(re.finditer(bp_transition, clause, re.IGNORECASE))
         for match in bp_transitions:
+            if re.search(r'(?:수\s{0,2}축\s{0,2}기|이\s{0,2}완\s{0,2}기)\s{0,3}$', clause[:match.start()]):
+                continue
             numeric('systolic_bp', match.group('new_s'), match.group(), match.span('new_s'), clause[match.end('new_d'):])
             numeric('diastolic_bp', match.group('new_d'), match.group(), match.span('new_d'), clause[match.end('new_d'):])
         bp_pattern = (_bp_label() + _SPACE + _BINDER + '(?P<systolic>' + _NUM + ')' + _SPACE
-                      + '(?P<separator>' + _BP_SEPARATOR + ')' + _SPACE + '(?P<diastolic>' + _NUM + ')')
+                      + '(?P<separator>' + _BP_PAIR_SEPARATOR + ')' + _SPACE + '(?P<diastolic>' + _NUM + ')')
         for match in re.finditer(bp_pattern, clause, re.IGNORECASE):
             if any(old.start() <= match.start() < old.end() for old in bp_transitions):
                 continue
+            # A label qualified as systolic/diastolic is one measurement,
+            # including when ASR inserts spaces before the generic BP label.
+            if re.search(r'(?:수\s{0,2}축\s{0,2}기|이\s{0,2}완\s{0,2}기)\s{0,3}$', clause[:match.start()]):
+                continue
+            if match.group('separator') in _BP_DASHES:
+                # A dash is accepted only between unsigned integer pressure
+                # tokens. Do not reinterpret a minus sign or a partial range.
+                tail = clause[match.end():]
+                dash_tail = re.sub(r'^\s{0,3}mmHg', '', tail, count=1, flags=re.IGNORECASE)
+                if (not all(re.fullmatch(r'[0-9]{1,3}', match.group(name))
+                            for name in ('systolic', 'diastolic'))
+                        or re.match(r'\s{0,3}[-–−~∼/0-9A-Za-z]', dash_tail)
+                        or re.match(r'\s{0,3}(?:사이|범위|에서|번|까지\s{0,3}범위|(?:과|와|및|하고)\s{0,3}[0-9])', dash_tail)):
+                    warn('혈압의 두 수치와 범위 표현을 구분하지 못해 입력하지 않았습니다. 확인해 주세요.')
+                    continue
+                try:
+                    normalize_fields({key: _number(match.group(name)) for key, name in
+                                      (('systolic_bp', 'systolic'), ('diastolic_bp', 'diastolic'))})
+                except Exception as error:
+                    from .service import ServiceError
+                    if not isinstance(error, ServiceError):
+                        raise
+                    warn('혈압 두 수치의 형식·범위를 확인해 주세요. 한쪽 값만 입력하지 않았습니다.')
+                    continue
             # "혈압이 한 번 떨어졌어" is a subject particle plus a count,
             # not 2/1. Newly supported loose pairs require unambiguous tokens.
             if (match.group('separator') not in ('/', '에', '대')

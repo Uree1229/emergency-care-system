@@ -6,6 +6,8 @@
 
 dev1, 최신 원격 `main`에서 별도 브랜치를 만들고 `patient-ui/app.js`의 수동 등록 복구를 첫 PR로 진행해 줘. 서버 저장은 끝났는데 응답이 끊기면 같은 환자를 다시 만들지 않고 기존 기록으로 이어가게 해줘.
 
+11월 6일 통합 소스에서도 D01은 `/patient/` → `patient-ui/index.html` → `patient-ui/app.js`의 직접 등록(`POST /api/patients`)에서 재현한다. 기본 `/paramedic/`는 단계형 구급대 화면이다. 구급대 구버전 상세 입력을 확인할 때는 `/paramedic/?view=full` 또는 `/paramedic/legacy.html`을 사용한다. [현재 통합 상태](../../../PROJECT_STATUS.md)
+
 **첫 PR 완료 기준**
 
 - 저장 직후 응답을 끊고 재시도해도 환자·생성 이벤트·대화가 각각 1건만 남아야 해. 자동 병원 문의는 0건이어야 해.

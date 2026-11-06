@@ -100,8 +100,8 @@ RNNoise는 원본을 보존하는 선택형 파일 A/B 비교 도구이며 **현
 
 ## 근거 위치
 
-Git에서 확인 가능한 자료: [음성 API](VOICE_INPUT_API.md), [음성 확인 설계](VOICE_CRITICAL_REVIEW_20261030.md),
-[녹음·명령 시험](VOICE_COMMAND_AUDIO_20261031.md), [RNNoise 비교](VOICE_RNNOISE_COMPARISON_20261031.md),
+Git에서 확인 가능한 자료: [음성 API](VOICE_INPUT_API.md), [음성 검토·녹음·명령 안내](VOICE.md),
+[RNNoise 비교](VOICE_RNNOISE_COMPARISON_20261031.md),
 [후속 후보 문맥 검토](VOICE_RECOGNITION_CONTEXT_20261103.md).
 
 로컬 원본 작업 폴더의 `docs/VOICE_PARSER_CORRECTION_20261102.md`, `VOICE_UNCERTAINTY_FOLLOWUP_20261102.md`,

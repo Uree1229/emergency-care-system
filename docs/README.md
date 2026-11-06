@@ -1,6 +1,6 @@
 # 문서 안내
 
-2026-11-05 정리. 현재 개발·운영 안내는 아래 주제별 문서를 사용한다.
+2026-11-06 통합 갱신. 현재 개발·운영 안내는 아래 주제별 문서를 사용한다.
 
 | 필요한 내용 | 문서 |
 |---|---|
@@ -11,7 +11,9 @@
 | 문의 정책·배정 규칙·실험 근거 | [알고리즘](ALGORITHMS.md) |
 | 자동 검사·실제 기기·사람 평가 | [검증](TESTING.md) |
 | 등록부터 도착·연동 오류 복구 | [시연](DEMO.md) |
-| 팀원 화면 작업 시작 (dev1·dev2) | [팀 핸드오프](team-handoff/20261102/README.md), [모바일 앱 전환 M01~M09](team-handoff/20261102/dev1/MOBILE_APP_IMPROVEMENTS_20261103.md) |
+| 팀원 화면 작업 시작 (dev1·dev2) | [최신 팀 지시](team-handoff/20261105/README.md), [초기 팀 핸드오프](team-handoff/20261102/README.md), [모바일 앱 전환 M01~M09](team-handoff/20261102/dev1/MOBILE_APP_IMPROVEMENTS_20261103.md) |
+
+[전체 흐름 콘솔](FLOW_CONSOLE.md)과 [음성 적용 기능](VOICE_CURRENT_FEATURES_DEV2_20261103.md), [개선·검증 근거](VOICE_IMPROVEMENT_EFFORTS_DEV2_20261103.md)도 함께 확인한다.
 
 ## 세부 계약
 
@@ -36,3 +38,7 @@
 중복된 날짜별 진행·인계 문서는 주제별 안내로 합쳤다. 정리 전 원본·파일 해시·이동 대응표는 로컬 `.codex-build/repo-cleanup-20261105/`에 보관한다.
 
 다음 원본은 정리에서 제외해 그대로 둔다. 최종 발표가 근거로 인용하는 [병원 통화 기록·업무 계측](HOSPITAL_OPERATIONS_20261030.md)과 [입력·검토시간 평가](USABILITY_EVALUATION_20261030.md), 삭제한 브랜치의 복원 SHA를 담은 [10-31 인계](HANDOFF_20261031.md), 초기 문서 생성기·USB 전송 도구·초기 최적화 실험을 모은 [`archive/`](../archive/README.md)다. 팀원 화면 폴더(`patient-ui/`, `hospital-ui/`, `emergency-app/`)의 README는 각 담당자가 관리하므로 고치지 않았고, 그 README가 가리키는 [메인 화면 연결](MAIN_UI_INTEGRATION_20261030.md), [팀원 테스트 가이드](TEAM_TEST_GUIDE.md), [환자 앱 연결](TEAM_PATIENT_CONNECTION_20261013.md), [`prototype/`](../prototype/)도 함께 둔다.
+
+## 발표 근거
+
+[배정 비교의 원본·집계](ALLOCATION_PRESENTATION_EVIDENCE_20261105.md), [문의·검토 업무량 비교](RESOURCE_COST_COMPARISON_20261105.html), [원본 수치 검증기](evidence/20261105/verify.py)를 함께 확인한다. [11월 5일 고정 발표 묶음](COMMON_DEMO_RELEASE_20261105.md)은 당시 소스의 로컬 산출물 기록이다.

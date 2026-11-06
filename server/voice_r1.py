@@ -398,6 +398,12 @@ def extract(text, observed_at, base=None, context=None):
     from . import voice_terms as vt       # voice_terms가 이 모듈을 불러오므로 함수 안에서만 쓴다
     base, context = base or {}, context or {}
     warnings, values, complaints, ages = [], {}, [], []
+    # The basic parser resolves shared trailing denial in symptom lists. Use
+    # that explicit result only for exact aliases, preserving independent R1
+    # evidence (e.g. denied chest pain plus suspected myocardial infarction).
+    denied = set(base.get('denied_symptoms', ()))
+    denied_aliases = {_compact(alias) for item in vt._terms()['symptoms']
+                     if item['canonical'] in denied for alias in item['synonyms']}
 
     def warn(message):
         if message not in warnings:
@@ -432,6 +438,8 @@ def extract(text, observed_at, base=None, context=None):
                 put('breathing', 'unknown', order + (0,), quote)
             hits = _term_hits(compact)
             for i, (start, end, expr, entry) in enumerate(hits):
+                if 'negated' in entry and _compact(expr) in denied_aliases:
+                    continue
                 stop = min(hits[i + 1][0] if i + 1 < len(hits) else len(compact), end + NEGATION_WINDOW)
                 negated = 'negated' in entry and _negated(compact[end:stop])
                 cues = {m.group() for m in _UNCERTAIN_COMPACT.finditer(compact)

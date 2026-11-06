@@ -804,6 +804,16 @@ def _answer_context(question, text):
                 return '나이 ' + raw + ('' if re.search(r'(?:세|살)$', raw) else '세')
             return None
         if qid == 'blood_pressure':
+            dashed = re.fullmatch(r'([0-9]{1,3})\s{0,8}[-–−]\s{0,8}([0-9]{1,3})\s{0,3}(?:mmHg)?', raw, re.I)
+            if dashed:
+                try:
+                    voice_terms.normalize_fields({'systolic_bp': int(dashed.group(1)),
+                                                  'diastolic_bp': int(dashed.group(2))})
+                except service.ServiceError:
+                    return None
+                # The offered BP question supplies the label, never a value.
+                # answer_followup still stores the untouched original text.
+                return '혈압 ' + raw
             pair = re.fullmatch('(' + numeric + r')\s*(?:에|/|대|의|하고|\s+)\s*('
                                 + numeric + r')\s*(?:mmHg)?', raw, re.I)
             if pair:

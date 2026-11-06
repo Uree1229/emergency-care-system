@@ -148,59 +148,140 @@ def stats(values, denominator):
         minimum=min(values) if values else None)
 
 
-def evaluate(records):
+PROFILE_FIELDS = ('source', 'participant_role', 'manual_interface_version', 'voice_interface_version',
+                  'manual_engine_version', 'voice_engine_version')
+
+
+def _profile(methods):
+    first = next(iter(methods.values()))
+    result = dict(source=first['source'], participant_role=first['participant_role'])
+    for method in ('manual', 'voice'):
+        row = methods.get(method)
+        result[method+'_interface_version'] = None if row is None else row['interface_version']
+        result[method+'_engine_version'] = None if row is None else row['engine_version']
+    result['interface_version'] = (result['manual_interface_version']
+        if result['manual_interface_version'] == result['voice_interface_version'] else None)
+    return result
+
+
+def _profile_key(profile):
+    return tuple(profile[field] for field in PROFILE_FIELDS)
+
+
+def evaluate(records, plan=None):
     records = validate(records)
+    assessment = None
+    if plan is not None:
+        from .order_plan import assess_records
+        assessment = assess_records(records, plan)
+    noncompliant = set() if assessment is None else set(assessment['noncompliant_record_ids'])
     result = dict(schema_version=SCHEMA_VERSION, measurement_status='measured' if any(r['source'] == 'human' for r in records) else 'not_measured',
         actual_attempts=sum(r['source'] == 'human' for r in records),
         actual_participants=len({r['participant_id'] for r in records if r['source'] == 'human'}),
         synthetic_attempts=sum(r['source'] == 'synthetic' for r in records),
         groups=[], pairs=[], incomplete_pairs=[], warnings=[], records=records,
+        profile_fields=list(PROFILE_FIELDS), groups_are_version_stratified=True,
+        order_summary=[], order_warnings=[], plan_assessment=assessment,
         difference='voice - manual',
         limitations=['Assigned roles are not professional credentials.',
             'Only completed pairs contribute to completion-time differences; all failures stay in attempt counts.',
             'Inquiry counts do not establish hospital workload reduction; observe hospital_review_ms.',
             'Repeated tasks from one participant are not independent participants.',
+            'Source, role, interface versions and manual/voice engine profiles are not pooled.',
+            'Interface-mismatched or plan-deviating pairs retain source records but have no paired differences.',
+            'Order strata are descriptive; no p-values, causal or overall treatment-effect estimates are produced.',
             'Descriptive differences do not establish population effects or clinical effectiveness.'])
-    for source in ('human', 'synthetic'):
-        for role in ('paramedic', 'hospital'):
-            for method in ('manual', 'voice'):
-                group = [r for r in records if (r['source'],r['participant_role'],r['method']) == (source,role,method)]
-                completed = [r for r in group if r['status'] == 'completed']
-                result['groups'].append(dict(source=source, participant_role=role, method=method,
-                    attempts=len(group), completed=len(completed), failed=sum(r['status']=='failed' for r in group),
-                    abandoned=sum(r['status']=='abandoned' for r in group),
-                    completion_rate=len(completed)/len(group) if group else None,
-                    attempt_metrics={key: stats([r[key] for r in group if r[key] is not None], len(group)) for key in METRICS},
-                    completed_metrics={key: stats([r[key] for r in completed if r[key] is not None], len(completed)) for key in METRICS}))
     indexed = defaultdict(dict)
     for row in records:
         indexed[tuple(row[key] for key in PROTOCOL['pair_key'])][row['method']] = row
+    profiles, record_profiles = {}, {}
     for identity, methods in sorted(indexed.items()):
         info = dict(zip(PROTOCOL['pair_key'], identity))
+        profile = _profile(methods)
+        key = _profile_key(profile)
+        profiles[key] = profile
+        for row in methods.values():
+            record_profiles[row['record_id']] = key
         if len(methods) != 2:
-            result['incomplete_pairs'].append(dict(**info, available=list(methods), missing=[m for m in ('manual','voice') if m not in methods]))
+            result['incomplete_pairs'].append(dict(**info, **{k:v for k,v in profile.items() if k not in info},
+                available=list(methods), missing=[m for m in ('manual','voice') if m not in methods]))
             continue
         manual, voice = methods['manual'], methods['voice']
         if manual['order'] == voice['order']:
             raise ValueError(f'{identity}: paired attempts must have distinct order')
         complete = manual['status'] == voice['status'] == 'completed'
-        result['pairs'].append(dict(**info, completed_pair=complete,
+        exclusions = []
+        if not complete:
+            exclusions.append('outcome_not_completed')
+        if manual['interface_version'] != voice['interface_version']:
+            exclusions.append('interface_version_mismatch')
+        if manual['record_id'] in noncompliant or voice['record_id'] in noncompliant:
+            exclusions.append('plan_deviation')
+        comparable = not exclusions
+        result['pairs'].append(dict(**info, **{k:v for k,v in profile.items() if k not in info},
+            completed_pair=complete and comparable, outcome_completed_pair=complete,
+            comparable_pair=comparable, exclusion_reasons=exclusions,
             manual_status=manual['status'], voice_status=voice['status'],
             manual_record_id=manual['record_id'], voice_record_id=voice['record_id'],
             voice_first=voice['order'] < manual['order'],
-            deltas={key: voice[key]-manual[key] if complete and voice[key] is not None and manual[key] is not None else None for key in METRICS}))
+            deltas={key: voice[key]-manual[key] if comparable and voice[key] is not None and manual[key] is not None else None for key in METRICS}))
+    # Keep empty role/source rows compatible with the original empty report,
+    # while every observed profile has its own method and pair summaries.
+    for source in ('human', 'synthetic'):
+        for role in ('paramedic', 'hospital'):
+            if not any(key[:2] == (source, role) for key in profiles):
+                profile = {field: None for field in PROFILE_FIELDS}
+                profile.update(source=source, participant_role=role, interface_version=None)
+                profiles[_profile_key(profile)] = profile
+    ordered_profiles = sorted(profiles.values(), key=lambda p: (
+        ('human', 'synthetic').index(p['source']), ('paramedic', 'hospital').index(p['participant_role']),
+        json.dumps(_profile_key(p), ensure_ascii=False)))
+    for profile in ordered_profiles:
+        key = _profile_key(profile)
+        for method in ('manual', 'voice'):
+            group = [r for r in records if record_profiles[r['record_id']] == key and r['method'] == method]
+            completed = [r for r in group if r['status'] == 'completed']
+            result['groups'].append(dict(**profile, method=method,
+                attempts=len(group), completed=len(completed), failed=sum(r['status']=='failed' for r in group),
+                abandoned=sum(r['status']=='abandoned' for r in group),
+                completion_rate=len(completed)/len(group) if group else None,
+                attempt_metrics={metric: stats([r[metric] for r in group if r[metric] is not None], len(group)) for metric in METRICS},
+                completed_metrics={metric: stats([r[metric] for r in completed if r[metric] is not None], len(completed)) for metric in METRICS}))
     result['paired_summary'] = []
-    for source in ('human','synthetic'):
-        for role in ('paramedic','hospital'):
-            group = [p for p in result['pairs'] if p['source']==source and p['participant_role']==role]
-            complete = [p for p in group if p['completed_pair']]
-            result['paired_summary'].append(dict(source=source, participant_role=role, pairs=len(group),
-                completed_pairs=len(complete), incomplete_outcome_pairs=len(group)-len(complete),
-                participants=len({p['participant_id'] for p in group}),
-                voice_first=sum(p['voice_first'] for p in group), manual_first=sum(not p['voice_first'] for p in group),
-                deltas={key: stats([p['deltas'][key] for p in complete if p['deltas'][key] is not None], len(complete)) for key in METRICS}))
+    for profile in ordered_profiles:
+        group = [pair for pair in result['pairs'] if _profile_key(pair) == _profile_key(profile)]
+        complete = [pair for pair in group if pair['completed_pair']]
+        manual_first = sum(not pair['voice_first'] for pair in group)
+        voice_first = len(group) - manual_first
+        result['paired_summary'].append(dict(**profile, pairs=len(group), completed_pairs=len(complete),
+            outcome_completed_pairs=sum(pair['outcome_completed_pair'] for pair in group),
+            incomplete_outcome_pairs=sum(not pair['outcome_completed_pair'] for pair in group),
+            excluded_completed_pairs=sum(pair['outcome_completed_pair'] and not pair['comparable_pair'] for pair in group),
+            participants=len({pair['participant_id'] for pair in group}),
+            voice_first=voice_first, manual_first=manual_first,
+            deltas={metric: stats([pair['deltas'][metric] for pair in complete if pair['deltas'][metric] is not None], len(complete)) for metric in METRICS}))
+        for first_method in ('manual', 'voice'):
+            ordered = [pair for pair in group if pair['voice_first'] == (first_method == 'voice')]
+            eligible = [pair for pair in ordered if pair['completed_pair']]
+            result['order_summary'].append(dict(**profile, first_method=first_method, pairs=len(ordered),
+                completed_pairs=len(eligible), participants=len({pair['participant_id'] for pair in ordered}),
+                failed_pairs=sum('failed' in (pair['manual_status'],pair['voice_status']) for pair in ordered),
+                abandoned_pairs=sum('abandoned' in (pair['manual_status'],pair['voice_status']) for pair in ordered),
+                deltas={metric: stats([pair['deltas'][metric] for pair in eligible if pair['deltas'][metric] is not None], len(eligible)) for metric in METRICS}))
+        if abs(manual_first-voice_first) > 1:
+            result['order_warnings'].append(dict(code='ORDER_IMBALANCE', **profile,
+                manual_first=manual_first, voice_first=voice_first, absolute_difference=abs(manual_first-voice_first)))
+        if group and not (manual_first and voice_first):
+            result['order_warnings'].append(dict(code='SINGLE_ORDER_ONLY', **profile,
+                manual_first=manual_first, voice_first=voice_first))
     if result['incomplete_pairs']:
         result['warnings'].append('Unpaired attempts are preserved and excluded from paired differences.')
+    if any('interface_version_mismatch' in pair['exclusion_reasons'] for pair in result['pairs']):
+        result['warnings'].append('Interface-mismatched pairs are preserved but excluded from paired differences.')
+    if result['order_warnings']:
+        result['warnings'].append('Order imbalance or a single observed order is present; inspect order_warnings and order_summary by version profile.')
+    if assessment is not None and not assessment['fully_compliant']:
+        result['warnings'].append('Observed records do not fully match the plan; inspect missing slots, unexpected records and order/version deviations.')
     return result
 
 
@@ -230,18 +311,35 @@ def markdown(report):
     lines = ['# 수동·음성 사용성 평가', '',
         f"실제 측정: {'있음' if report['actual_attempts'] else '미측정'} · 실제 참여자 {report['actual_participants']}명 · 실제 과업 {report['actual_attempts']}건 · 합성 과업 {report['synthetic_attempts']}건", '',
         '실패·중단·짝누락은 원자료에 보존한다. 미측정값은 0으로 대체하지 않는다.', '',
-        '| 출처 | 역할 | 방식 | 전체 | 완료 | 실패 | 중단 | 완료시간 평균(ms) |',
-        '|---|---|---|---:|---:|---:|---:|---:|']
+        '화면 버전과 수동·음성 엔진 프로필을 나누어 보고하며 서로 다른 프로필을 합산하지 않는다.', '',
+        '| 출처 | 역할 | 화면(수동 / 음성) | 엔진(수동 / 음성) | 방식 | 전체 | 완료 | 실패 | 중단 | 완료시간 평균(ms) |',
+        '|---|---|---|---|---|---:|---:|---:|---:|---:|']
     def fmt(value):
         return '미측정' if value is None else f'{value:.2f}'
+    def cell(value):
+        return '미기록' if value is None else str(value).replace('|', '\\|').replace('\n', '<br>').replace('\r', '')
+    def versions(group, suffix):
+        return cell(group['manual_'+suffix]) + ' / ' + cell(group['voice_'+suffix])
     for g in report['groups']:
-        lines.append(f"| {g['source']} | {g['participant_role']} | {g['method']} | {g['attempts']} | {g['completed']} | {g['failed']} | {g['abandoned']} | {fmt(g['completed_metrics']['elapsed_ms']['mean'])} |")
-    lines += ['', '차이는 음성 − 수동이다. 같은 참여자·역할·과제·반복의 두 방식이 모두 완료된 경우만 비교한다.', '',
-              '| 출처 | 역할 | 완성된 짝 | 참여자 | 시간차 평균(ms) | 오류차 | 수정차 | 터치차 | 병원 검토차(ms) |',
-              '|---|---|---:|---:|---:|---:|---:|---:|---:|']
+        lines.append(f"| {g['source']} | {g['participant_role']} | {versions(g, 'interface_version')} | {versions(g, 'engine_version')} | {g['method']} | {g['attempts']} | {g['completed']} | {g['failed']} | {g['abandoned']} | {fmt(g['completed_metrics']['elapsed_ms']['mean'])} |")
+    lines += ['', '차이는 음성 − 수동이다. 같은 참여자·역할·과제·반복의 두 방식이 모두 완료되고 화면 버전과 계획 조건이 맞는 경우만 비교한다.', '',
+              '| 출처 | 역할 | 화면(수동 / 음성) | 엔진(수동 / 음성) | 비교 가능한 완료 짝 | 제외된 완료 짝 | 참여자 | 시간차 평균(ms) | 오류차 | 수정차 | 터치차 | 병원 검토차(ms) |',
+              '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|']
     for g in report['paired_summary']:
         values = [fmt(g['deltas'][key]['mean']) for key in ('elapsed_ms','error_count','correction_count','touch_count','hospital_review_ms')]
-        lines.append(f"| {g['source']} | {g['participant_role']} | {g['completed_pairs']} | {g['participants']} | " + ' | '.join(values) + ' |')
+        lines.append(f"| {g['source']} | {g['participant_role']} | {versions(g, 'interface_version')} | {versions(g, 'engine_version')} | {g['completed_pairs']} | {g['excluded_completed_pairs']} | {g['participants']} | " + ' | '.join(values) + ' |')
+    lines += ['', '## 순서별 기술통계', '',
+        '| 출처 | 역할 | 화면(수동 / 음성) | 엔진(수동 / 음성) | 먼저 수행 | 전체 짝 | 비교 가능한 완료 짝 | 시간차 평균(ms) |',
+        '|---|---|---|---|---|---:|---:|---:|']
+    for g in report['order_summary']:
+        lines.append(f"| {g['source']} | {g['participant_role']} | {versions(g, 'interface_version')} | {versions(g, 'engine_version')} | {g['first_method']} | {g['pairs']} | {g['completed_pairs']} | {fmt(g['deltas']['elapsed_ms']['mean'])} |")
+    lines += ['', f"순서 점검 {len(report['order_warnings'])}건. 한 순서만 관찰되었거나 프로필 내 두 순서의 수가 1보다 크게 차이나면 표시한다."]
+    if report['plan_assessment'] is not None:
+        plan = report['plan_assessment']
+        lines += ['', '## 계획 대비 점검', '',
+            f"계획 SHA `{plan['plan_sha256']}` · 예정 {plan['planned_method_attempts']}시도 · 관찰 {plan['observed_attempts']}시도", '',
+            f"누락 {len(plan['missing_slots'])} · 계획 밖 기록 {len(plan['unexpected_records'])} · 순서/버전 이탈 {len(plan['deviations'])}.",
+            '계획 자료는 측정값이 아니다. 누락을 성공·실패·0시간으로 만들어 채우지 않는다.']
     lines += ['', f"짝누락 {len(report['incomplete_pairs'])}건. 각 지표의 유효 표본·결측·p95·개별 최대 악화는 report.json에 보존한다.", '',
               '병원 부담 감소는 문의 수만으로 판정하지 않는다. 실제 검토시간이 비어 있으면 미측정이다.',
               '학생 역할 시험은 현직 구급대원·의료진 검증으로 표현하지 않는다. 합성 자료는 실제 사용성과 합산하지 않는다.',
@@ -249,17 +347,25 @@ def markdown(report):
     return '\n'.join(lines)
 
 
-def run(input_path, output):
+def run(input_path, output, plan_path=None):
     input_path = Path(input_path)
-    files = [Path(__file__), Path(__file__).with_name('__init__.py'), Path(__file__).with_name('__main__.py')]
+    files = [Path(__file__), Path(__file__).with_name('__init__.py'), Path(__file__).with_name('__main__.py'), Path(__file__).with_name('order_plan.py')]
     source_bytes = {path.name: path.read_bytes() for path in files}
     before = input_path.read_bytes()
     records = load_records(input_path)
-    report = evaluate(records)
+    plan_bytes, plan = None, None
+    if plan_path is not None:
+        from .order_plan import load_plan
+        plan_path = Path(plan_path)
+        plan_bytes = plan_path.read_bytes()
+        plan = load_plan(plan_path)
+    report = evaluate(records, plan=plan)
     if input_path.read_bytes() != before:
         raise ValueError('input changed during evaluation')
     if any(path.read_bytes() != source_bytes[path.name] for path in files):
         raise ValueError('evaluation source changed during evaluation')
+    if plan_bytes is not None and plan_path.read_bytes() != plan_bytes:
+        raise ValueError('plan changed during evaluation')
     output = _new_output(output)
     (output/('input'+input_path.suffix.lower())).write_bytes(before)
     source_hashes = {}
@@ -271,6 +377,9 @@ def run(input_path, output):
         source_hashes[path.name] = hashlib.sha256(content).hexdigest()
     report['input_sha256'] = hashlib.sha256(before).hexdigest()
     report['source_hashes'] = source_hashes
+    if plan_bytes is not None:
+        (output/'plan.json').write_bytes(plan_bytes)
+        report['plan_file_sha256'] = hashlib.sha256(plan_bytes).hexdigest()
     _write_json(output/'report.json', report)
     _write_json(output/'protocol.json', PROTOCOL)
     (output/'report.md').write_text(markdown(report), encoding='utf-8')
@@ -285,12 +394,32 @@ def main(argv=None):
     evaluation = sub.add_parser('evaluate')
     evaluation.add_argument('--input', required=True)
     evaluation.add_argument('--output', required=True)
+    evaluation.add_argument('--plan')
+    planning = sub.add_parser('plan')
+    planning.add_argument('--participants', nargs='+', required=True)
+    planning.add_argument('--tasks', nargs='+', required=True)
+    planning.add_argument('--role', choices=('paramedic', 'hospital'), required=True)
+    planning.add_argument('--source', choices=('human', 'synthetic'), default='synthetic')
+    planning.add_argument('--seed', type=int, required=True)
+    planning.add_argument('--attempt', type=int, default=1)
+    planning.add_argument('--interface-version', required=True)
+    planning.add_argument('--manual-engine-version', default='none')
+    planning.add_argument('--voice-engine-version', required=True)
+    planning.add_argument('--output', required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == 'prepare':
             print(prepare(args.output))
+        elif args.command == 'plan':
+            from .order_plan import create
+            plan = create(args.output, participants=args.participants, tasks=args.tasks,
+                role=args.role, source=args.source, seed=args.seed, attempt=args.attempt,
+                interface_version=args.interface_version, manual_engine_version=args.manual_engine_version,
+                voice_engine_version=args.voice_engine_version)
+            print(json.dumps({key: plan[key] for key in ('revision', 'plan_sha256', 'schedule_sha256',
+                'planned_participants', 'planned_pairs', 'actual_participants', 'actual_attempts')}, ensure_ascii=False))
         else:
-            report = run(args.input, args.output)
+            report = run(args.input, args.output, plan_path=args.plan)
             print(json.dumps({key: report[key] for key in ('measurement_status','actual_participants','actual_attempts','synthetic_attempts')}, ensure_ascii=False))
     except (ValueError, OSError) as error:
         parser.exit(2, f'{type(error).__name__}: {error}\n')
