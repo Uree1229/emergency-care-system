@@ -29,7 +29,9 @@ python -m venv .venv
 | 문의·배정 알고리즘과 연구 | [ALGORITHMS](docs/ALGORITHMS.md) |
 | 자동 검사와 사람·기기 검증 | [TESTING](docs/TESTING.md) |
 | 같은 환자의 전체 시연 | [DEMO](docs/DEMO.md) |
-| 팀원 화면 작업 시작 (dev1·dev2) | [팀 핸드오프](docs/team-handoff/20261102/README.md) |
+| 팀원 화면 작업 시작 (dev1·dev2) | [11월 5일 최신 지시](docs/team-handoff/20261105/README.md), [초기 역할·실행 계약](docs/team-handoff/20261102/README.md) |
+| 전체 흐름 관제 | [흐름 콘솔](docs/FLOW_CONSOLE.md) |
+| 음성 개선 인계와 근거 | [적용 기능](docs/VOICE_CURRENT_FEATURES_DEV2_20261103.md), [개선·검증 기록](docs/VOICE_IMPROVEMENT_EFFORTS_DEV2_20261103.md) |
 | 요청·응답 계약과 세부 자료 | [문서 안내](docs/README.md) |
 
 ## 구성
