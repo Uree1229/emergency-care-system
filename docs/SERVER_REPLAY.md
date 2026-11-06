@@ -15,7 +15,7 @@ python -m simulation.viewer_server --reuse-data --no-browser --port 18005
 
 ## 어떤 사례를 보여주는가
 
-[V3 검증 보고서](../simulation_results/server_inquiry_v3_validation_20261012.json)의 각 유형에서 가장 낮은 검증 seed7101을 선택했다. 결과가 좋은 사례를 골라 넣은 것이 아니며, 다음 8사례×3정책=24분기를 기존 지도 사례 뒤에 추가한다.
+V3 검증 보고서(`simulation_results/server_inquiry_v3_validation_20261012.json`)의 각 유형에서 가장 낮은 검증 seed7101을 선택했다. 결과가 좋은 사례를 골라 넣은 것이 아니며, 다음 8사례×3정책=24분기를 기존 지도 사례 뒤에 추가한다.
 
 | 조건 ID | 관찰할 점 |
 |---|---|

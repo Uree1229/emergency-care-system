@@ -52,7 +52,7 @@ $demoIp = '192.168.0.10'
 
 ## 검증된 소스 묶음
 
-`TEAM_START.ps1`과 `TEAM_VERIFY.ps1`은 `release-manifest.json`이 있는 릴리즈의 `source/`에서 사용한다. 개발 저장소에서 바로 실행할 명령은 위 Python 명령이다. 소스 묶음은 새 폴더에 만들고 검증한다.
+`TEAM_START.ps1`과 `TEAM_VERIFY.ps1`은 `release-manifest.json`이 있는 릴리즈의 `source/`에서 사용한다. 개발 저장소에서 바로 실행할 명령은 위 Python 명령이다. 두 스크립트는 `-PythonPath`를 주지 않으면 `py -3.12`, 그다음 PATH의 `python`을 쓴다. 릴리즈의 `.solver_deps`는 CPython 3.12용(cp312) 패키지라 full 모드는 Python 3.12가 필요하다. 3.12보다 새 버전은 경고를 내고 진행하며, 3.12보다 오래된 버전은 거부한다. 소스 묶음은 새 폴더에 만들고 검증한다.
 
 ```powershell
 .\.venv\Scripts\python.exe -B -m server.team_release_20261030 package --output outputs/team-release-new

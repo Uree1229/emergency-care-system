@@ -278,6 +278,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 | `NOT_ACCEPTED` | 409 | 수용 응답이 없는 병원으로 확정·변경 시도 |
 | `ACCEPTANCE_EXPIRED` | 409 | 수용 응답 만료. 다시 문의 |
 | `STALE_ACCEPTANCE` | 409 | 환자 정보가 바뀌어 재확인 필요 |
+| `STALE_PATIENT_INFORMATION` | 409 | 이전 환자정보로 보낸 문의에 응답 시도. 최신 정보로 다시 문의 |
 | `ALREADY_SENT` | 409 | 문의를 보낸 뒤 환자 정보 수정 시도 |
 | `TOO_SOON` | 409 | 재문의 간격 미달. `wait_seconds` 표시 |
 | `NOT_REQUESTED` | 409 | 병원의 조정 요청 없이 목적지 변경 시도 |
@@ -505,3 +506,22 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 수술실·신생아 중환자실·분만실 공개 수량은 전문팀 가용이나 고위험 분만 수용 확답과 같지 않습니다. 현재 솔버는 운영 `ed_bed`, `special_team`만 모델링하며, 공개 관측을 임의로 이 자원에 투영하지 않습니다. 진료 역량 미확인 병원이 유효한 환자별 수용 응답과 확인된 운영 자원을 제공한 경우 추천에 포함될 수 있고 `CAPABILITIES_UNVERIFIED:<병원ID>` 경고가 붙습니다. 수동 확정은 기존 정책을 유지합니다. 운영 자원 미확인만으로 병원의 수용 응답·확정을 차단하지 않으며, 솔버 추천 가능 여부와는 구분합니다.
 
 프로필에 수술실·ICU·분만실 등 솔버가 지원하지 않는 자원 수요가 있으면 이를 생략해서 배정하지 않고 `UNSUPPORTED_RESOURCE` 경고와 `NEEDS_REVIEW`를 반환합니다. 카카오 키가 없는 현재 수집 환경에서는 실제 도로 이동시간을 추가 수집하지 않았으며, 기존 직선거리 보정 추정을 유지합니다.
+
+## 12. 화면 연결 규칙 (2026-11-06 추가)
+
+응답을 받지 못했거나 다른 담당자와 동시에 처리했을 때 화면이 지킬 규칙입니다. 2026-10-30 연결 검증(`server/team_connection_check.py`, 고정 사례 8개)에서 확인한 내용을 옮겼고, 아래 오류 코드와 경로는 2026-11-06 main 코드에서 다시 확인했습니다.
+
+| 상황 | 화면에서 할 일 | 하면 안 되는 처리 |
+|---|---|---|
+| 제출 결과를 모름(응답 유실·시간 초과) | 같은 `actor_id`, 요청 ID(`client_request_id` 또는 `request_id`), 동작, 본문으로 다시 보낸 뒤 현재 세션·환자를 GET | 새 요청 ID로 새로 만들기, 원래 요청의 본문 바꾸기(음성 API는 같은 ID에 다른 본문이면 409 `VOICE_REQUEST_CONFLICT`) |
+| 중복 성공 응답(`duplicate: true`) | 당시 처리 영수증으로 보고 현재 상태를 다시 조회 | 저장된 응답을 지금의 최신 환자 상태로 단정 |
+| 환자·문의 409(`CONFLICT`, `STALE_PATIENT_INFORMATION`, `STALE_ACCEPTANCE`) | 최신 환자와 문의를 다시 읽고 담당자가 새 정보로 판단 | `expected_version`만 최신 값으로 바꿔 수용 응답을 자동으로 다시 보내기 |
+| 마지막 자리 `RESOURCE_CONFLICT` | 환자는 미확정으로 두고 자원·후보·수용 응답을 다시 조회 | 화면에 남은 낡은 추천을 강제로 확정 |
+| 새 중요 알림 | 화면에 실제로 그린 뒤 `POST .../important-events/{eid}/delivered`, 사용자가 확인한 뒤 `POST .../important-events/{eid}/acknowledge` | GET 성공만으로 두 상태를 자동 완료 |
+| 탭 복귀·재연결 | 기존 ID·작업자 문맥으로 현재 상태와 `GET .../important-events?unacknowledged_only=true`를 따로 조회 | `after_id`·`since` 같은 전진 커서 뒤의 새 사건만 읽어 과거 미확인 사건을 놓치기 |
+| 추천이 오래됨 | `GET /api/patients/{pid}/recommendation`으로 최신 상태를 확인하고 화면에 남은 과거 확정 조작을 없앰 | 폴링할 때마다 `POST /api/patients/{pid}/replan` 호출 |
+| 공통 서버 재기동 | 같은 전용 DB와 원래 이송 ID를 사용 | DB 삭제나 `--seed`로 재연결 문제를 숨기기 |
+
+중요 알림 경로의 앞부분은 구급대·이송자 화면이 `/api/patients/{pid}`, 병원 화면이 `/api/hospitals/{hid}/patients/{pid}`입니다. `actor_id`는 시연용 작업자 식별자이므로 이 확인 절차를 로그인 인증이나 병원별 권한 검증으로 설명하지 않습니다. 알림 확인은 의료적 수용 유지·조정 판단과 별개입니다.
+
+세부 계약은 [음성 API](VOICE_INPUT_API.md), [환자 정보 변경](PATIENT_AMENDMENTS_API.md), [업무 계측·중요 사건](BACKEND_MEASUREMENT_API.md)에 있습니다. 고정 사례 8개와 당시 증거는 [10-30 연결 검증 기록](https://github.com/Uree1229/emergency-care-system/blob/6fbf6c6d50d2c5b2b8d3163e88a8d052b5ff44a3/docs/TEAM_CONNECTION_CHECK_20261030.md)에 남아 있습니다.

@@ -77,7 +77,7 @@ python -m server.chat_demo --db data/dev2-ui-20261102.db --port 18021
 - **상태·사람의 결정:** 후보·추천·수용 응답·목적지 확정은 별개다. 병원 수용 뒤 구급대원이 명시적으로 확정·출발한다. 목적지는 자동 변경하지 않는다. 자유채팅 문장으로 수용·확정 API를 대신하지 않는다. planning이 꺼져 있으면 추천 요청의 `PLANNER_DISABLED`를 숨기지 않는다.
 - **알림:** 실제 화면 표시 후 `delivered`, 사용자의 확인 후 `acknowledge`를 호출한다. 재연결 시 전진 커서와 과거 미확인 사건 조회를 각각 복구한다. GET 성공을 사용자 확인으로 처리하지 않는다.
 
-상세 계약은 [기본 API](../../API.md), [음성 API](../../VOICE_INPUT_API.md), [재전송·경합·복구](https://github.com/Uree1229/emergency-care-system/blob/6fbf6c6d50d2c5b2b8d3163e88a8d052b5ff44a3/docs/TEAM_CONNECTION_CHECK_20261030.md)를 참고한다. `GET /api/patients/{pid}/recommendation`은 조회이고 `POST .../replan`은 명시적인 재계산 요청이다. 폴링마다 POST하지 않는다.
+상세 계약은 [기본 API](../../API.md), [음성 API](../../VOICE_INPUT_API.md), [재전송·경합·복구](../../API.md#12-화면-연결-규칙-2026-11-06-추가)를 참고한다. `GET /api/patients/{pid}/recommendation`은 조회이고 `POST .../replan`은 명시적인 재계산 요청이다. 폴링마다 POST하지 않는다.
 
 **CORS:** 위 `chat_demo`는 서버와 화면을 같은 origin에서 제공하며 기본 handler의 `Access-Control-Allow-Origin: *`를 사용한다. 별도 개발 서버에서 화면을 열 때는 실제 브라우저의 요청 URL·preflight·응답을 확인한다. 이후 `team_runtime`은 CORS 헤더를 보내지 않으므로 이 설정을 그대로 가정하지 않는다. 가능한 한 공통 서버가 제공하는 같은 origin의 화면을 사용한다.
 
