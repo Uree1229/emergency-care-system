@@ -25,7 +25,7 @@ class FakeServer {
     if(!room.canSend)return [403,{error:'NOT_PARTICIPANT',message:'현재 참여 중인 병원만 메시지를 보낼 수 있습니다'}];
     if(body.hospital_session_id!==room.session)return [409,{error:'STALE_SESSION',message:'참여 병원이 바뀌었습니다'}];
     const id=room.messages.length+1;
-    const message={id:`message:${id}`,kind:'message',message_id:id,sender_role:'hospital',sender_name:body.sender_name,body:body.body,text:body.body,at:100,client_message_id:body.client_message_id,hospital_session_id:body.hospital_session_id,order_key:[1,1,id]};
+    const message={id:`message:${id}`,kind:'message',message_id:id,conversation_id:1,sender_role:'hospital',sender_name:body.sender_name,body:body.body,text:body.body,at:100,client_message_id:body.client_message_id,hospital_session_id:body.hospital_session_id,order_key:[1,1,id]};
     room.messages.push(message);
     return [200,{message,duplicate:false}];
   }
@@ -42,6 +42,8 @@ class FakeServer {
       if(mode==='offline')throw new TypeError('Failed to fetch');
       if(mode==='500')return reply(500,{message:'서버 오류'});
       const [status,payload]=this.send(room,body);
+      if(mode==='broken-json')return {ok:true,status:200,json:async()=>{throw new SyntaxError('Unexpected end of JSON input');}};
+      if(typeof mode==='function')return reply(status,mode(payload));
       return reply(status,payload);
     }
     if(parts[4]==='patients'&&parts[6]==='conversation'){
@@ -361,4 +363,135 @@ test('만료된 요청은 보여 주지 않고 자동으로 보내지도 않는�
   record.savedAt-=PENDING_TTL_MS+1000;storage.data.set(key,JSON.stringify(record));
   const reloaded=new Page(server,storage);await settle();await reloaded.poll();await reloaded.openTab();await reloaded.choose('P1');
   assert.equal(reloaded.el('chatBody').value,'');assert.equal(reloaded.label,'메시지 보내기');assert.deepEqual(pendingKeys(storage),[]);assert.equal(server.posts.length,1);
+});
+
+// 오래 열린 페이지의 메모리 복사본도 POST 직전에 영속 보관본과 대조해야 한다.
+for(const change of ['expired','deleted','replaced','same-id-edited']){
+  test(`이미 복원한 요청이 ${change} 상태가 되면 재전송하지 않고 현재 보관본을 표시한다`,async()=>{
+    const {PENDING_TTL_MS}=await recoveryModule();
+    const {page,server,storage}=await open();
+    server.next.push('offline');await page.send('과거 원요청');
+    const key=pendingKeys(storage)[0],record=JSON.parse(storage.getItem(key));
+    if(change==='expired'){
+      page.context.expiredNow=record.savedAt+PENDING_TTL_MS+1;
+      page.eval('chatRecovery.store.now=()=>expiredNow');
+      await page.openTab();
+      assert.deepEqual(pendingKeys(storage),[],'화면 배지 갱신이 먼저 만료본을 지운 경우');
+    }else if(change==='deleted')storage.removeItem(key);
+    else{
+      record.request.body='다른 창의 보관 요청';
+      if(change==='replaced')record.request.client_message_id='other-window-id';
+      storage.setItem(key,JSON.stringify(record));
+    }
+    assert.equal(page.eval('chatPending.body'),'과거 원요청','메모리에는 이전 내용이 남아 있음');
+    await page.send();
+    assert.equal(server.posts.length,1,'없거나 달라진 원요청을 POST하지 않음');
+    assert.equal(server.room('http://one','H1','P1').messages.length,0);
+    assert.match(page.notice,/만료|삭제|변경/);assert.equal(page.el('notice').className,'err');
+    if(change==='replaced'||change==='same-id-edited'){
+      assert.equal(page.el('chatBody').value,'다른 창의 보관 요청');assert.equal(page.label,'같은 메시지 재시도');
+      await page.send();
+      assert.equal(server.posts.length,2,'현재 보관본도 다음 명시 동작에서만 전송');
+      assert.equal(server.posts[1].body.body,'다른 창의 보관 요청');
+    }else{
+      assert.equal(page.eval('chatPending'),null);assert.equal(page.label,'메시지 보내기');
+      assert.equal(page.el('chatBody').value,'과거 원요청','자동으로 새 요청을 만들지 않고 원문은 확인용으로 남김');
+    }
+  });
+}
+
+test('재시도 전 대화 조회를 기다리는 동안 만료된 요청도 POST하지 않는다',async()=>{
+  const {PENDING_TTL_MS}=await recoveryModule();
+  const {page,server,storage}=await open();
+  server.next.push('offline');await page.send('조회 중 만료');
+  const record=JSON.parse(storage.getItem(pendingKeys(storage)[0]));
+  const fetch=server.fetch.bind(server);
+  server.fetch=async(url,opts)=>{
+    const result=await fetch(url,opts);
+    if(new URL(url).pathname.endsWith('/conversation')){
+      page.context.expiredNow=record.savedAt+PENDING_TTL_MS+1;
+      page.eval('chatRecovery.store.now=()=>expiredNow');
+    }
+    return result;
+  };
+  await page.send();assert.equal(server.posts.length,1);assert.match(page.notice,/만료|변경/);
+});
+
+for(const [label,mode] of [
+  ['잘린 JSON','broken-json'],
+  ['빈 응답',()=>({})],
+  ['다른 메시지 ID',p=>({...p,message:{...p.message,client_message_id:'unrelated-id'}})],
+  ['다른 본문',p=>({...p,message:{...p.message,body:'다른 메시지',text:'다른 메시지'}})],
+  ['다른 참여 구간',p=>({...p,message:{...p.message,hospital_session_id:99}})],
+  ['다른 표시 이름',p=>({...p,message:{...p.message,sender_name:'다른 담당자'}})],
+  ['환자 역할',p=>({...p,message:{...p.message,sender_role:'patient'}})],
+  ['잘못된 메시지 형식',p=>({...p,message:{...p.message,id:null,message_id:null}})],
+]){
+  test(`200 응답이 ${label}이면 원요청을 유지하고 새로고침 뒤 같은 ID로 확인한다`,async()=>{
+    const {page,server,storage}=await open();
+    server.next.push(mode);await page.send('응답 확인이 필요한 요청');
+    const raw=server.posts[0].raw;
+    assert.equal(server.room('http://one','H1','P1').messages.length,1,'실제 저장 뒤 응답만 손상');
+    assert.equal(pendingKeys(storage).length,1,'전송 결과를 확인하기 전에는 원요청을 지우지 않음');
+    assert.equal(JSON.stringify(JSON.parse(storage.getItem(pendingKeys(storage)[0])).request),raw);
+    assert.match(page.notice,/전송 결과를 확인하지 못/);assert.equal(page.label,'같은 메시지 재시도');
+    const reloaded=new Page(server,storage);await settle();await reloaded.poll();await reloaded.openTab();await reloaded.choose('P1');
+    await reloaded.send();
+    assert.equal(server.posts[1].raw,raw);assert.match(reloaded.notice,/이미 저장된 메시지/);
+    assert.equal(server.room('http://one','H1','P1').messages.length,1);assert.deepEqual(pendingKeys(storage),[]);
+  });
+}
+
+test('다른 환자를 선택한 뒤 도착한 손상 성공 응답도 원래 범위의 요청을 지우지 않는다',async()=>{
+  const {page,server,storage}=await open();
+  const fetch=server.fetch.bind(server);
+  server.fetch=async(url,opts={})=>{
+    const result=await fetch(url,opts);
+    return opts.method==='POST'?{...result,json:async()=>({})}:result;
+  };
+  server.next.push('hold');page.write('늦은 손상 응답');page.submit();await settle();
+  page.eval("selectedPatientId='P2';selectedPatient=null;resetChat();");await page.eval('pollChat()');await settle();
+  page.eval("notice('P2 안내',false)");page.write('P2 초안');
+  server.held.resolve();await settle();
+  assert.equal(page.notice,'P2 안내');assert.equal(page.el('chatBody').value,'P2 초안');assert.equal(pendingKeys(storage).length,1);
+  await page.choose('P1');assert.equal(page.label,'같은 메시지 재시도');assert.equal(page.el('chatBody').value,'늦은 손상 응답');
+});
+
+for(const failure of ['throw','silent']){
+  test(`보관 요청 삭제가 ${failure} 방식으로 실패하면 성공으로 표시하지 않고 재시도 상태를 유지한다`,async()=>{
+    const {page,server,storage}=await open();
+    server.next.push('offline');await page.send('지워지지 않은 요청');
+    const remove=storage.removeItem;
+    storage.removeItem=()=>{if(failure==='throw')throw new Error('SecurityError');};
+    page.fire('chatDiscard','click',{});await settle();
+    assert.equal(pendingKeys(storage).length,1);assert.equal(page.label,'같은 메시지 재시도');assert.equal(page.el('chatBody').readOnly,true);
+    assert.equal(page.el('chatDiscard').hidden,false);assert.doesNotMatch(page.notice,/요청을 삭제했습니다/);
+    assert.match(page.notice,/삭제하지 못|정리하지 못/);assert.equal(page.el('notice').className,'err');assert.equal(server.posts.length,1);
+    storage.removeItem=remove;page.fire('chatDiscard','click',{});await settle();
+    assert.deepEqual(pendingKeys(storage),[]);assert.equal(page.label,'메시지 보내기');
+  });
+}
+
+test('전송을 확인해도 보관본 삭제가 실패하면 서버 결과와 정리 실패를 함께 알린다',async()=>{
+  const {page,server,storage}=await open();
+  const remove=storage.removeItem;storage.removeItem=()=>{throw new Error('SecurityError');};
+  await page.send('서버 저장 후 정리 실패');
+  const raw=server.posts[0].raw;
+  assert.equal(server.room('http://one','H1','P1').messages.length,1);assert.equal(pendingKeys(storage).length,1);
+  assert.match(page.el('chatLog').innerHTML,/서버 저장 후 정리 실패/);assert.match(page.notice,/보관.*정리.*못|삭제.*못/);
+  assert.equal(page.el('notice').className,'err');assert.equal(page.label,'같은 메시지 재시도');
+  storage.removeItem=remove;await page.send();
+  assert.equal(server.posts[1].raw,raw);assert.match(page.notice,/이미 저장된 메시지/);assert.deepEqual(pendingKeys(storage),[]);
+});
+
+test('4xx로 거절되어도 보관본 정리가 실패하면 오류와 남은 보관 요청을 숨기지 않는다',async()=>{
+  const {page,server,storage}=await open();
+  server.next.push('offline');await page.send('거절 후 정리 실패');
+  server.room('http://one','H1','P1').session=8;
+  const remove=storage.removeItem;storage.removeItem=()=>{throw new Error('SecurityError');};
+  await page.send();
+  assert.equal(server.posts.length,2);assert.match(page.notice,/참여 병원이 바뀌었습니다/);assert.match(page.notice,/보관.*정리.*못|삭제.*못/);
+  assert.equal(pendingKeys(storage).length,1);assert.equal(page.label,'같은 메시지 재시도');assert.equal(page.el('chatDiscard').hidden,false);
+  await page.poll();assert.equal(server.posts.length,2,'자동 재전송 없음');
+  storage.removeItem=remove;page.fire('chatDiscard','click',{});await settle();assert.deepEqual(pendingKeys(storage),[]);
 });

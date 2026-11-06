@@ -15,11 +15,22 @@ export function newChatRequest({body,session,senderName,makeId=uuid}){
 }
 // 서버가 판단한 거절(4xx)만 결과가 확정된 실패다. 네트워크 오류와 5xx는 저장 여부를 알 수 없다.
 export const isRejected=error=>!!error?.status&&error.status<500;
+// 2xx 자체는 저장 확인이 아니다. 현재 API의 병원 메시지 영수증이 원요청과 일치해야 정리한다.
+export function confirmsChatRequest(result,request){
+  const m=result?.message;
+  return validRequest(request)&&typeof result?.duplicate==='boolean'&&m?.kind==='message'&&m.sender_role==='hospital'
+    &&Number.isInteger(m.message_id)&&m.message_id>0&&m.id===`message:${m.message_id}`
+    &&Number.isInteger(m.conversation_id)&&m.conversation_id>0&&Number.isFinite(m.at)
+    &&m.client_message_id===request.client_message_id&&m.body===request.body&&m.text===request.body
+    &&m.hospital_session_id===request.hospital_session_id&&m.sender_name===request.sender_name
+    &&Array.isArray(m.order_key)&&m.order_key.length===3&&Number.isInteger(m.order_key[0])&&m.order_key[0]>=0
+    &&m.order_key[1]===1&&m.order_key[2]===m.message_id;
+}
 
 export class ChatRecoveryStore {
   constructor({storage,now=()=>Date.now()}){this.storage=storage;this.now=now;}
   key({server,hospital,patient}){return `${PREFIX}${encodeURIComponent(JSON.stringify([server,hospital,patient]))}`;}
-  remove(key){try{this.storage?.removeItem(key);return true;}catch{return false;}}
+  remove(key){try{this.storage?.removeItem(key);return this.storage?.getItem(key)===null;}catch{return false;}}
   read(key){
     let record=null;
     try{record=JSON.parse(this.storage.getItem(key));}catch{this.remove(key);return null;}
