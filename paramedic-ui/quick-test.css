@@ -223,6 +223,21 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,t
 .qv-excluded h2{margin:0;font-size:13px;color:var(--amber-ink)}
 #recording-excluded-text{margin:0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 #recording-review{width:100%;resize:vertical;min-height:72px;border:1px solid var(--line-strong);border-radius:8px;padding:8px;font:inherit;font-size:13px;color:var(--text);background:var(--card)}
+#chat-toggle{grid-column:1/-1;grid-row:2;justify-self:stretch;justify-content:center}
+.qv-keyboard{min-height:44px;gap:6px}
+.qv-keyboard::before{content:'⌨';font-size:19px;line-height:1}
+.qv-chat-composer{margin-top:12px;padding:14px;border:1px solid var(--line-strong);border-radius:14px;background:var(--card)}
+.qv-chat-composer[hidden]{display:none}
+.qv-chat-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.qv-chat-head label{font-size:13px;font-weight:600;color:var(--text-2)}
+.qv-chat-head select{flex:1;min-width:140px;min-height:44px;padding:8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--text);font:inherit;font-size:13px}
+.qv-chat-head button{min-height:44px;padding:8px}
+.qv-chat-question{margin:0 0 12px;padding:10px;border-radius:8px;background:var(--teal-soft);color:var(--teal-ink);font-size:13px;line-height:1.55;overflow-wrap:anywhere}
+.qv-chat-composer #recording-review{font-size:16px;min-height:92px}
+.qv-chat-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.qv-chat-send{min-width:90px;min-height:44px;border:0;border-radius:10px;background:var(--teal);color:white;padding:10px 18px;font:inherit;font-weight:700}
+.qv-chat-send:disabled{background:var(--grey-soft);color:var(--muted);cursor:not-allowed}
+.qv-chat-composer .qv-help{margin:8px 0 0}
 #quick-command-policy{width:100%;min-height:40px;margin-bottom:6px;padding:8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--text);font:inherit;font-size:13px}
 
 @keyframes qv-pulse{0%{box-shadow:0 0 0 0 var(--rec-ring)}100%{box-shadow:0 0 0 14px rgba(201,60,60,0)}}

@@ -16,6 +16,8 @@ import {PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,cre
 import {buildHospitalHandoff} from './paramedic-ui/hospital-handoff.mjs';
 import {buildObservationHistory,historySnapshotSignature} from './paramedic-ui/observation-history.mjs';
 import {buildConnectionStatus} from './paramedic-ui/connection-status.mjs';
+import {CriticalConversation} from './paramedic-ui/critical-conversation.mjs';
+import {findMainRecovery} from './paramedic-ui/main-recovery.mjs';
 
 // Event-lifecycle unit harness with a FAKE capture object and a fake server.
 // It is NOT a browser/STT accuracy test and NOT an actual microphone test.
@@ -56,9 +58,16 @@ class Element {
 }
 let harnessSequence=0;
 
-function harness(handler,{capabilities=V2,capabilityHandler,networkOnline=true,terms={speech_recognition_hints:[]},storageError=false,recoveryStore=new Map(),recoveryWriteError=false,criticalAutoread=false,clipboardError=false,clipboardImpl,autoGuardAdvance=true}={}) {
+function harness(handler,{capabilities=V2,capabilityHandler,networkOnline=true,terms={speech_recognition_hints:[]},storageError=false,tabStore=new Map(),recoveryStore=new Map(),recoveryWriteError=false,criticalAutoread=false,clipboardError=false,clipboardImpl,search='',conversationAudio=null,autoGuardAdvance=true}={}) {
   const instance=++harnessSequence;
   const elements=Object.fromEntries(ids.map(id=>[id,new Element()])), calls=[], meta=[], captures=[], intervals=[],timeouts=[],timed=new Map(), clock={now:1234},downloads=[],blobs=new Map();
+  // Represent the native target options, whose availability must survive the
+  // first state write changing the composer from state input to question reply.
+  const chatMarkup=/<select id="chat-target">([\s\S]*?)<\/select>/.exec(pageHtml)[1];
+  for(const [,value,text]of chatMarkup.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)){
+    const option=new Element('option');option.value=value;option.textContent=text;elements['chat-target'].append(option);
+  }
+
   elements['quick-command-policy'].value='deferred';
   const schedule=(callback,ms=0)=>{const id=timeouts.push(callback);timed.set(id,{callback,at:clock.now+ms,ms});return id;};
   const clear=id=>{timeouts[id-1]=null;timed.delete(id);};
@@ -102,19 +111,32 @@ function harness(handler,{capabilities=V2,capabilityHandler,networkOnline=true,t
     end(){this.active=false;this.callbacks.onState('idle');}
     fail(){this.active=false;this.callbacks.onState('idle');this.callbacks.onError(new Error('recognition network failure'));}
   }
-  const events={},stored=new Map(),navigations=[],copied=[];
+  const events={},stored=tabStore,navigations=[],copied=[];
   const navigator={onLine:networkOnline,clipboard:{writeText:async text=>{if(clipboardError)throw Error('clipboard unavailable');if(clipboardImpl)return clipboardImpl(text);copied.push(text);}}};
-  const sessionStorage={getItem:k=>stored.get(k)??null,setItem(k,v){if(storageError)throw Error('storage unavailable');stored.set(k,v);},removeItem:k=>stored.delete(k)};
+  const sessionStorage={get length(){return stored.size;},key:index=>[...stored.keys()][index]??null,getItem:k=>stored.get(k)??null,setItem(k,v){if(storageError)throw Error('storage unavailable');stored.set(k,v);},removeItem:k=>stored.delete(k)};
   const localStorage={getItem:k=>recoveryStore.get(k)??null,setItem(k,v){if(recoveryWriteError)throw Error('local storage quota');recoveryStore.set(k,v);},removeItem:k=>recoveryStore.delete(k)};
   const checkpointStorage={getItem:()=>{const raw=recoveryStore.get(PATIENT_RECORDS_KEY);if(!raw)return recoveryStore.get(RECOVERY_KEY)??null;const book=JSON.parse(raw);return book.records.find(record=>record.id===book.activeId)?.checkpoint??null;}};
-  const context=vm.createContext({VoiceCapture:FakeCapture,VoiceClient:TestClient,QuickSession:TestQuickSession,isUnavailableAnswer,answerVocabulary,RECOGNITION_CONTEXT_REVISION,buildRecognitionContext,reportVocabulary,RECORDING_LIMITS,findVoiceTrigger,CommandCommitGate,writeDraftHandoff,sessionStorage,
+  const document={hidden:false,getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
+    querySelector:()=>new Element(),createElement:tag=>{const element=new Element(tag);if(tag==='a')element.click=()=>downloads.push({filename:element.download,blob:blobs.get(element.href)});return element;}};
+  // The downstream controller has its own DOM and guarded-operation tests.
+  // This fixture observes page glue and shared identity without a second client.
+  const workspace={opens:[],step:null,dirty:false,options:null};
+  const initFieldWorkflow=options=>{
+    workspace.options=options;
+    const selectStep=step=>{const c=options.getContext();if(options.isBlocked()||!c.session)return false;workspace.step=step;workspace.opens.push({step,sid:c.session.id,version:c.session.version,actor:c.actor,client:c.client});options.onStep(step);return true;};
+    return {selectStep,open:selectStep,close(){workspace.step=null;options.onStep(null);return true;},update(){},reset(){workspace.step=null;workspace.dirty=false;},hasUnapplied:()=>workspace.dirty,
+      handleResult(result){if(result?.session?.patient_id)return selectStep('hospital');if(result?.session?.confirmed)return selectStep('submit');},
+      exportUIState(){const c=options.getContext();return {sessionId:c.session?.id||null,version:c.session?.version||0,step:workspace.step,lat:'',lon:'',consent:false,requiredCapabilities:[],editor:{},editorDirty:workspace.dirty};},
+      restoreUIState(value){workspace.step=value.step;workspace.dirty=value.editorDirty;options.onStep(value.step);return true;}};
+  };
+  const context=vm.createContext({VoiceCapture:FakeCapture,VoiceClient:TestClient,QuickSession:TestQuickSession,isUnavailableAnswer,answerVocabulary,RECOGNITION_CONTEXT_REVISION,buildRecognitionContext,reportVocabulary,CommandCommitGate,RECORDING_LIMITS,findVoiceTrigger,readDraftHandoff,initFieldWorkflow,findMainRecovery,URLSearchParams,sessionStorage,
     RECOVERY_KEY,writeDraftRecovery,readDraftRecovery,clearDraftRecovery,localStorage,
     buildCriticalReview,planCriticalCorrection,classifyCriticalReply,
     PATIENT_RECORDS_KEY,emptyBook,readPatientRecords,writePatientRecords,createPatientRecord,updatePatientCheckpoint,selectPatientRecord,removePatientRecord,
-    buildHospitalHandoff,buildObservationHistory,historySnapshotSignature,buildConnectionStatus,navigator,
-    requestId:()=>`page-${instance}-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',assign:url=>navigations.push(url)},
-    document:{getElementById:id=>{assert.ok(elements[id],`unknown element ${id}`);return elements[id];},
-      querySelector:()=>new Element(),createElement:tag=>{const element=new Element(tag);if(tag==='a')element.click=()=>downloads.push({filename:element.download,blob:blobs.get(element.href)});return element;}},
+    buildHospitalHandoff,buildObservationHistory,historySnapshotSignature,buildConnectionStatus,navigator,CriticalConversation,
+    createCriticalConversationAudio:()=>{assert.ok(conversationAudio,'page glue must inject fake conversational audio explicitly');return conversationAudio;},
+    requestId:()=>`page-${instance}-${++requestSequence}`,location:{origin:'http://127.0.0.1:8000',search,assign:url=>navigations.push(url)},
+    document,
     window:{addEventListener:(name,callback)=>{events[name]=callback;}},
     performance:{now:()=>clock.now},queueMicrotask,
     setInterval:callback=>intervals.push(callback),clearInterval:id=>{intervals[id-1]=null;},setTimeout:schedule,clearTimeout:clear,Blob,URL:DownloadURL,console});
@@ -129,7 +151,7 @@ function harness(handler,{capabilities=V2,capabilityHandler,networkOnline=true,t
     await el(id).onpointerup({pointerId:1});await flush();
   };
   const tick=()=>{for(const callback of intervals)callback?.();};
-  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage,checkpointStorage,copied,advance,downloads,read:expression=>vm.runInContext(expression,context),expireCheck:()=>timeouts.filter(Boolean).at(-1)?.()};
+  return {el,capture:captures[0],calls,meta,events,clock,hold,tick,stored,navigations,sessionStorage,recoveryStore,localStorage,checkpointStorage,copied,document,workspace,advance,downloads,read:expression=>vm.runInContext(expression,context),expireCheck:()=>timeouts.filter(Boolean).at(-1)?.()};
 }
 
 function patientServer({before,after,followup}={}){
@@ -160,6 +182,15 @@ function patientServer({before,after,followup}={}){
 }
 const notebook=h=>readPatientRecords(h.localStorage,'http://127.0.0.1:8000').book;
 const notePayload=(h,id)=>readDraftRecovery({getItem:()=>notebook(h).records.find(record=>record.id===id).checkpoint},'http://127.0.0.1:8000').payload;
+const currentNote=h=>readDraftRecovery(h.checkpointStorage,'http://127.0.0.1:8000').payload;
+function assertUnifiedReview(h,expected={}){
+  const context=h.workspace.options.getContext(),opened=h.workspace.opens.at(-1);
+  assert.ok(opened,'the existing workspace must visibly enter review');assert.equal(opened.step,'review');
+  assert.equal(opened.client,context.client,'input and workflow share one client');assert.equal(context.flow.client,context.client);
+  assert.equal(opened.sid,expected.sid??context.session.id);assert.equal(opened.version,expected.version??context.session.version);
+  assert.equal(opened.actor,expected.actor??context.actor);assert.deepEqual(h.navigations,[]);
+  assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').status,'absent','unified review must not create a page-transfer payload');
+}
 const selectNote=async(h,id)=>{h.el('patient-select').value=id;await h.el('patient-switch').onclick();await flush();};
 const speak=async(h,text)=>{await h.el('quick-record').onclick();h.capture.final(text);if(h.capture.active)await h.el('quick-record').onclick();await flush();};
 
@@ -404,7 +435,7 @@ test('invalid legacy data is preserved until the explicit local reset and cannot
   h.el('patient-reset-invalid').onclick();assert.equal(recoveryStore.has(RECOVERY_KEY),false);assert.equal(h.calls.length,0);assert.equal(h.el('quick-record').disabled,false);
 });
 
-async function criticalHarness(fields,{metadata={},recoveryStore=new Map(),criticalAutoread=true,before,load=true}={}){
+async function criticalHarness(fields,{metadata={},recoveryStore=new Map(),criticalAutoread=true,before,load=true,conversationAudio=null,search=''}={}){
   let session=draft(),patches=0;const copy=value=>JSON.parse(JSON.stringify(value));
   const h=harness(async call=>{
     const result=before?await before(call,{session:copy(session),patches}):undefined;if(result!==undefined)return result;
@@ -413,8 +444,9 @@ async function criticalHarness(fields,{metadata={},recoveryStore=new Map(),criti
       const nextFields={...session.fields,...call.body.changes};for(const field of call.body.unset_fields)delete nextFields[field];
       session=draft(session.version+1,nextFields,{field_metadata:{},utterances:session.utterances||[]});
     }else if(call.url.endsWith('/transcripts'))session=draft(2,fields,{field_metadata:metadata,utterances:[{transcript:'합성 입력'}]});
+    if(conversationAudio&&call.body?.actor_id)session.actor_id=call.body.actor_id;
     return response({session:copy(session)});
-  },{recoveryStore,criticalAutoread});
+  },{recoveryStore,criticalAutoread,conversationAudio,search});
   h.setSession=value=>{session=copy(value);};h.getSession=()=>copy(session);
   if(load){await h.el('quick-record').onclick();h.capture.final('합성 입력');await h.el('quick-record').onclick();await flush();}
   return h;
@@ -530,7 +562,9 @@ test('critical readback speaks structured values and distinct negative/unknown s
 });
 
 test('marking an item or all items checks the displayed server version by GET and never clinically confirms a draft',async()=>{
-  const h=await criticalHarness({pulse:92,breathing:'unknown'});const writes=h.calls.filter(c=>c.method!=='GET').length;
+  // Two actual observations preserve this test's item/all confirmation scope;
+  // explicit unknown is now covered separately as a non-observation.
+  const h=await criticalHarness({pulse:92,breathing:'normal'});const writes=h.calls.filter(c=>c.method!=='GET').length;
   await criticalButton(h,'pulse','confirm').onclick();await flush();
   assert.match(textOf(criticalCard(h,'pulse')),/입력 내용 확인됨/);assert.match(h.el('critical-summary').textContent,/1개 대기/);
   await h.el('critical-all').onclick();await flush();assert.match(h.el('critical-summary').textContent,/확인됨/);
@@ -570,7 +604,9 @@ test('single-item correction sends a narrow atomic PATCH and requires confirmati
 test('missing is not zero and an explicit unknown breathing correction is not absence',async()=>{
   const h=await criticalHarness({pulse:92,breathing:'absent'});criticalButton(h,'breathing','edit').onclick();
   criticalInput(h,'breathing').value='unknown';await h.el('critical-save').onclick();await flush();
-  assert.equal(h.getSession().fields.breathing,'unknown');assert.match(textOf(criticalCard(h,'breathing')),/호흡 미확인/);
+  assert.equal(h.getSession().fields.breathing,'unknown');assert.equal(criticalCard(h,'breathing'),undefined);
+  const unknownBreathing=h.el('summary-chips').children.find(chip=>chip.textContent.startsWith('호흡 '));
+  assert.equal(unknownBreathing.textContent,'호흡 미확인');assert.doesNotMatch(unknownBreathing.textContent,/정상|호흡 없음/);
   criticalButton(h,'pulse','edit').onclick();criticalInput(h,'pulse').value='';criticalInput(h,'pulse').oninput();
   await h.el('critical-save').onclick();await flush();assert.equal(h.getSession().fields.pulse,undefined);
   assert.deepEqual(h.calls.filter(c=>c.method==='PATCH').at(-1).body.unset_fields,['pulse']);
@@ -635,12 +671,12 @@ test('409 deleting the last important field keeps the stale editor visible and c
   h.el('critical-cancel').onclick();assert.equal(h.el('critical-panel').hidden,true);assert.equal(h.el('quick-record').disabled,false);
 });
 
-test('recommendation handoff waits for critical review and remains separate from clinical confirmation',async()=>{
+test('recommendation enters the same workspace only after critical review and remains separate from clinical confirmation',async()=>{
   const h=await criticalHarness({pulse:92});await h.el('quick-record').onclick();h.capture.final('병원 추천해줘');await flush();
   assert.equal(h.el('recommendation-prep').hidden,false);assert.equal(h.el('recommendation-continue').disabled,true);
   h.el('recommendation-continue').onclick();assert.equal(h.navigations.length,0);
   await h.el('critical-all').onclick();await flush();assert.equal(h.el('recommendation-continue').disabled,false);
-  h.el('recommendation-continue').onclick();assert.equal(h.navigations.length,1);
+  h.el('recommendation-continue').onclick();assertUnifiedReview(h);
   assert.equal(h.calls.some(c=>c.url.endsWith('/confirm')||c.url.endsWith('/submit')),false);
 });
 
@@ -892,7 +928,7 @@ test('command-only finals, including a command split across finals, create no AP
 });
 
 test('mid-sentence stop saves only the prefix in both toggle and hold, keeping the suffix for review',async()=>{
-  for(const command of ['중단','종료','녹음 종료'])for(const holdMode of [false,true]){
+  for(const command of ['중단','종료','녹음 종료','녹음 중단하고','녹음 종료하고'])for(const holdMode of [false,true]){
     const {el,capture,calls}=harness();if(holdMode)el('recording-hold').onclick();
     if(holdMode)await el('quick-record').onpointerdown({button:0,isPrimary:true,pointerId:1});else await el('quick-record').onclick();
     capture.final(`47세 남성. ${command} 맥박 92입니다.`);await flush();
@@ -913,11 +949,9 @@ test('recommendation waits for the successful write and requires a separate cont
   release(response({session:draft(2,{age:47}, {utterances:[{transcript:'47세 남성.'}]})}));await flush();
   assert.equal(h.el('recommendation-prep').hidden,false);assert.equal(h.navigations.length,0);
   h.el('recommendation-continue').onclick();
-  assert.deepEqual(h.navigations,['./?voice_handoff=1']);
-  const result=readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000');
-  assert.equal(result.status,'valid');assert.equal(result.payload.sessionId,'VS-PAGE');assert.equal(result.payload.version,2);
-  assert.equal(result.payload.unappliedText,'혈압 120에 80.');assert.equal(result.payload.intent,'recommend');
-  assert.ok(result.payload.actorId.startsWith('QUICK-VOICE-'));
+  assertUnifiedReview(h,{sid:'VS-PAGE',version:2});
+  assert.equal(currentNote(h).recoveryText,'혈압 120에 80.');assert.equal(h.el('field-unapplied-text').textContent,'혈압 120에 80.');
+  assert.equal(h.el('field-unapplied-note').hidden,false);assert.ok(currentNote(h).actorId.startsWith('QUICK-VOICE-'));
   assert.equal(h.calls.length,2,'continuation creates no patient, confirmation, inquiry or candidate request');
 });
 
@@ -981,7 +1015,8 @@ test('a later definitive failure invalidates an older ready action and keeps its
     h.el('recommendation-continue').onclick();assert.equal(h.navigations.length,0);
     await h.el('quick-record').onclick();h.capture.final('병원 추천해줘');await flush();
     h.el('recommendation-continue').onclick();
-    assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'맥박 140 혈압 80에 50');
+    assertUnifiedReview(h);assert.equal(currentNote(h).recoveryText,'맥박 140 혈압 80에 50');
+    assert.equal(h.el('field-unapplied-text').textContent,'맥박 140 혈압 80에 50');
   }
 });
 
@@ -999,7 +1034,8 @@ test('an uncertain write followed by a definitive retry failure keeps the unsave
     assert.equal(h.el('recommendation-prep').hidden,true);
     if(status===409)assert.ok(h.calls.some(c=>c.method==='GET'));
     await h.el('quick-record').onclick();h.capture.final('병원 추천해줘');await flush();h.el('recommendation-continue').onclick();
-    assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'맥박 140 혈압 80에 50');
+    assertUnifiedReview(h);assert.equal(currentNote(h).recoveryText,'맥박 140 혈압 80에 50');
+    assert.equal(h.el('field-unapplied-text').textContent,'맥박 140 혈압 80에 50');
   }
 });
 
@@ -1014,7 +1050,7 @@ test('unaccepted followup answer still stores its raw prefix before recommendati
   assert.equal(call.body.question_id,'consciousness');assert.equal(h.el('recommendation-prep').hidden,false);
 });
 
-test('suffix and delayed finals persist into handoff, including across subsequent recordings',async()=>{
+test('suffix and delayed finals stay in the same patient checkpoint and review warning across subsequent recordings',async()=>{
   const h=harness();h.capture.stop=async()=>{
     h.capture.final('호흡 정상.');h.capture.active=false;h.capture.callbacks.onState('idle');
   };
@@ -1024,12 +1060,14 @@ test('suffix and delayed finals persist into handoff, including across subsequen
   await h.el('quick-record').onclick();h.capture.final('체온 37도.');await h.el('quick-record').onclick();await flush();
   assert.equal(h.el('recording-excluded-text').textContent,'맥박 92. 호흡 정상.');
   h.el('recommendation-continue').onclick();
-  assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'맥박 92. 호흡 정상.');
+  assertUnifiedReview(h);assert.equal(currentNote(h).recoveryText,'맥박 92. 호흡 정상.');
+  assert.equal(h.el('field-unapplied-text').textContent,'맥박 92. 호흡 정상.');
 });
 
 test('late final negation or reported speech invalidates a provisional command before any write or action',async()=>{
   for(const [first,late]of [
     ['혈압 120에 80 종료','하지 마'],
+    ['혈압 120에 80 녹음 중단하고','싶다는 말이지 실행하지 마'],
     ['혈압 120에 80 병원 추천해줘','라고 환자가 말함'],
     ['혈압 120에 80 종료','라고 합니다. 병원 추천해줘']]){
     const h=harness();h.capture.stop=async()=>{h.capture.final(late);h.capture.active=false;h.capture.callbacks.onState('idle');};
@@ -1047,30 +1085,33 @@ test('a polite stop completion arriving during drain remains a valid command wit
   assert.equal(h.el('recording-excluded').hidden,true);assert.match(h.el('recording-ended').textContent,/종료 해 주세요/);
 });
 
-test('manual unapplied edits are transferred for review without auto-writing or losing the original suffix',async()=>{
+test('manual unapplied edits block workspace entry without auto-writing or losing the original suffix',async()=>{
   const h=harness();await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘 맥박 92.');await flush();
-  h.el('recording-excluded-copy').onclick();h.el('recording-review').value='맥박 95로 확인.';
+  h.el('recording-excluded-copy').onclick();h.el('recording-review').value='맥박 95로 확인.';h.el('recording-review').oninput();
   h.el('recommendation-continue').onclick();
-  const payload=readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload;
-  assert.equal(payload.unappliedText,'맥박 92.\n\n맥박 95로 확인.');assert.equal(h.calls.length,2);
+  assert.equal(h.workspace.opens.length,0);assert.deepEqual(h.navigations,[]);
+  assert.equal(currentNote(h).recoveryText,'맥박 92.');assert.equal(currentNote(h).manualText,'맥박 95로 확인.');assert.equal(h.calls.length,2);
 });
 
 test('reviewing a copied suffix removes it from the unapplied list only after successful manual save',async()=>{
   const h=harness();await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘 맥박 92.');await flush();
   h.el('recording-excluded-copy').onclick();await h.el('recording-review-apply').onclick();await flush();
   assert.equal(h.el('recording-excluded').hidden,true);
-  h.el('recommendation-continue').onclick();assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'');
+  h.el('recommendation-continue').onclick();assertUnifiedReview(h);assert.equal(currentNote(h).recoveryText,'');assert.equal(currentNote(h).manualText,'');
 });
 
-test('storage failure or too much unapplied text leaves the screen and draft intact',async()=>{
-  for(const storageError of [true,false]){
-    const h=harness(undefined,{storageError});await h.el('quick-record').onclick();
-    h.capture.final('47세 남성 병원 추천해줘');await flush();
-    h.el('recording-review').value=storageError?'미검토 메모':'가'.repeat(4001);
-    h.el('recommendation-continue').onclick();
-    assert.equal(h.navigations.length,0);assert.equal(h.el('recommendation-prep').hidden,false);
-    assert.equal(h.el('quick-error').hidden,false);assert.equal(h.calls.length,2);
-  }
+test('read-only unified review needs no legacy transfer storage and creates no clinical write',async()=>{
+  const h=harness(undefined,{storageError:true});await h.el('quick-record').onclick();
+  h.capture.final('47세 남성 병원 추천해줘');await flush();const before=h.calls.length;
+  h.el('recommendation-continue').onclick();assertUnifiedReview(h);assert.equal(h.calls.length,before);
+  assert.equal(h.stored.size,0);assert.equal(currentNote(h).sessionId,'VS-PAGE');
+});
+
+test('oversize unapplied chat stays in the canonical checkpoint and cannot open unified review',async()=>{
+  const h=harness();await h.el('quick-record').onclick();h.capture.final('47세 남성 병원 추천해줘');await flush();
+  h.el('recording-review').value='가'.repeat(4001);h.el('recording-review').oninput();const before=h.calls.length;
+  h.el('recommendation-continue').onclick();assert.deepEqual(h.navigations,[]);assert.equal(h.workspace.opens.length,0);
+  assert.equal(currentNote(h).manualText,'가'.repeat(4001));assert.equal(h.el('recording-review').value,'가'.repeat(4001));assert.equal(h.calls.length,before);
 });
 
 test('interim recommendation, clinical stops and quoted recommendations never run actions',async()=>{
@@ -1157,13 +1198,14 @@ test('recording mode and manual input cannot change while recording or while a r
 
 test('manual text validates 1..4000 characters and applies dictionary text once without stopword handling',async()=>{
   const {el,calls}=harness();
+  await flush();el('chat-toggle').onclick();el('chat-target').value='state';el('chat-target').onchange();
   el('recording-review').value=' ';await el('recording-review-apply').onclick();assert.equal(calls.length,0);
   el('recording-review').value='가'.repeat(4001);await el('recording-review-apply').onclick();assert.equal(calls.length,0);
   el('recording-review').value='환자가 그만이라고 했습니다. 혈압 120에 80.';el('recording-review').oninput();
   await el('recording-review-apply').onclick();await flush();assert.equal(calls.length,2);assert.equal(calls[1].body.mode,'dictation');
-  assert.equal(calls[1].body.text,el('recording-review').value);assert.match(metaOf(lastUser(el)),/직접 입력/);
+  assert.equal(calls[1].body.text,'환자가 그만이라고 했습니다. 혈압 120에 80.');assert.equal(el('recording-review').value,'');assert.match(metaOf(lastUser(el)),/직접 입력/);
   await el('recording-review-apply').onclick();assert.equal(calls.length,2);
-  el('quick-new').onclick();el('recording-review').value='혈압 120에 80.';await el('recording-review-apply').onclick();await flush();assert.equal(calls.length,4,'a new draft permits a new manual utterance');
+  await el('quick-new').onclick();el('chat-toggle').onclick();el('chat-target').value='state';el('chat-target').onchange();el('recording-review').value='혈압 120에 80.';await el('recording-review-apply').onclick();await flush();assert.equal(calls.length,4,'a new draft permits a new manual utterance');
 });
 
 test('recognition failure after a final fragment preserves raw text and never edits server draft',async()=>{
@@ -1538,7 +1580,7 @@ test('the unavailable button sends unavailable:true and no value, and stops aski
   assert.equal(el('quick-count').textContent,'12개 중 1개');
   assert.deepEqual(el('change-items').children.map(textOf),['수축기 혈압 이전 값 없음 미측정 · 확인 불가로 남김','이완기 혈압 이전 값 없음 미측정 · 확인 불가로 남김']);
   const cards=el('quick-fields').children.map(c=>c.children.slice(0,2).map(e=>e.textContent).join(' / '));
-  assert.deepEqual(cards.slice(1),['수축기 혈압 · 미측정·확인 불가 / 값 없음','이완기 혈압 · 미측정·확인 불가 / 값 없음']);
+  assert.deepEqual(cards.slice(1),['수축기 혈압 · 미측정·확인 불가 / 모름·미측정','이완기 혈압 · 미측정·확인 불가 / 모름·미측정']);
 });
 
 test('a 409 answer re-reads the latest draft and question instead of retrying the stale one',async()=>{
@@ -1636,11 +1678,11 @@ test('summary chips: changed, asking, unavailable and missing items are told apa
   await hold('quick-record',{say:['혈압이 지금 100에 70까지 떨어졌어.']});
   const chips=Object.fromEntries(el('summary-chips').children.map(c=>[c.textContent,c.className]));
   assert.equal(chips['47세 남성'],'qv-sum-chip is-filled');
-  assert.equal(chips['흉통 · 발생 ?'],'qv-sum-chip is-filled is-complaint');
+  assert.equal(chips['흉통 · 발생 모름·미측정'],'qv-sum-chip is-filled is-complaint');
   assert.equal(chips['혈압 100/70 ▼'],'qv-sum-chip is-changed');
   assert.equal(chips['호흡수 질문 중'],'qv-sum-chip is-asking');
-  assert.equal(chips['혈당 미측정'],'qv-sum-chip is-unavailable');
-  assert.equal(chips['맥박 —'],'qv-sum-chip is-missing');
+  assert.equal(chips['혈당 모름·미측정'],'qv-sum-chip is-unavailable');
+  assert.equal(chips['맥박 모름·미측정'],'qv-sum-chip is-missing');
   assert.equal(el('quick-count').textContent,'12개 중 4개');
   assert.match(metaOf(lastUser(el)),/상태 변화 관찰 · 혈압 120\/80 → 100\/70 ▼/);
 });
@@ -1875,7 +1917,7 @@ test('connection guidance: recognition failure keeps API reachability separate a
   await h.el('quick-record').onclick();h.capture.fail();await flush();
   assert.match(h.el('connection-title').textContent,/음성 입력 확인 필요/);assert.match(connectionLines(h),/서버 API 응답을 받았습니다/);
   const before=h.calls.length;h.el('connection-manual').onclick();
-  assert.equal(h.el('settings').hidden,false);assert.equal(h.el('recording-manual').open,true);
+  assert.equal(h.el('chat-composer').hidden,false);assert.equal(h.el('recording-manual').open,true);
   assert.equal(h.el('recording-review').value,'작성 중인 가상 메모');assert.equal(h.calls.length,before);
   assert.match(h.el('recording-review-status').textContent,/기존 입력은 유지/);
   await h.el('quick-record').onclick();assert.doesNotMatch(h.el('connection-title').textContent,/음성 입력 확인 필요/);h.capture.fail();
@@ -1963,6 +2005,658 @@ test('connection guidance: startup capabilities are checked for the restored cli
   assert.match(restored.el('quick-session').textContent,/버전 2/);assert.match(restored.el('connection-title').textContent,/음성 기능 버전 확인 필요/);
 });
 
+// Field flow uses the same exact draft and critical-item guards; no automatic submission.
+test('field flow exposes a direct input route without any capture or write',async()=>{
+  const h=harness(undefined,{search:'?flow=field'});await flush();
+  assert.equal(h.el('field-next-actions').hidden,false);assert.equal(h.el('field-next').disabled,true);
+  const before=h.calls.length;h.el('field-type').onclick();assert.equal(h.capture.starts,0);
+  assert.equal(h.el('settings').hidden,true);assert.equal(h.el('chat-composer').hidden,false);assert.equal(h.calls.length,before);
+});
+test('field review blocks unconfirmed critical values and opens the exact same workspace only after explicit confirmation',async()=>{
+  const h=harness(async call=>{if(call.url.endsWith('/api/voice/sessions'))return response({session:draft()});return response({session:draft(2,{pulse:92})});},{search:'?flow=field'});
+  await flush();h.el('field-type').onclick();h.el('chat-target').value='state';h.el('chat-target').onchange();h.el('recording-review').value='맥박은 92회입니다.';h.el('recording-review').oninput();await h.el('recording-review-apply').onclick();await flush();
+  const before=h.calls.filter(c=>c.method!=='GET').length;assert.equal(h.el('field-next').disabled,false);await h.el('field-next').onclick();
+  assert.equal(h.el('summary-detail').hidden,true);assert.equal(h.el('field-back').hidden,false);assert.equal(h.el('field-next').disabled,true);
+  await h.el('field-next').onclick();assert.equal(h.navigations.length,0);h.el('critical-all').onclick();await flush();assert.equal(h.el('field-next').disabled,false);
+  await h.el('field-next').onclick();assertUnifiedReview(h,{sid:'VS-PAGE',version:2});
+  assert.equal(h.calls.filter(c=>c.method!=='GET').length,before);assert.ok(h.calls.every(c=>!c.url.includes('/confirm')&&!c.url.includes('/submit')&&!c.url.includes('/api/patients')));
+});
+test('field back returns to conversation without changing the draft or navigating',async()=>{
+  const h=harness(async call=>response({session:call.url.endsWith('/api/voice/sessions')?draft():draft(3,{age:47})}),{search:'?flow=field'});await flush();h.el('field-type').onclick();h.el('chat-target').value='state';h.el('chat-target').onchange();h.el('recording-review').value='47세입니다.';h.el('recording-review').oninput();await h.el('recording-review-apply').onclick();await flush();
+  const before=h.calls.length,writes=h.calls.filter(call=>call.method!=='GET').length;
+  await h.el('field-next').onclick();assert.equal(h.el('field-back').hidden,false);
+  assert.equal(h.calls.length,before+1);assert.equal(h.calls.at(-1).method,'GET');const entered=h.calls.length;
+  h.el('field-back').onclick();
+  assert.equal(h.el('field-back').hidden,true);assert.equal(h.el('summary-detail').hidden,true);assert.equal(h.calls.length,entered);
+  assert.equal(h.calls.filter(call=>call.method!=='GET').length,writes);assert.equal(h.navigations.length,0);assert.match(h.el('quick-session').textContent,/버전 3/);
+});
+
+test('remaining unknown button stays available after all questions are deferred and clears only acknowledged unavailable IDs',async()=>{
+  const breathing=question('breathing','현재 환자의 호흡 상태를 알려 주세요.',['breathing']);
+  const h=harness((call,n)=>{
+    if(n===1)return response({session:draft()});
+    if(call.url.endsWith('/transcripts'))return response({session:draft(2,{age:47,pulse:92},{followup:plan(breathing)})});
+    if(n===3)return response({session:draft(3,{age:47,pulse:92},{followup:plan(breathing)}),answer:{question_id:'breathing',accepted:false,applied_fields:[],ignored_fields:[]}});
+    const done=plan(null,{items:[{...breathing,askable:false,answer_status:'unavailable'}],complete:false,unresolved_count:1});
+    return response({session:draft(4,{age:47,pulse:92},{followup:done}),answer:{question_id:'breathing',accepted:true,unavailable:true,unavailable_scope:'remaining',unavailable_question_ids:['breathing'],applied_fields:[],ignored_fields:[]}});
+  },{search:'?flow=field'});
+  await h.hold('quick-record',{say:['47세 남성 맥박 92회']});
+  await h.hold('followup-record',{say:['남은 항목 전부 다 무릎으로 해줘']});
+  assert.equal(h.el('followup-card').hidden,true);assert.equal(h.el('followup-deferred').hidden,false);
+  assert.equal(h.el('followup-remaining-unavailable').hidden,false);
+  await h.el('followup-remaining-unavailable').onclick();await flush();
+  const call=h.calls.at(-1);assert.equal(call.body.text,'남은 항목 전부 미확인으로 남겨줘');
+  assert.equal(call.body.question_id,'breathing');assert.equal(call.body.expected_version,3);assert.equal(call.body.unavailable,undefined);
+  assert.equal(h.el('followup-deferred').hidden,true);assert.equal(h.el('followup-remaining-unavailable').hidden,true);
+  assert.equal(h.el('followup-done').hidden,false);assert.match(h.el('quick-feedback').textContent,/기록된 값은 유지/);
+  assert.match(metaOf(lastUser(h.el)),/남은 질문 마침/);
+  assert.equal(h.calls.filter(c=>c.method!=='GET').length,4);
+  assert.ok(h.calls.every(c=>!c.url.includes('/confirm')&&!c.url.includes('/submit')&&!c.url.includes('/api/patients')));
+});
+
+const openChat=(h,target)=>{if(h.el('chat-composer').hidden)h.el('chat-toggle').onclick();if(target){h.el('chat-target').value=target;h.el('chat-target').onchange();}};
+const typeChat=(h,text)=>{h.el('recording-review').value=text;h.el('recording-review').oninput();};
+
+test('chat opens inline without capture or writes, preserves a closed message, and blocks hiding unsent text in field review',async()=>{
+  const h=harness(undefined,{search:'?flow=field'});await flush();openChat(h,'state');
+  assert.equal(h.el('settings').hidden,true);assert.equal(h.el('chat-composer').hidden,false);assert.equal(h.capture.starts,0);assert.equal(h.calls.length,0);
+  typeChat(h,'  가상 환자 상태\n추가 메모  ');h.el('chat-close').onclick();assert.equal(h.el('chat-composer').hidden,true);
+  h.el('chat-toggle').onclick();assert.equal(h.el('recording-review').value,'  가상 환자 상태\n추가 메모  ');
+  assert.equal(h.el('field-next').disabled,true);assert.match(h.el('field-next-status').textContent,/작성 중인 메시지/);assert.equal(h.calls.length,0);
+});
+
+test('chat explicit state target uses dictation and clears only its acknowledged message without operational writes',async()=>{
+  const h=harness();await flush();openChat(h,'state');const text='47세 남성. 종료라고 말했지만 환자 설명입니다.';typeChat(h,text);
+  await h.el('recording-review-apply').onclick();await flush();
+  assert.equal(h.calls.length,2);assert.equal(h.calls[1].body.text,text);assert.equal(h.calls[1].body.mode,'dictation');
+  assert.equal(h.el('recording-review').value,'');assert.equal(h.el('chat-composer').hidden,false);assert.equal(h.el('chat-target').value,'state');
+  assert.equal(h.capture.starts,0);assert.ok(h.calls.every(c=>!c.url.includes('/confirm')&&!c.url.includes('/submit')&&!c.url.includes('/api/patients')));
+  await h.el('recording-review-apply').onclick();assert.equal(h.calls.length,2);
+});
+
+test('chat defaults visibly to the current question and permits identical unknown replies to successive questions',async()=>{
+  const breathing=question('breathing','현재 호흡 상태는?',['breathing']),pulse=question('pulse','현재 맥박은?',['pulse']);
+  const h=harness((call,n)=>{
+    if(n===1)return response({session:draft()});
+    if(call.url.endsWith('/transcripts'))return response({session:draft(2,{age:47},{followup:plan(breathing)})});
+    const next=n===3?plan(pulse):plan(null);
+    return response({session:draft(n,{age:47},{followup:next}),answer:{question_id:call.body.question_id,accepted:true,unavailable:true,applied_fields:[],ignored_fields:[]}});
+  });await flush();await h.hold('quick-record',{say:['47세 남성']});openChat(h);
+  assert.equal(h.el('chat-target').value,'answer');assert.match(h.el('chat-question').textContent,/현재 호흡 상태는/);
+  typeChat(h,'모름');await h.el('recording-review-apply').onclick();await flush();
+  assert.equal(h.calls[2].body.question_id,'breathing');assert.equal(h.calls[2].body.text,'모름');assert.equal(h.el('recording-review').value,'');
+  assert.match(h.el('chat-question').textContent,/현재 맥박은/);typeChat(h,'모름');assert.equal(h.el('recording-review-apply').disabled,false);
+  await h.el('recording-review-apply').onclick();assert.equal(h.calls[3].body.question_id,'pulse');
+});
+
+test('chat Enter sends once while Shift+Enter and Korean IME composition never send',async()=>{
+  const h=harness();await flush();openChat(h,'state');typeChat(h,'47세 남성');let prevented=0;
+  const key=extra=>({key:'Enter',preventDefault:()=>prevented++,...extra});
+  await h.el('recording-review').onkeydown(key({shiftKey:true}));await h.el('recording-review').onkeydown(key({isComposing:true}));await h.el('recording-review').onkeydown(key({keyCode:229}));
+  h.el('recording-review').oncompositionstart();await h.el('recording-review').onkeydown(key({}));assert.equal(h.calls.length,0);assert.equal(prevented,0);
+  h.el('recording-review').oncompositionend();await h.el('recording-review').onkeydown(key({}));await flush();assert.equal(h.calls.length,2);assert.equal(prevented,1);
+});
+
+test('chat version changes retain text and require explicit target reselection before sending',async()=>{
+  const server=patientServer(),h=harness(server.handler);await flush();await speak(h,'환자 A 정보');openChat(h,'state');typeChat(h,'늦게 보낼 환자 상태');
+  await speak(h,'추가 음성 기록');const before=h.calls.length;
+  assert.equal(h.el('recording-review-apply').disabled,true);assert.match(h.el('chat-context-status').textContent,/용도를 다시 선택/);
+  await h.el('recording-review-apply').onclick();assert.equal(h.calls.length,before);assert.equal(h.el('recording-review').value,'늦게 보낼 환자 상태');
+  h.el('chat-target').value='state';h.el('chat-target').onchange();await h.el('recording-review-apply').onclick();assert.equal(h.calls.length,before+1);
+});
+
+test('chat rejected answers preserve editable text and block field review rather than clearing it on HTTP success',async()=>{
+  const q=question('breathing','호흡 상태는?',['breathing']);
+  const h=harness((call,n)=>response(n===1?{session:draft()}:call.url.endsWith('/transcripts')?{session:draft(2,{age:47},{followup:plan(q)})}:{session:draft(3,{age:47},{followup:plan(q)}),answer:{accepted:false,applied_fields:[],ignored_fields:[]}}),{search:'?flow=field'});
+  await flush();await h.hold('quick-record',{say:['47세 남성']});openChat(h);typeChat(h,'알 수 없는 문장');await h.el('recording-review-apply').onclick();await flush();
+  assert.equal(h.el('recording-review').value,'알 수 없는 문장');assert.match(h.el('recording-review-status').textContent,/답변 값을 확인하지 못/);
+  assert.equal(h.el('field-next').disabled,true);assert.equal(h.el('recording-review-apply').disabled,true);assert.equal(h.el('chat-target').value,'');
+});
+
+test('chat pending response can be inspected after closing and retry preserves original body across reload',async()=>{
+  const recoveryStore=new Map();let lose=true;
+  const server=patientServer({after:call=>{if(lose&&call.url.endsWith('/transcripts'))throw Error('synthetic lost response');}});
+  const h=harness(server.handler,{recoveryStore});await flush();openChat(h,'state');typeChat(h,'환자 A 정보');await h.el('recording-review-apply').onclick();await flush();
+  const first=h.calls.at(-1);assert.equal(h.el('recording-review').value,'환자 A 정보');assert.equal(h.el('recording-review-apply').disabled,true);
+  h.el('chat-close').onclick();h.el('chat-toggle').onclick();assert.equal(h.el('chat-composer').hidden,false);assert.equal(h.el('chat-target').disabled,true);
+  const next=harness(server.handler,{recoveryStore});await flush();assert.equal(next.el('recording-review').value,'환자 A 정보');assert.equal(next.el('chat-target').value,'');
+  lose=false;await next.el('quick-retry').onclick();await flush();const retry=next.calls.find(c=>c.method==='POST');assert.deepEqual(retry,first);
+  assert.equal(next.el('recording-review').value,'');assert.equal(server.sessions.values().next().value.utterances.length,1);
+});
+
+test('chat unsent text stays with its patient and restored messages require a new explicit target',async()=>{
+  const server=patientServer(),h=harness(server.handler);await flush();await speak(h,'환자 A 정보');const a=notebook(h).activeId;
+  openChat(h,'state');typeChat(h,'환자 A에게만 남길 채팅');await h.el('patient-new').onclick();assert.equal(h.el('recording-review').value,'');
+  await speak(h,'환자 B 정보');await selectNote(h,a);assert.equal(h.el('recording-review').value,'환자 A에게만 남길 채팅');assert.equal(h.el('chat-target').value,'');
+  assert.equal(h.el('recording-review-apply').disabled,true);assert.equal(h.el('chat-composer').hidden,false);
+});
+
+test('chat acknowledgement never clears a newer message placed in the canonical editor while a request completes',async()=>{
+  let release;const gate=new Promise(resolve=>release=resolve);
+  const h=harness(async(call,n)=>{if(n===1)return response({session:draft()});await gate;return response({session:draft(2,{age:47})});});
+  await flush();openChat(h,'state');typeChat(h,'먼저 보낼 원문');const sending=h.el('recording-review-apply').onclick();await flush();
+  assert.equal(h.el('recording-review').disabled,true);h.el('recording-review').value='새로 보관할 원문';release();await sending;
+  assert.equal(h.el('recording-review').value,'새로 보관할 원문');assert.equal(h.el('recording-review-apply').disabled,true);assert.equal(h.el('chat-target').value,'');
+});
+
+test('chat native answer option stays available through the first state write while no-question answers are guarded',async()=>{
+  const q=question('breathing','현재 호흡 상태를 알려 주세요.',['breathing']);
+  const h=harness((call,n)=>response(n===1?{session:draft()}:call.url.endsWith('/transcripts')?
+    {session:draft(2,{age:47},{followup:plan(q)})}:{session:draft(3,{age:47,breathing:'normal'},{followup:plan(null)}),answer:{accepted:true,applied_fields:['breathing'],ignored_fields:[]}}));
+  await flush();openChat(h,'state');
+  const answerOption=h.el('chat-target').children.find(option=>option.value==='answer');
+  assert.equal(answerOption.tagName,'option');assert.equal(answerOption.textContent,'질문에 답하기');assert.equal(answerOption.disabled,false);
+  h.el('chat-target').value='answer';h.el('chat-target').onchange();typeChat(h,'아직 질문 없음');
+  assert.equal(h.el('chat-target').value,'');assert.equal(h.el('recording-review-apply').disabled,true);
+  await h.el('recording-review-apply').onclick();assert.equal(h.calls.length,0);
+  h.el('chat-target').value='state';h.el('chat-target').onchange();typeChat(h,'47세 남성');await h.el('recording-review-apply').onclick();
+  assert.equal(h.el('chat-target').value,'answer');assert.match(h.el('chat-question').textContent,/현재 호흡 상태/);
+  assert.equal(h.el('chat-target').children.length,3);assert.equal(h.el('chat-target').children.includes(answerOption),true);assert.equal(answerOption.disabled,false);
+  typeChat(h,'정상');await h.el('recording-review-apply').onclick();assert.equal(h.calls[2].body.question_id,'breathing');
+  assert.equal(h.el('chat-target').children.includes(answerOption),true);assert.equal(answerOption.disabled,false);
+});
+
+// Actual controller + actual page glue, with fully deferred fake audio. These
+// cases do not exercise browser speech, permissions, playback or ASR accuracy.
+function conversationAudioFixture(){
+  const audio={spoken:[],listens:0,aborts:[],pending:null,
+    capabilities:()=>({tts:true,browser:true}),
+    speak(text){assert.equal(this.pending,null,'speak/listen overlap');this.spoken.push(text);return this.operation('speaking');},
+    listen(){assert.equal(this.pending,null,'microphone opened before owned TTS completed');this.listens++;return this.operation('listening');},
+    operation(phase){return new Promise((resolve,reject)=>{this.pending={phase,resolve,reject};});},
+    abort(reason){this.aborts.push(reason);const task=this.pending;this.pending=null;task?.reject(Object.assign(Error('synthetic audio stopped'),{code:'ABORTED'}));},
+    dispose(){this.abort('disposed');},
+    finishSpeak(){assert.equal(this.pending?.phase,'speaking');const task=this.pending;this.pending=null;task.resolve();},
+    reply(text,finals=[text]){assert.equal(this.pending?.phase,'listening');const task=this.pending;this.pending=null;task.resolve({text,finals});}
+  };return audio;
+}
+async function startConversation(h,audio,button='critical-conversation-start'){
+  const run=h.el(button).onclick();await flush();
+  assert.equal(audio.pending?.phase,'speaking');assert.equal(audio.listens,0);
+  return {run};
+}
+async function spokenReply(audio,text){audio.finishSpeak();await flush();assert.equal(audio.pending?.phase,'listening');audio.reply(text);await flush();}
+const writeCount=h=>h.calls.filter(call=>call.method!=='GET').length;
+
+test('conversation glue: sequential confirmations then explicit next preserve the same workspace identity without clinical POST',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92,breathing:'normal'},{conversationAudio:audio,criticalAutoread:false,search:'?flow=field'});
+  await h.el('field-next').onclick();assert.equal(h.el('field-review-voice').hidden,false);
+  const original=h.getSession(),writes=writeCount(h),{run}=await startConversation(h,audio,'field-review-voice');
+  assert.match(audio.spoken[0],/맥박.*92/);await spokenReply(audio,'맞아요');
+  assert.match(textOf(criticalCard(h,'pulse')),/입력 내용 확인됨/);assert.match(h.el('critical-summary').textContent,/1개 대기/);
+  assert.match(audio.spoken[1],/호흡 정상/);await spokenReply(audio,'네 맞아요');
+  assert.match(h.el('critical-summary').textContent,/확인됨/);assert.equal(h.navigations.length,0);
+  assert.match(audio.spoken[2],/다음 단계/);await spokenReply(audio,'다음 단계');await run;
+  assertUnifiedReview(h,{sid:original.id,version:original.version,actor:original.actor_id});
+  assert.equal(writeCount(h),writes);assert.equal(h.calls.some(c=>/\/confirm|\/submit|\/api\/patients/.test(c.url)),false);
+  assert.equal(h.capture.starts,1,'only the initial synthetic note uses old fake capture');assert.equal(audio.pending,null);
+});
+
+test('conversation glue: unknown and mixed replies pause without acknowledgement or clinical writes',async()=>{
+  for(const reply of ['잘 모르겠어요','맞아요 맥박 130으로 변경','맞아요 아니요','다음 단계']){
+    const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+    const writes=writeCount(h),{run}=await startConversation(h,audio);await spokenReply(audio,reply);await run;
+    assert.match(h.el('critical-summary').textContent,/1개 대기/,reply);assert.equal(h.el('critical-editor').hidden,true,reply);
+    assert.equal(audio.pending,null);assert.equal(h.navigations.length,0);assert.equal(writeCount(h),writes);
+    assert.equal(h.el('quick-record').disabled,false);assert.match(h.el('critical-conversation-status').textContent,/확정하지 못|확인하지 않았/);
+  }
+});
+
+test('conversation glue: 아니요 opens exactly the current single editor without acknowledgement',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92,breathing:'normal'},{conversationAudio:audio,criticalAutoread:false});
+  const writes=writeCount(h),{run}=await startConversation(h,audio);await spokenReply(audio,'아니요');await run;
+  assert.equal(h.el('critical-editor').hidden,false);assert.ok(criticalInput(h,'pulse'));assert.equal(criticalInput(h,'breathing'),undefined);
+  assert.match(h.el('critical-summary').textContent,/2개 대기/);assert.equal(writeCount(h),writes);assert.equal(h.navigations.length,0);
+});
+
+test('conversation glue: nonconfirmable current item opens correction without reading or listening',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,metadata:{pulse:{needs_clarification:true}}});
+  const writes=writeCount(h);await h.el('critical-conversation-start').onclick();await flush();
+  assert.equal(h.el('critical-editor').hidden,false);assert.equal(audio.spoken.length,0);assert.equal(audio.listens,0);
+  assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(writeCount(h),writes);
+});
+
+test('conversation glue: active sequence locks original recording, manual confirmations and patient switches',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+  const patient=notebook(h).activeId,writes=writeCount(h),starts=h.capture.starts,{run}=await startConversation(h,audio);
+  assert.equal(h.el('quick-record').disabled,true);assert.equal(h.el('patient-new').disabled,true);assert.equal(criticalButton(h,'pulse','confirm').disabled,true);
+  await h.el('quick-record').onclick();await h.el('patient-new').onclick();await criticalButton(h,'pulse','confirm').onclick();await flush();
+  assert.equal(h.capture.starts,starts);assert.equal(notebook(h).activeId,patient);assert.equal(writeCount(h),writes);assert.match(h.el('critical-summary').textContent,/1개 대기/);
+  h.el('critical-conversation-stop').onclick();await run;assert.equal(h.el('quick-record').disabled,false);assert.equal(h.el('patient-new').disabled,false);
+});
+
+test('conversation glue: STOP while fresh acknowledgement GET is pending invalidates the acknowledgement',async()=>{
+  const audio=conversationAudioFixture();let hold=false,release;const gate=new Promise(resolve=>{release=resolve;});
+  const h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,before:call=>hold&&call.method==='GET'?gate:undefined});
+  const writes=writeCount(h),{run}=await startConversation(h,audio);audio.finishSpeak();await flush();hold=true;audio.reply('맞아요');await flush();
+  assert.match(h.el('critical-conversation-status').textContent,/최신 초안/);h.el('critical-conversation-stop').onclick();hold=false;
+  release(response({session:h.getSession()}));await run;await flush();assert.match(h.el('critical-summary').textContent,/1개 대기/);
+  assert.equal(writeCount(h),writes);assert.equal(h.navigations.length,0);assert.equal(h.el('quick-record').disabled,false);
+  await criticalButton(h,'pulse','confirm').onclick();await flush();assert.match(h.el('critical-summary').textContent,/확인됨/);
+});
+
+test('conversation glue: pagehide and hidden-tab events stop owned audio without auto-resuming',async()=>{
+  for(const event of ['pagehide','visibilitychange']){
+    const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+    const writes=writeCount(h),{run}=await startConversation(h,audio);audio.finishSpeak();await flush();
+    if(event==='visibilitychange')h.document.hidden=true;h.events[event]();await run;await flush();
+    assert.equal(audio.pending,null);assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.navigations.length,0);
+    const listens=audio.listens;h.document.hidden=false;h.events.visibilitychange();await flush();assert.equal(audio.listens,listens);
+    assert.equal(writeCount(h),writes);
+  }
+});
+
+test('conversation glue: ordinary 네 after completion is not a navigation command',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+  const {run}=await startConversation(h,audio);await spokenReply(audio,'맞아요');await spokenReply(audio,'네');await run;
+  assert.equal(h.navigations.length,0);assert.match(h.el('critical-summary').textContent,/확인됨/);
+  assert.equal(h.el('critical-conversation-start').disabled,false);assert.match(h.el('critical-conversation-status').textContent,/이동하지 않았/);
+});
+
+test('conversation glue: completion fresh GET failure preserves the screen and never navigates',async()=>{
+  const audio=conversationAudioFixture();let fail=false;
+  const h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,before:call=>fail&&call.method==='GET'?response({error:'synthetic unavailable'},503):undefined});
+  const writes=writeCount(h),{run}=await startConversation(h,audio);await spokenReply(audio,'맞아요');fail=true;
+  await spokenReply(audio,'다음 단계');await run;assert.equal(h.navigations.length,0);assert.equal(writeCount(h),writes);assert.equal(audio.pending,null);
+  assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').status,'absent');
+});
+
+test('conversation glue: changed version, actor, registration or state at final GET cannot hand off the old snapshot',async()=>{
+  for(const change of [{version:3},{actor_id:'DIFFERENT-CREW'},{patient_id:'P-REGISTERED'},{state:'SUBMITTED'}]){
+    const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+    const writes=writeCount(h),{run}=await startConversation(h,audio);await spokenReply(audio,'맞아요');
+    h.setSession({...h.getSession(),...change});await spokenReply(audio,'다음 단계');await run;
+    assert.equal(h.navigations.length,0,JSON.stringify(change));assert.equal(writeCount(h),writes);assert.equal(audio.pending,null);
+  }
+});
+
+test('conversation glue: stop during the initial fresh GET prevents constructing audio or starting a sequence',async()=>{
+  const audio=conversationAudioFixture();let hold=false,release;const gate=new Promise(resolve=>{release=resolve;});
+  const h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,before:call=>hold&&call.method==='GET'?gate:undefined});
+  hold=true;const run=h.el('critical-conversation-start').onclick();await flush();h.el('critical-conversation-stop').onclick();
+  hold=false;release(response({session:h.getSession()}));await run;await flush();
+  assert.equal(audio.spoken.length,0);assert.equal(audio.listens,0);assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.navigations.length,0);
+});
+
+test('conversation glue: fresh acknowledgement detects changed item signature before any local confirmation',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+  const writes=writeCount(h),{run}=await startConversation(h,audio);audio.finishSpeak();await flush();
+  h.setSession({...h.getSession(),fields:{pulse:100}});audio.reply('맞아요');await run;await flush();
+  assert.match(textOf(criticalCard(h,'pulse')),/100/);assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.navigations.length,0);assert.equal(writeCount(h),writes);
+});
+
+test('conversation glue: unavailable fresh item GET cannot acknowledge a heard yes',async()=>{
+  const audio=conversationAudioFixture();let fail=false;
+  const h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,before:call=>fail&&call.method==='GET'?response({error:'synthetic offline'},503):undefined});
+  const writes=writeCount(h),{run}=await startConversation(h,audio);audio.finishSpeak();await flush();fail=true;audio.reply('맞아요');await run;
+  assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.navigations.length,0);assert.equal(writeCount(h),writes);assert.equal(audio.pending,null);
+});
+
+test('conversation glue: TTS and listening failures release locks without acknowledgement or restarting audio',async()=>{
+  for(const failurePhase of ['speaking','listening']){
+    const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+    const {run}=await startConversation(h,audio);if(failurePhase==='listening'){audio.finishSpeak();await flush();}
+    assert.equal(audio.pending.phase,failurePhase);audio.pending.reject(Object.assign(Error('synthetic audio failure'),{code:'AUDIO_ERROR'}));await run;await flush();
+    assert.equal(audio.pending,null);assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.navigations.length,0);
+    assert.equal(audio.spoken.length,1);assert.equal(audio.listens,failurePhase==='listening'?1:0);assert.equal(h.el('patient-new').disabled,false);
+  }
+});
+
+test('conversation glue: malformed completed-listen result cannot mark a current item confirmed',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+  const {run}=await startConversation(h,audio);audio.finishSpeak();await flush();audio.reply('맞아요',['맞아요','추가 지시']);await run;
+  assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.navigations.length,0);assert.equal(audio.pending,null);
+});
+
+test('conversation glue: reload restores draft only and never starts audio or restores local confirmations',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+  const {run}=await startConversation(h,audio);await spokenReply(audio,'맞아요');h.el('critical-conversation-stop').onclick();await run;
+  assert.match(h.el('critical-summary').textContent,/확인됨/);
+  const nextAudio=conversationAudioFixture(),next=harness(call=>response({session:h.getSession()}),{recoveryStore:h.recoveryStore,conversationAudio:nextAudio,criticalAutoread:false});
+  await flush();assert.equal(nextAudio.spoken.length,0);assert.equal(nextAudio.listens,0);assert.equal(next.calls.some(call=>call.method!=='GET'),false);
+  assert.match(next.el('critical-summary').textContent,/1개 대기/);assert.equal(next.navigations.length,0);
+});
+
+test('merged chat/conversation: unsent chat blocks spoken start until the exact draft is sent or explicitly cleared',async()=>{
+  for(const resolution of ['send','clear']){
+    const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,search:'?flow=field'});
+    openChat(h,'state');typeChat(h,'보내기 전 환자 상태 메모');
+    assert.equal(h.el('critical-conversation-start').disabled,true);assert.equal(h.el('field-next').disabled,true);
+    const before=h.calls.length,writes=writeCount(h);await h.el('critical-conversation-start').onclick();
+    assert.equal(h.calls.length,before);assert.equal(audio.spoken.length,0);assert.equal(audio.listens,0);
+    assert.equal(h.el('recording-review').value,'보내기 전 환자 상태 메모');
+    if(resolution==='send'){
+      await h.el('recording-review-apply').onclick();await flush();assert.equal(writeCount(h),writes+1);
+      assert.equal(h.calls.filter(call=>call.url.endsWith('/transcripts')).at(-1).body.text,'보내기 전 환자 상태 메모');
+    }else typeChat(h,'');
+    assert.equal(h.el('recording-review').value,'');assert.equal(h.el('critical-conversation-start').disabled,false);
+    const {run}=await startConversation(h,audio);h.el('critical-conversation-stop').onclick();await run;
+    assert.equal(h.calls.some(call=>/\/confirm|\/submit|\/api\/patients/.test(call.url)),false);
+  }
+});
+
+test('merged chat/conversation: unsent chat blocks field-next and spoken start until cleared before same-workspace review',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,search:'?flow=field'});
+  await h.el('field-next').onclick();await h.el('critical-all').onclick();await flush();h.el('field-back').onclick();
+  openChat(h,'state');typeChat(h,'화면 전환 전에 보관해야 하는 메모');
+  // Pending chat cannot disappear behind a new stage; clearing is explicit.
+  const before=h.calls.length;await h.el('field-next').onclick();await h.el('critical-conversation-start').onclick();
+  assert.equal(h.navigations.length,0);assert.equal(h.calls.length,before);assert.equal(h.el('field-back').hidden,true);
+  assert.equal(audio.spoken.length,0);
+  assert.equal(h.el('recording-review').value,'화면 전환 전에 보관해야 하는 메모');
+  typeChat(h,'');await h.el('field-next').onclick();await h.el('field-next').onclick();
+  assertUnifiedReview(h);assert.equal(h.calls.length,before+1);
+  assert.deepEqual(h.calls.slice(before).map(call=>call.method),['GET']);
+});
+
+test('merged chat/conversation: active spoken sequence disables chat toggle and guards send without a POST',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+  openChat(h,'state');assert.equal(h.el('chat-composer').hidden,false);
+  const writes=writeCount(h),{run}=await startConversation(h,audio);
+  assert.equal(h.el('chat-toggle').disabled,true);assert.equal(h.el('chat-target').disabled,true);
+  assert.equal(h.el('recording-review').disabled,true);assert.equal(h.el('recording-review-apply').disabled,true);
+  // Disabled browser controls cannot change, but direct callback invocation
+  // models a late handler and must still respect the same runner lock.
+  h.el('chat-toggle').onclick();h.el('recording-review').value='늦게 도착한 합성 입력';h.el('recording-review').oninput();
+  await h.el('recording-review-apply').onclick();assert.equal(writeCount(h),writes);
+  assert.equal(h.el('recording-review').value,'늦게 도착한 합성 입력');assert.equal(h.el('chat-composer').hidden,false);
+  h.el('critical-conversation-stop').onclick();await run;assert.equal(h.el('chat-toggle').disabled,false);
+  assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.navigations.length,0);
+});
+
+test('merged chat/conversation: late unsent text before spoken next remains on screen without invoking legacy transfer',async()=>{
+  const audio=conversationAudioFixture(),h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false});
+  const {run}=await startConversation(h,audio);await spokenReply(audio,'맞아요');
+  typeChat(h,'완료 안내 뒤에 도착한 미전송 메모');const before=h.calls.length;
+  await spokenReply(audio,'다음 단계');await run;
+  assert.equal(h.navigations.length,0);assert.equal(h.calls.length,before);
+  assert.equal(h.el('recording-review').value,'완료 안내 뒤에 도착한 미전송 메모');
+  assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').status,'absent');
+});
+
+test('merged chat/conversation: unsent text arriving during final GET invalidates spoken next without losing the draft',async()=>{
+  const audio=conversationAudioFixture();let hold=false,release;const gate=new Promise(resolve=>release=resolve);
+  const h=await criticalHarness({pulse:92},{conversationAudio:audio,criticalAutoread:false,before:call=>hold&&call.method==='GET'?gate:undefined});
+  const {run}=await startConversation(h,audio);await spokenReply(audio,'맞아요');audio.finishSpeak();await flush();
+  hold=true;audio.reply('다음 단계');await flush();typeChat(h,'최종 조회 중 도착한 미전송 메모');
+  hold=false;release(response({session:h.getSession()}));await run;await flush();
+  assert.equal(h.navigations.length,0);assert.equal(h.el('recording-review').value,'최종 조회 중 도착한 미전송 메모');
+  assert.equal(readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000').status,'absent');
+});
+
+// Synthetic server boundary for review-entry defaults. The server alone owns
+// which questions are recorded unavailable; fields are never manufactured here.
+const defaultUnknownQuestions=()=>[
+  question('temperature','체온을 알려 주세요.',['temperature'],'needs_clarification'),
+  question('respiratory_rate','호흡수를 알려 주세요.',['respiratory_rate'],'needs_clarification'),
+  question('glucose','혈당을 알려 주세요.',['glucose'],'needs_clarification')
+];
+async function unknownDefaultsHarness({fields={age:47,pulse:92},metadata=null,questions=defaultUnknownQuestions(),
+    before,afterBulk,recoveryStore=new Map(),conversationAudio=null}={}){
+  const copy=value=>JSON.parse(JSON.stringify(value));
+  const initialMetadata=metadata||Object.fromEntries(questions.flatMap(q=>q.fields.map(field=>[field,
+    {needs_clarification:true,clarification_evidence:['합성 측정값 없음']}])));
+  let session=draft(),bulkCount=0;
+  const cached=new Map();
+  const handler=async call=>{
+    const early=before?await before(call,{session:copy(session),bulkCount}):undefined;
+    if(early!==undefined)return early;
+    if(call.method==='GET')return response({session:copy(session)});
+    const requestKey=call.body.actor_id+'|'+call.body.client_request_id;
+    if(cached.has(requestKey))return response({...copy(cached.get(requestKey)),duplicate:true});
+    if(call.url.endsWith('/api/voice/sessions'))session=draft(1,{}, {actor_id:call.body.actor_id});
+    else if(call.url.endsWith('/transcripts'))session=draft(2,copy(fields),{actor_id:call.body.actor_id,
+      field_metadata:copy(initialMetadata),utterances:[{transcript:'기존 값과 미측정 항목을 구분하는 합성 입력'}],
+      followup:plan(questions[0]||null,{items:copy(questions),unanswered_count:questions.length,unresolved_count:questions.length})});
+    else if(call.url.endsWith('/followup/answers')){
+      assert.equal(call.body.text,'남은 항목 전부 미확인으로 남겨줘');
+      assert.equal(call.body.unavailable,true);assert.equal(call.body.expected_version,session.version);
+      const pending=session.followup.items.filter(q=>q.askable!==false),ids=pending.map(q=>q.id);
+      assert.equal(call.body.question_id,pending[0].id);bulkCount++;
+      const nextMetadata=copy(session.field_metadata);
+      for(const q of pending)for(const field of q.fields)nextMetadata[field]={...nextMetadata[field],
+        needs_clarification:true,followup_unavailable_for:q.id};
+      const done=plan(null,{items:session.followup.items.map(q=>({...q,askable:false,answer_status:'unavailable'})),
+        complete:false,collection_complete:true,unanswered_count:0,unresolved_count:ids.length});
+      session={...session,version:session.version+1,field_metadata:nextMetadata,followup:done};
+      const result={session:copy(session),followup:copy(done),answer:{question_id:call.body.question_id,
+        accepted:true,unavailable:true,unavailable_scope:'remaining',unavailable_question_ids:ids,applied_fields:[],ignored_fields:[]}};
+      cached.set(requestKey,copy(result));if(afterBulk)await afterBulk(call,result);return response(result);
+    }else throw Error('Unexpected synthetic review-defaults write: '+call.url);
+    const result={session:copy(session)};cached.set(requestKey,copy(result));return response(result);
+  };
+  const h=harness(handler,{search:'?flow=field',recoveryStore,criticalAutoread:false,conversationAudio});
+  h.handler=handler;h.getSession=()=>copy(session);h.setSession=value=>{session=copy(value);};h.bulkCount=()=>bulkCount;
+  await flush();await speak(h,'기존 값과 미측정 항목을 구분하는 합성 입력');return h;
+}
+const bulkWrites=h=>h.calls.filter(call=>call.url.endsWith('/followup/answers')&&call.method==='POST');
+
+test('unknown defaults: review entry records missing flagged measurements unavailable once and unblocks next after known-item review',async()=>{
+  const h=await unknownDefaultsHarness(),known=h.getSession().fields;
+  assert.match(h.el('critical-summary').textContent,/4개 대기/);
+  await h.el('field-next').onclick();await flush();
+  assert.equal(h.bulkCount(),1);assert.equal(bulkWrites(h).length,1);assert.equal(h.el('field-back').hidden,false);
+  assert.deepEqual(h.getSession().fields,known);assert.equal(h.el('field-next').disabled,true);
+  assert.deepEqual(h.el('critical-items').children.map(card=>card.attributes['data-critical-id']),['pulse']);
+  await criticalButton(h,'pulse','confirm').onclick();await flush();assert.equal(h.el('field-next').disabled,false);
+  await h.el('field-next').onclick();assertUnifiedReview(h);assert.equal(h.bulkCount(),1);
+  for(const field of ['temperature','respiratory_rate','glucose'])assert.equal(Object.hasOwn(h.getSession().fields,field),false);
+});
+
+test('unknown defaults: a known flagged value remains blocked after the remaining questions are unavailable',async()=>{
+  const questions=[question('pulse','맥박을 다시 확인하세요.',['pulse'],'needs_clarification'),...defaultUnknownQuestions()];
+  const h=await unknownDefaultsHarness({questions});await h.el('field-next').onclick();await flush();
+  assert.equal(h.getSession().fields.pulse,92);assert.equal(criticalButton(h,'pulse','confirm').disabled,true);
+  assert.match(h.el('critical-summary').textContent,/1개 대기/);assert.equal(h.el('field-next').disabled,true);
+  await h.el('field-next').onclick();assert.equal(h.navigations.length,0);assert.equal(h.bulkCount(),1);
+});
+
+test('unknown defaults: all unrecorded measurements stay absent, never zero or normal, while an age-only draft can proceed',async()=>{
+  const h=await unknownDefaultsHarness({fields:{age:47}});await h.el('field-next').onclick();await flush();
+  assert.deepEqual(h.getSession().fields,{age:47});assert.equal(h.el('field-next').disabled,false);assert.equal(h.bulkCount(),1);
+  const summary=textOf(h.el('summary-chips'));assert.match(summary,/체온.*미측정|체온.*모름/);assert.match(summary,/호흡수.*미측정|호흡수.*모름/);assert.match(summary,/혈당.*미측정|혈당.*모름/);
+  assert.doesNotMatch(summary,/혈당 0|체온 0|호흡수 0|호흡 정상/);
+});
+
+test('unknown defaults: double review clicks create one bulk request and block patient switching until it completes',async()=>{
+  let release,hold=false;const gate=new Promise(resolve=>{release=resolve;});
+  const h=await unknownDefaultsHarness({before:async call=>{if(hold&&call.url.endsWith('/followup/answers'))await gate;}});
+  const patient=notebook(h).activeId;hold=true;const first=h.el('field-next').onclick();await flush();
+  const second=h.el('field-next').onclick();await h.el('patient-new').onclick();await flush();
+  assert.equal(bulkWrites(h).length,1);assert.equal(notebook(h).activeId,patient);assert.equal(h.el('field-back').hidden,true);
+  assert.equal(h.el('patient-new').disabled,true);hold=false;release();await Promise.all([first,second]);await flush();
+  assert.equal(h.bulkCount(),1);assert.equal(h.el('field-back').hidden,false);assert.equal(notebook(h).activeId,patient);
+});
+
+test('unknown defaults: definitive bulk rejection keeps review closed and does not automatically retry',async()=>{
+  const h=await unknownDefaultsHarness({before:call=>call.url.endsWith('/followup/answers')?response({error:'SYNTHETIC_REJECTED',message:'합성 거절'},400):undefined});
+  const fields=h.getSession().fields;await h.el('field-next').onclick();await flush();
+  assert.equal(h.el('field-back').hidden,true);assert.equal(h.navigations.length,0);assert.deepEqual(h.getSession().fields,fields);
+  assert.equal(bulkWrites(h).length,1);await flush();assert.equal(bulkWrites(h).length,1);
+  assert.match(h.el('critical-summary').textContent,/4개 대기/);
+});
+
+test('unknown defaults: unknown bulk outcome requires exact explicit retry and retry alone never enters review',async()=>{
+  let lose=true;const h=await unknownDefaultsHarness({afterBulk:()=>{if(lose)throw Error('synthetic response lost');}});
+  const patient=notebook(h).activeId,fields=h.getSession().fields;await h.el('field-next').onclick();await flush();
+  const original=bulkWrites(h)[0];assert.equal(h.el('field-back').hidden,true);assert.equal(h.el('quick-retry').hidden,false);
+  await h.el('patient-new').onclick();await h.el('field-next').onclick();assert.equal(notebook(h).activeId,patient);assert.equal(bulkWrites(h).length,1);
+  lose=false;await h.el('quick-retry').onclick();await flush();assert.deepEqual(bulkWrites(h)[1],original);
+  assert.equal(h.bulkCount(),1);assert.equal(h.el('field-back').hidden,true);assert.deepEqual(h.getSession().fields,fields);
+  await h.el('field-next').onclick();await flush();assert.equal(h.el('field-back').hidden,false);assert.equal(bulkWrites(h).length,2);
+});
+
+test('unknown defaults: pending bulk restores without auto-POST or automatically entering review on reload',async()=>{
+  let lose=true;const audio=conversationAudioFixture(),h=await unknownDefaultsHarness({conversationAudio:audio,afterBulk:()=>{if(lose)throw Error('synthetic response lost');}});
+  await h.el('field-next').onclick();await flush();const original=bulkWrites(h)[0];
+  const restored=harness(h.handler,{search:'?flow=field',recoveryStore:h.recoveryStore,conversationAudio:conversationAudioFixture(),criticalAutoread:false});
+  await flush();assert.equal(restored.calls.some(call=>call.method!=='GET'),false);assert.equal(restored.el('field-back').hidden,true);
+  assert.equal(restored.el('quick-retry').hidden,false);lose=false;await restored.el('quick-retry').onclick();await flush();
+  assert.deepEqual(bulkWrites(restored)[0],original);assert.equal(restored.el('field-back').hidden,true);assert.equal(restored.navigations.length,0);
+});
+
+test('unknown defaults: spoken-review start prepares remaining unknowns before reading the first recorded item',async()=>{
+  const audio=conversationAudioFixture(),h=await unknownDefaultsHarness({conversationAudio:audio});
+  const run=h.el('critical-conversation-start').onclick();await flush();
+  assert.equal(h.bulkCount(),1);assert.equal(h.el('field-back').hidden,false);assert.equal(audio.pending?.phase,'speaking');
+  assert.match(audio.spoken[0],/맥박.*92/);assert.doesNotMatch(audio.spoken[0],/체온|혈당|호흡수/);
+  h.el('critical-conversation-stop').onclick();await run;assert.match(h.el('critical-summary').textContent,/1개 대기/);
+});
+
+test('unknown defaults: zero, unknown and prior flagged values are preserved exactly by bulk preparation',async()=>{
+  const fields={age:47,pulse:0,breathing:'unknown',glucose:123},questions=[...defaultUnknownQuestions(),question('pulse','맥박을 확인하세요.',['pulse'],'needs_clarification')];
+  const h=await unknownDefaultsHarness({fields,questions});await h.el('field-next').onclick();await flush();
+  assert.deepEqual(h.getSession().fields,fields);assert.equal(Object.hasOwn(h.getSession().fields,'temperature'),false);
+  assert.equal(Object.hasOwn(h.getSession().fields,'respiratory_rate'),false);assert.equal(criticalButton(h,'pulse','confirm').disabled,true);
+  assert.equal(criticalButton(h,'glucose','confirm').disabled,true);assert.equal(h.el('field-next').disabled,true);
+});
+
+test('unknown defaults: fresh owner or submitted-context mismatch blocks the bulk command before any write',async()=>{
+  for(const wrong of [{actor_id:'OTHER-CREW'},{state:'SUBMITTED'},{patient_id:'ALREADY-REGISTERED'},{id:'VS-OTHER'}]){
+    let fault=false;
+    const h=await unknownDefaultsHarness({before:(call,state)=>fault&&call.method==='GET'?response({session:{...state.session,...wrong}}):undefined});
+    fault=true;await h.el('field-next').onclick();await flush();
+    assert.equal(bulkWrites(h).length,0,JSON.stringify(wrong));assert.equal(h.el('field-back').hidden,true);
+    assert.equal(h.navigations.length,0);assert.deepEqual(h.getSession().fields,{age:47,pulse:92});
+  }
+});
+
+test('unknown defaults: invalid bulk receipt scope or altered known values never opens review',async()=>{
+  for(const corrupt of [result=>{result.answer.unavailable_scope='single';},result=>{result.answer.accepted=false;},
+    result=>{result.session.fields.pulse=0;}]){
+    const h=await unknownDefaultsHarness({afterBulk:(_call,result)=>corrupt(result)});
+    await h.el('field-next').onclick();await flush();assert.equal(h.el('field-back').hidden,true);
+    assert.equal(h.navigations.length,0);assert.equal(bulkWrites(h).length,1);assert.match(h.el('quick-error').textContent,/모름 처리 결과|입력값 보존/);
+  }
+});
+
+test('unknown defaults: STOP during a spoken-start bulk preserves its result but never restarts audio or enters review',async()=>{
+  const audio=conversationAudioFixture();let hold=false,release;const gate=new Promise(resolve=>{release=resolve;});
+  const h=await unknownDefaultsHarness({conversationAudio:audio,before:async call=>{if(hold&&call.url.endsWith('/followup/answers'))await gate;}});
+  hold=true;const running=h.el('critical-conversation-start').onclick();await flush();
+  assert.equal(bulkWrites(h).length,1);h.el('critical-conversation-stop').onclick();hold=false;release();await running;await flush();
+  assert.equal(h.bulkCount(),1);assert.equal(audio.spoken.length,0);assert.equal(audio.listens,0);
+  assert.equal(h.el('field-back').hidden,true);assert.deepEqual(h.getSession().fields,{age:47,pulse:92});assert.equal(h.navigations.length,0);
+});
+
+test('unknown defaults: hiding the tab during a spoken-start fresh GET prevents even the bulk command',async()=>{
+  const audio=conversationAudioFixture();let hold=false,release;const gate=new Promise(resolve=>{release=resolve;});
+  const h=await unknownDefaultsHarness({conversationAudio:audio,before:async call=>{if(hold&&call.method==='GET')await gate;}});
+  hold=true;const running=h.el('critical-conversation-start').onclick();await flush();h.document.hidden=true;h.events.visibilitychange();
+  hold=false;release();await running;await flush();assert.equal(bulkWrites(h).length,0);
+  assert.equal(audio.spoken.length,0);assert.equal(audio.listens,0);assert.equal(h.el('field-back').hidden,true);
+  h.document.hidden=false;h.events.visibilitychange();await flush();assert.equal(bulkWrites(h).length,0);assert.equal(audio.spoken.length,0);
+});
+
+function unifiedOperationServer({loseConfirm=false}={}){
+  let current=null,confirmLost=false,confirmMutations=0;const cached=new Map(),copy=value=>JSON.parse(JSON.stringify(value));
+  const handler=call=>{
+    if(call.method==='GET')return response({session:copy(current)});
+    const key=call.body.actor_id+'|'+call.body.client_request_id;
+    if(cached.has(key))return response({...copy(cached.get(key)),duplicate:true});
+    if(call.url.endsWith('/api/voice/sessions'))current=draft(1,{},{actor_id:call.body.actor_id,utterances:[]});
+    else if(call.url.endsWith('/transcripts'))current=draft(2,{age:47},{actor_id:call.body.actor_id,utterances:[{transcript:call.body.text}]});
+    else if(call.url.endsWith('/confirm')){assert.equal(call.body.expected_version,current.version);current={...current,confirmed:true};confirmMutations++;}
+    else if(call.url.endsWith('/submit')){assert.equal(current.confirmed,true);assert.equal(call.body.start_inquiry,false);current={...current,state:'SUBMITTED',patient_id:'P-UNIFIED'};}
+    else throw Error('Unexpected unified operation '+call.url);
+    const result={session:copy(current),...(current.patient_id?{patient:{id:current.patient_id,state:'WAITING',version:1}}:{})};cached.set(key,copy(result));
+    if(loseConfirm&&call.url.endsWith('/confirm')&&!confirmLost){confirmLost=true;throw Error('confirmation applied; response lost');}
+    return response(result);
+  };
+  return {handler,getSession:()=>copy(current),confirmMutations:()=>confirmMutations};
+}
+
+test('registered unified note restores the same submitted session read-only without creating or editing a patient',async()=>{
+  const server=unifiedOperationServer(),first=harness(server.handler,{search:'?flow=field'});await flush();await speak(first,'47세 합성 환자');
+  const context=first.workspace.options.getContext(),sid=context.session.id,actor=context.actor;
+  const confirmed=await context.flow.confirm();first.workspace.options.onResult(confirmed);
+  const submitted=await context.flow.submit({consent:true,lat:37.5051,lon:126.9573,required_capabilities:[],resource_demands:{ed_bed:1}});
+  first.workspace.options.onResult(submitted);assert.equal(currentNote(first).sessionId,sid);
+  const restored=harness(server.handler,{search:'?flow=field',recoveryStore:first.recoveryStore});await flush();
+  const next=restored.workspace.options.getContext();assert.equal(next.session.id,sid);assert.equal(next.actor,actor);
+  assert.equal(next.session.state,'SUBMITTED');assert.equal(next.session.patient_id,'P-UNIFIED');
+  assert.ok(restored.calls.every(call=>call.method==='GET'));assert.equal(restored.el('quick-record').disabled,true);
+  assert.equal(restored.el('followup-record').disabled,true);assert.equal(restored.el('field-next').disabled,true);
+  const before=restored.calls.length;await restored.el('quick-record').onclick();await restored.el('field-next').onclick();
+  await assert.rejects(next.flow.correct({changes:{pulse:92}}));await assert.rejects(next.flow.submit({consent:true,lat:37,lon:126,required_capabilities:[],resource_demands:{ed_bed:1}}));
+  assert.equal(restored.calls.length,before);assert.deepEqual(restored.navigations,[]);assert.equal(server.confirmMutations(),1);
+});
+
+test('unified confirmation pending checkpoint restores a canonical workflow attempt and retries only the original request after GET',async()=>{
+  const server=unifiedOperationServer({loseConfirm:true}),first=harness(server.handler,{search:'?flow=field'});await flush();await speak(first,'47세 합성 환자');
+  const context=first.workspace.options.getContext();await assert.rejects(context.flow.confirm(),error=>error.uncertain);
+  first.workspace.options.onError(Error('synthetic lost response'));const checkpoint=currentNote(first),original=first.calls.find(call=>call.url.endsWith('/confirm'));
+  assert.equal(checkpoint.pending.job.phase,'confirm');assert.equal(checkpoint.pending.attempt.target,'workflow');
+  assert.equal(checkpoint.pending.attempt.apiText,'');assert.equal(checkpoint.pending.attempt.sourceText,'');
+  assert.deepEqual(checkpoint.pending.request.body,original.body);assert.equal(checkpoint.pending.request.body.expected_version,2);
+  const restored=harness(server.handler,{search:'?flow=field',recoveryStore:first.recoveryStore});await flush();
+  assert.ok(restored.calls.every(call=>call.method==='GET'),'reload never re-posts a clinical operation');
+  assert.equal(restored.el('field-operation-recovery').hidden,false);assert.equal(restored.el('patient-new').disabled,true);
+  const before=restored.calls.length;await restored.el('field-operation-retry').onclick();await flush();
+  const retryCalls=restored.calls.slice(before);assert.equal(retryCalls[0].method,'GET');
+  const retry=retryCalls.find(call=>call.method==='POST');assert.deepEqual(retry,original);
+  assert.equal(retryCalls.at(-1).method,'GET');assert.equal(server.confirmMutations(),1);
+  assert.equal(currentNote(restored).pending,null);assert.equal(restored.workspace.options.getContext().session.confirmed,true);
+  assert.deepEqual(restored.navigations,[]);
+});
+
+test('explicit legacy session link adopts the same verified draft into the unified notebook by GET only',async()=>{
+  const stored=draft(7,{age:61},{id:'VS-EXISTING',actor_id:'CREW-EXISTING',utterances:[{transcript:'기존 서버 원문'}]});
+  const h=harness(call=>{assert.equal(call.method,'GET');return response({session:stored});},{search:'?sid=VS-EXISTING&actor_id=CREW-EXISTING'});await flush();
+  const context=h.workspace.options.getContext();assert.equal(context.session.id,'VS-EXISTING');assert.equal(context.actor,'CREW-EXISTING');
+  assert.equal(currentNote(h).sessionId,'VS-EXISTING');assert.equal(currentNote(h).version,7);assert.equal(currentNote(h).actorId,'CREW-EXISTING');
+  assert.match(textOf(h.el('quick-history')),/기존 서버 원문/);assert.ok(h.calls.every(call=>call.method==='GET'));assert.deepEqual(h.navigations,[]);
+});
+
+test('legacy link with a mismatched registered patient remains blocked and never creates a replacement draft',async()=>{
+  const stored=draft(7,{age:61},{id:'VS-EXISTING',actor_id:'CREW-EXISTING',state:'SUBMITTED',patient_id:'P-OTHER'});
+  const h=harness(call=>{assert.equal(call.method,'GET');return response({session:stored});},{search:'?sid=VS-EXISTING&actor_id=CREW-EXISTING&pid=P-REQUESTED'});await flush();
+  assert.equal(h.workspace.options.getContext().session,null);assert.equal(h.el('quick-record').disabled,true);
+  assert.match(h.el('quick-error').textContent,/환자 ID가 다릅니다/);assert.ok(h.calls.every(call=>call.method==='GET'));assert.deepEqual(h.navigations,[]);
+});
+
+test('failed second legacy-record GET never attaches its handoff text to the original patient',async()=>{
+  let failTarget=null,targetReads=0;
+  const server=patientServer({before:call=>{
+    if(failTarget&&call.method==='GET'&&call.url.includes('/'+failTarget+'?')&&++targetReads===2)return response({error:'synthetic temporary failure'},503);
+  }});
+  const first=harness(server.handler);await flush();await speak(first,'환자 A 정보');const a=notebook(first).activeId;
+  await first.el('patient-new').onclick();await speak(first,'환자 B 정보');const b=notebook(first).activeId,target=notePayload(first,b);
+  await selectNote(first,a);const original=notePayload(first,a);
+  const tabStore=new Map(),handoffStorage={setItem:(key,value)=>tabStore.set(key,value)};
+  writeDraftHandoff(handoffStorage,{serverOrigin:'http://127.0.0.1:8000',actorId:target.actorId,sessionId:target.sessionId,version:target.version,unappliedText:'B 환자에게만 속하는 미반영 원문',intent:'recommend'});
+  failTarget=target.sessionId;
+  const restored=harness(server.handler,{search:'?voice_handoff=1',tabStore,recoveryStore:first.recoveryStore});await flush();
+  assert.equal(targetReads,2,'initial verification succeeds, then notebook switch read fails');
+  assert.equal(notebook(restored).activeId,a);assert.equal(restored.workspace.options.getContext().session.id,original.sessionId);
+  assert.equal(restored.workspace.options.getContext().actor,original.actorId);
+  assert.equal(notePayload(restored,a).recoveryText,original.recoveryText);assert.equal(notePayload(restored,a).manualText,original.manualText);
+  assert.equal(notePayload(restored,b).recoveryText,target.recoveryText);
+  assert.doesNotMatch(restored.el('recording-excluded-text').textContent,/B 환자에게만/);
+  assert.ok(restored.calls.every(call=>call.method==='GET'));assert.deepEqual(restored.navigations,[]);
+  assert.match(restored.el('quick-error').textContent,/기존 환자 기록으로 전환하지 못했습니다/);
+  assert.equal(readDraftHandoff(restored.sessionStorage,'http://127.0.0.1:8000').payload.unappliedText,'B 환자에게만 속하는 미반영 원문');
+});
+
+test('legacy adoption read locks recording and patient controls, then aborts on an external patient pointer change',async()=>{
+  const server=patientServer(),first=harness(server.handler);await flush();await speak(first,'환자 A 정보');const a=notebook(first).activeId;
+  await first.el('patient-new').onclick();await speak(first,'환자 B 정보');const b=notebook(first).activeId;await selectNote(first,a);
+  const original=notePayload(first,a);let release;
+  const target=draft(7,{age:72},{id:'VS-NEW-LEGACY',actor_id:'CREW-NEW-LEGACY',utterances:[]});
+  const held=new Promise(resolve=>{release=resolve;});
+  const restored=harness(call=>call.method==='GET'&&call.url.includes('/VS-NEW-LEGACY?')?held:server.handler(call),
+    {search:'?sid=VS-NEW-LEGACY&actor_id=CREW-NEW-LEGACY',recoveryStore:first.recoveryStore});await flush();
+  assert.equal(restored.el('quick-record').disabled,true);assert.equal(restored.el('patient-new').disabled,true);assert.equal(restored.el('patient-switch').disabled,true);
+  const before=restored.calls.length;await restored.el('quick-record').onclick();await restored.el('patient-new').onclick();
+  assert.equal(restored.capture.starts,0);assert.equal(restored.calls.length,before);assert.equal(notebook(restored).activeId,a);
+  const external=writePatientRecords(restored.localStorage,selectPatientRecord(notebook(restored),b),{expectedRaw:restored.localStorage.getItem(PATIENT_RECORDS_KEY)});
+  release(response({session:target}));await flush();
+  assert.equal(restored.localStorage.getItem(PATIENT_RECORDS_KEY),external.raw,'late adoption cannot overwrite the newer pointer');
+  const context=restored.workspace.options.getContext();assert.equal(context.session.id,original.sessionId);assert.equal(context.actor,original.actorId);
+  assert.equal(notebook(restored).records.length,2);assert.ok(notebook(restored).records.every(record=>!record.checkpoint.includes('VS-NEW-LEGACY')));
+  assert.equal(restored.el('quick-record').disabled,true);assert.ok(restored.calls.every(call=>call.method==='GET'));assert.deepEqual(restored.navigations,[]);
+  assert.match(restored.el('quick-error').textContent,/다른 탭|현재 환자|기록 목록/);
+});
 
 test('recognition context: a long report sends one-fragment variants and immediately reasks only the conflicted vital',async()=>{
   const age=question('age','나이를 알려 주세요.',['age']);
@@ -2027,8 +2721,8 @@ test('recognition context: a conflicted answer stays open and main review carrie
   assert.equal(h.calls[2].body.text,'19');assert.deepEqual(h.calls[2].body.recognition_alternatives,['90']);
   assert.equal(h.el('followup-question').textContent,pulse.question);assert.equal(h.el('followup-deferred').hidden,true);
   const row=h.el('quick-history').children.find(row=>row.className.includes('is-context-review')),button=row.children.at(-1),before=h.calls.length;
-  assert.equal(button.textContent,'같은 초안을 메인에서 검토');button.onclick();
-  assert.equal(h.navigations.at(-1),'./?voice_handoff=1');const saved=readDraftHandoff(h.sessionStorage,'http://127.0.0.1:8000');assert.equal(saved.status,'valid');assert.equal(saved.payload.sessionId,'VS-PAGE');assert.equal(saved.payload.version,3);
+  assert.equal(button.textContent,'같은 기록 내용 확인');button.onclick();
+  assertUnifiedReview(h,{sid:'VS-PAGE',version:3});assert.equal(h.sessionStorage.getItem(DRAFT_HANDOFF_KEY),null,'same-page review creates no second handoff ledger');
   assert.equal(h.calls.length,before,'review navigation makes no POST or confirmation');
   await h.el('patient-new').onclick();await flush();button.onclick();assert.match(h.el('quick-error').textContent,/현재 환자의 최신 기록/);
 });
@@ -2037,7 +2731,7 @@ test('recognition context: unsupported derived fields get a same-draft review ac
   const h=harness((call,n)=>n===1?response({session:draft()}):response({session:draft(2,{age:47},{field_metadata:{chief_complaint:{needs_clarification:true,recognition_context:{revision:RECOGNITION_CONTEXT_REVISION}}},followup:plan(null)}),recognition_context:{status:'needs_clarification',disputed_fields:['chief_complaint'],candidates:[{field:'chief_complaint',values:['cardiac','other']}]}}));
   await h.hold('quick-record',{say:[['흉통','복통']]});
   const review=h.el('quick-history').children.find(row=>row.className.includes('is-context-review'));
-  assert.ok(textOf(review).includes('메인 검토에서 직접 수정하거나 값을 비우세요'));assert.equal(review.children.at(-1).textContent,'같은 초안을 메인에서 검토');
+  assert.ok(textOf(review).includes('내용 확인에서 직접 수정하거나 값을 비우세요'));assert.equal(review.children.at(-1).textContent,'같은 기록 내용 확인');
 });
 
 

@@ -1,0 +1,4585 @@
+{
+  "kind": "allocation_evaluation",
+  "examined": 50,
+  "counts": {
+    "observed_valid": 46,
+    "actual_valid": 41,
+    "paired_with_greedy": 46,
+    "strictly_better": 20,
+    "tied": 26,
+    "skipped_above_demo_size": 1,
+    "actual_invalid": 5,
+    "needs_review": 3
+  },
+  "runs": [
+    {
+      "id": "ALLOC-baseline-0009",
+      "profile": "baseline",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 141,
+            "bound": 141.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 167,
+            "bound": 167.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 165,
+            "bound": 165.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          141,
+          167,
+          165
+        ],
+        "elapsed_seconds": 0.2954209999879822
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 46,
+          "mean_delay": 23.5,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 36,
+          "mean_delay": 23.857142857142858,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 35,
+          "mean_delay": 23.571428571428573,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        141,
+        170,
+        181
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        141,
+        167,
+        165
+      ]
+    },
+    {
+      "id": "ALLOC-quiet-0009",
+      "profile": "quiet",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 52,
+            "bound": 52.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 54,
+            "bound": 54.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          0,
+          52,
+          54
+        ],
+        "elapsed_seconds": 0.013842399988789111
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 2,
+          "unassigned": 0,
+          "max_delay": 46,
+          "mean_delay": 26.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 28,
+          "mean_delay": 18.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        0,
+        52,
+        54
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        0,
+        52,
+        54
+      ]
+    },
+    {
+      "id": "ALLOC-one_patient-0009",
+      "profile": "one_patient",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 10,
+            "bound": 10.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          10,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.0025566999975126237
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 1,
+          "unassigned": 0,
+          "max_delay": 10,
+          "mean_delay": 10.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-one_hospital-0009",
+      "profile": "one_hospital",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 4,
+            "bound": 4.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 2,
+            "bound": 2.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 19,
+            "bound": 19.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 70,
+            "bound": 70.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          4,
+          3,
+          2,
+          19,
+          0,
+          70
+        ],
+        "elapsed_seconds": 0.005951700004516169
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 6,
+          "unassigned": 4,
+          "max_delay": 10,
+          "mean_delay": 9.5,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 3,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 2,
+          "max_delay": 70,
+          "mean_delay": 70.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        4,
+        3,
+        2,
+        19,
+        0,
+        70
+      ],
+      "solver_objective": [
+        4,
+        3,
+        2,
+        19,
+        0,
+        70
+      ]
+    },
+    {
+      "id": "ALLOC-small_region-0009",
+      "profile": "small_region",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 144,
+            "bound": 144.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 161,
+            "bound": 161.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 255,
+            "bound": 255.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          3,
+          0,
+          0,
+          144,
+          161,
+          255
+        ],
+        "elapsed_seconds": 0.06179750000592321
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 10,
+          "unassigned": 3,
+          "max_delay": 32,
+          "mean_delay": 20.571428571428573,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 53,
+          "mean_delay": 40.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 70,
+          "mean_delay": 42.5,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        3,
+        0,
+        0,
+        157,
+        175,
+        269
+      ],
+      "solver_objective": [
+        3,
+        0,
+        0,
+        144,
+        161,
+        255
+      ]
+    },
+    {
+      "id": "ALLOC-many_hospitals-0009",
+      "profile": "many_hospitals",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 171,
+            "bound": -203.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          171,
+          101,
+          100
+        ],
+        "elapsed_seconds": 3.002704599988647
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 31,
+          "mean_delay": 21.375,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 30,
+          "mean_delay": 20.2,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 28,
+          "mean_delay": 14.285714285714286,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        171,
+        101,
+        100
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        171,
+        101,
+        100
+      ]
+    },
+    {
+      "id": "ALLOC-many_patients-0009",
+      "profile": "many_patients",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 371,
+            "bound": -886.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          1,
+          0,
+          1,
+          371,
+          510,
+          1326
+        ],
+        "elapsed_seconds": 3.0033941000001505
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 20,
+          "unassigned": 1,
+          "max_delay": 38,
+          "mean_delay": 19.526315789473685,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 19,
+          "unassigned": 0,
+          "max_delay": 72,
+          "mean_delay": 26.842105263157894,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 25,
+          "unassigned": 1,
+          "max_delay": 100,
+          "mean_delay": 55.25,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        1,
+        0,
+        4,
+        363,
+        438,
+        797
+      ],
+      "solver_objective": [
+        1,
+        0,
+        1,
+        371,
+        510,
+        1326
+      ]
+    },
+    {
+      "id": "ALLOC-rural-0009",
+      "profile": "rural",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 4,
+            "bound": 4.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 349,
+            "bound": 349.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 78,
+            "bound": 78.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 205,
+            "bound": 205.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          3,
+          4,
+          3,
+          349,
+          78,
+          205
+        ],
+        "elapsed_seconds": 0.040802499977871776
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 9,
+          "unassigned": 3,
+          "max_delay": 83,
+          "mean_delay": 58.166666666666664,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 4,
+          "max_delay": 78,
+          "mean_delay": 78.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 3,
+          "max_delay": 106,
+          "mean_delay": 68.33333333333333,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        3,
+        4,
+        3,
+        349,
+        78,
+        205
+      ],
+      "solver_objective": [
+        3,
+        4,
+        3,
+        349,
+        78,
+        205
+      ]
+    },
+    {
+      "id": "ALLOC-long_distance-0009",
+      "profile": "long_distance",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 651,
+            "bound": 651.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 1235,
+            "bound": 1235.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 712,
+            "bound": 712.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          1,
+          651,
+          1235,
+          712
+        ],
+        "elapsed_seconds": 0.1831520000123419
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 146,
+          "mean_delay": 130.2,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 194,
+          "mean_delay": 137.22222222222223,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 1,
+          "max_delay": 170,
+          "mean_delay": 142.4,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        1,
+        651,
+        1235,
+        712
+      ],
+      "solver_objective": [
+        0,
+        0,
+        1,
+        651,
+        1235,
+        712
+      ]
+    },
+    {
+      "id": "ALLOC-surge-0009",
+      "profile": "surge",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 822,
+            "bound": -1037.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          1,
+          0,
+          0,
+          822,
+          1105,
+          1145
+        ],
+        "elapsed_seconds": 3.011173900013091
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 24,
+          "unassigned": 1,
+          "max_delay": 92,
+          "mean_delay": 35.73913043478261,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 20,
+          "unassigned": 0,
+          "max_delay": 103,
+          "mean_delay": 55.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 20,
+          "unassigned": 0,
+          "max_delay": 102,
+          "mean_delay": 57.25,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        1,
+        2,
+        7,
+        618,
+        844,
+        767
+      ],
+      "solver_objective": [
+        1,
+        0,
+        0,
+        822,
+        1105,
+        1145
+      ]
+    },
+    {
+      "id": "ALLOC-mass_casualty-0009",
+      "profile": "mass_casualty",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "FEASIBLE",
+            "value": 11,
+            "bound": -9.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          11,
+          1854,
+          1579,
+          983
+        ],
+        "elapsed_seconds": 3.0053199999965727
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 24,
+          "unassigned": 0,
+          "max_delay": 147,
+          "mean_delay": 77.25,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 18,
+          "unassigned": 0,
+          "max_delay": 142,
+          "mean_delay": 87.72222222222223,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 22,
+          "unassigned": 11,
+          "max_delay": 149,
+          "mean_delay": 89.36363636363636,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        3,
+        6,
+        17,
+        973,
+        1001,
+        567
+      ],
+      "solver_objective": [
+        0,
+        0,
+        11,
+        1854,
+        1579,
+        983
+      ]
+    },
+    {
+      "id": "ALLOC-near_full-0009",
+      "profile": "near_full",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 2,
+            "bound": 2.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 343,
+            "bound": 343.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 267,
+            "bound": 267.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 322,
+            "bound": 322.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          1,
+          2,
+          343,
+          267,
+          322
+        ],
+        "elapsed_seconds": 0.531752199982293
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 86,
+          "mean_delay": 57.166666666666664,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 6,
+          "unassigned": 1,
+          "max_delay": 92,
+          "mean_delay": 53.4,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 8,
+          "unassigned": 2,
+          "max_delay": 96,
+          "mean_delay": 53.666666666666664,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        1,
+        1,
+        3,
+        267,
+        238,
+        233
+      ],
+      "solver_objective": [
+        0,
+        1,
+        2,
+        343,
+        267,
+        322
+      ]
+    },
+    {
+      "id": "ALLOC-fully_occupied-0009",
+      "profile": "fully_occupied",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 8,
+            "bound": 8.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 7,
+            "bound": 7.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 5,
+            "bound": 5.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          8,
+          7,
+          5,
+          0,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.308949099999154
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 8,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 7,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 5,
+          "unassigned": 5,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        8,
+        7,
+        5,
+        0,
+        0,
+        0
+      ],
+      "solver_objective": [
+        8,
+        7,
+        5,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-zero_beds-0009",
+      "profile": "zero_beds",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 7,
+            "bound": 7.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 5,
+            "bound": 5.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 8,
+            "bound": 8.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          7,
+          5,
+          8,
+          0,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.08892609999747947
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 7,
+          "unassigned": 7,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 5,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 8,
+          "unassigned": 8,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        7,
+        5,
+        8,
+        0,
+        0,
+        0
+      ],
+      "solver_objective": [
+        7,
+        5,
+        8,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-no_special_team-0009",
+      "profile": "no_special_team",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 6,
+            "bound": 6.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 8,
+            "bound": 8.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 6,
+            "bound": 6.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          6,
+          8,
+          6,
+          0,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.19004129999666475
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 6,
+          "unassigned": 6,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 8,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 6,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        6,
+        8,
+        6,
+        0,
+        0,
+        0
+      ],
+      "solver_objective": [
+        6,
+        8,
+        6,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-team_bottleneck-0009",
+      "profile": "team_bottleneck",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 195,
+            "bound": -334.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          195,
+          357,
+          323
+        ],
+        "elapsed_seconds": 3.0011523000139277
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 37,
+          "mean_delay": 21.666666666666668,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 117,
+          "mean_delay": 59.5,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 80,
+          "mean_delay": 64.6,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        1,
+        3,
+        231,
+        250,
+        137
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        195,
+        357,
+        323
+      ]
+    },
+    {
+      "id": "ALLOC-bed_bottleneck-0009",
+      "profile": "bed_bottleneck",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 71,
+            "bound": 71.0
+          },
+          {
+            "index": 4,
+            "status": "FEASIBLE",
+            "value": 358,
+            "bound": -468.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          71,
+          358,
+          323
+        ],
+        "elapsed_seconds": 3.0015615000156686
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 29,
+          "mean_delay": 17.75,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 10,
+          "unassigned": 0,
+          "max_delay": 67,
+          "mean_delay": 35.8,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 99,
+          "mean_delay": 53.833333333333336,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        3,
+        61,
+        324,
+        159
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        71,
+        358,
+        323
+      ]
+    },
+    {
+      "id": "ALLOC-heterogeneous_hospitals-0009",
+      "profile": "heterogeneous_hospitals",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 215,
+            "bound": 215.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 178,
+            "bound": 178.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 102,
+            "bound": 102.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          1,
+          1,
+          215,
+          178,
+          102
+        ],
+        "elapsed_seconds": 0.07399979999172501
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 38,
+          "mean_delay": 26.875,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 1,
+          "max_delay": 50,
+          "mean_delay": 29.666666666666668,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 5,
+          "unassigned": 1,
+          "max_delay": 40,
+          "mean_delay": 25.5,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        1,
+        1,
+        215,
+        178,
+        102
+      ],
+      "solver_objective": [
+        0,
+        1,
+        1,
+        215,
+        178,
+        102
+      ]
+    },
+    {
+      "id": "ALLOC-scarce_department-0009",
+      "profile": "scarce_department",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 229,
+            "bound": 229.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 140,
+            "bound": 140.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 126,
+            "bound": 126.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          229,
+          140,
+          126
+        ],
+        "elapsed_seconds": 0.19265219999942929
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 44,
+          "mean_delay": 28.625,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 61,
+          "mean_delay": 28.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 32,
+          "mean_delay": 18.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        1,
+        220,
+        131,
+        98
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        229,
+        140,
+        126
+      ]
+    },
+    {
+      "id": "ALLOC-no_compatible-0009",
+      "profile": "no_compatible",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 7,
+            "bound": 7.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 8,
+            "bound": 8.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 5,
+            "bound": 5.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          7,
+          8,
+          5,
+          0,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.003732999990461394
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 7,
+          "unassigned": 7,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 8,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 5,
+          "unassigned": 5,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        7,
+        8,
+        5,
+        0,
+        0,
+        0
+      ],
+      "solver_objective": [
+        7,
+        8,
+        5,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-few_acceptances-0009",
+      "profile": "few_acceptances",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 204,
+            "bound": 204.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 54,
+            "bound": 54.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 154,
+            "bound": 154.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          1,
+          3,
+          3,
+          204,
+          54,
+          154
+        ],
+        "elapsed_seconds": 0.042007100011687726
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 7,
+          "unassigned": 1,
+          "max_delay": 51,
+          "mean_delay": 34.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 3,
+          "max_delay": 32,
+          "mean_delay": 27.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 8,
+          "unassigned": 3,
+          "max_delay": 40,
+          "mean_delay": 30.8,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        1,
+        3,
+        3,
+        204,
+        54,
+        154
+      ],
+      "solver_objective": [
+        1,
+        3,
+        3,
+        204,
+        54,
+        154
+      ]
+    },
+    {
+      "id": "ALLOC-no_response-0009",
+      "profile": "no_response",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 4,
+            "bound": 4.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 9,
+            "bound": 9.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 7,
+            "bound": 7.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          4,
+          9,
+          7,
+          0,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.0038825999945402145
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 4,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 9,
+          "unassigned": 9,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 7,
+          "unassigned": 7,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        4,
+        9,
+        7,
+        0,
+        0,
+        0
+      ],
+      "solver_objective": [
+        4,
+        9,
+        7,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-expired_acceptances-0009",
+      "profile": "expired_acceptances",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 5,
+            "bound": 5.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 5,
+            "bound": 5.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 10,
+            "bound": 10.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          5,
+          5,
+          10,
+          0,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.0038175999943632632
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 5,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 5,
+          "unassigned": 5,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 10,
+          "unassigned": 10,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        5,
+        5,
+        10,
+        0,
+        0,
+        0
+      ],
+      "solver_objective": [
+        5,
+        5,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-all_high-0009",
+      "profile": "all_high",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 408,
+            "bound": -929.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          408,
+          0,
+          0
+        ],
+        "elapsed_seconds": 3.001975199993467
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 20,
+          "unassigned": 0,
+          "max_delay": 46,
+          "mean_delay": 20.4,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        432,
+        0,
+        0
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        408,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-all_low-0009",
+      "profile": "all_low",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 2,
+            "bound": 2.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 454,
+            "bound": -367.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          2,
+          0,
+          0,
+          454
+        ],
+        "elapsed_seconds": 3.0017994999943767
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 20,
+          "unassigned": 2,
+          "max_delay": 41,
+          "mean_delay": 25.22222222222222,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        2,
+        0,
+        0,
+        454
+      ],
+      "solver_objective": [
+        0,
+        0,
+        2,
+        0,
+        0,
+        454
+      ]
+    },
+    {
+      "id": "ALLOC-unknown_priority-0009",
+      "profile": "unknown_priority",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 457,
+            "bound": -365.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          457,
+          0,
+          0
+        ],
+        "elapsed_seconds": 3.0016412000113633
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 20,
+          "unassigned": 0,
+          "max_delay": 40,
+          "mean_delay": 22.85,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        517,
+        0,
+        0
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        457,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-self_reported_low-0009",
+      "profile": "self_reported_low",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 498,
+            "bound": -564.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          498,
+          0,
+          0
+        ],
+        "elapsed_seconds": 3.0016396999999415
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 20,
+          "unassigned": 0,
+          "max_delay": 41,
+          "mean_delay": 24.9,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 0,
+          "unassigned": 0,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        1,
+        0,
+        0,
+        464,
+        0,
+        0
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        498,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-tight_deadlines-0009",
+      "profile": "tight_deadlines",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 10,
+            "bound": 10.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 5,
+            "bound": 5.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 3,
+            "bound": 3.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 8,
+            "bound": 8.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          10,
+          3,
+          5,
+          3,
+          8,
+          0
+        ],
+        "elapsed_seconds": 0.00945119999232702
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 11,
+          "unassigned": 10,
+          "max_delay": 3,
+          "mean_delay": 3.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 3,
+          "max_delay": 8,
+          "mean_delay": 8.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 5,
+          "unassigned": 5,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        10,
+        3,
+        5,
+        3,
+        8,
+        0
+      ],
+      "solver_objective": [
+        10,
+        3,
+        5,
+        3,
+        8,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-already_overdue-0009",
+      "profile": "already_overdue",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 8,
+            "bound": 8.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 6,
+            "bound": 6.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 6,
+            "bound": 6.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          8,
+          6,
+          6,
+          0,
+          0,
+          0
+        ],
+        "elapsed_seconds": 0.004190400009974837
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 8,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 6,
+          "unassigned": 6,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 6,
+          "max_delay": null,
+          "mean_delay": null,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        8,
+        6,
+        6,
+        0,
+        0,
+        0
+      ],
+      "solver_objective": [
+        8,
+        6,
+        6,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ALLOC-long_treatment-0009",
+      "profile": "long_treatment",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 146,
+            "bound": 146.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 87,
+            "bound": 87.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 113,
+            "bound": -277.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          146,
+          87,
+          113
+        ],
+        "elapsed_seconds": 3.00098749998142
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 32,
+          "mean_delay": 18.25,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 22,
+          "mean_delay": 14.5,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 30,
+          "mean_delay": 18.833333333333332,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        146,
+        87,
+        113
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        146,
+        87,
+        113
+      ]
+    },
+    {
+      "id": "ALLOC-short_treatment-0009",
+      "profile": "short_treatment",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 93,
+            "bound": 93.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 244,
+            "bound": 244.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 111,
+            "bound": 109.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          93,
+          244,
+          111
+        ],
+        "elapsed_seconds": 3.001300599979004
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 34,
+          "mean_delay": 23.25,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 11,
+          "unassigned": 0,
+          "max_delay": 38,
+          "mean_delay": 22.181818181818183,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 39,
+          "mean_delay": 22.2,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        93,
+        244,
+        111
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        93,
+        244,
+        111
+      ]
+    },
+    {
+      "id": "ALLOC-multi_bed_demand-0009",
+      "profile": "multi_bed_demand",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 1,
+            "bound": 1.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 190,
+            "bound": 190.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 274,
+            "bound": 274.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 295,
+            "bound": 295.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          1,
+          0,
+          0,
+          190,
+          274,
+          295
+        ],
+        "elapsed_seconds": 0.4508067999850027
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 5,
+          "unassigned": 1,
+          "max_delay": 91,
+          "mean_delay": 47.5,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 52,
+          "mean_delay": 34.25,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 61,
+          "mean_delay": 42.142857142857146,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        1,
+        0,
+        1,
+        149,
+        293,
+        231
+      ],
+      "solver_objective": [
+        1,
+        0,
+        0,
+        190,
+        274,
+        295
+      ]
+    },
+    {
+      "id": "ALLOC-team_only_demand-0009",
+      "profile": "team_only_demand",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 51,
+            "bound": 51.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 187,
+            "bound": 187.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 388,
+            "bound": -425.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          51,
+          187,
+          388
+        ],
+        "elapsed_seconds": 3.0013667999883182
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 28,
+          "mean_delay": 12.75,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 37,
+          "mean_delay": 26.714285714285715,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 69,
+          "mean_delay": 43.111111111111114,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        51,
+        212,
+        405
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        51,
+        187,
+        388
+      ]
+    },
+    {
+      "id": "ALLOC-known_release-0009",
+      "profile": "known_release",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 177,
+            "bound": -349.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          177,
+          117,
+          113
+        ],
+        "elapsed_seconds": 3.0020583999867085
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 35,
+          "mean_delay": 22.125,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 36,
+          "mean_delay": 19.5,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 33,
+          "mean_delay": 18.833333333333332,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        177,
+        117,
+        113
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        177,
+        117,
+        113
+      ]
+    },
+    {
+      "id": "ALLOC-unknown_release-0009",
+      "profile": "unknown_release",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 69,
+            "bound": 69.0
+          },
+          {
+            "index": 4,
+            "status": "FEASIBLE",
+            "value": 188,
+            "bound": -408.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          69,
+          188,
+          204
+        ],
+        "elapsed_seconds": 3.0050986999995075
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 26,
+          "mean_delay": 17.25,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 37,
+          "mean_delay": 20.88888888888889,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 54,
+          "mean_delay": 29.142857142857142,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        69,
+        194,
+        151
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        69,
+        188,
+        204
+      ]
+    },
+    {
+      "id": "ALLOC-stale_capacity-0009",
+      "profile": "stale_capacity",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 50,
+            "bound": 50.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 66,
+            "bound": 66.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 225,
+            "bound": -449.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          50,
+          66,
+          225
+        ],
+        "elapsed_seconds": 3.001642700022785
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 23,
+          "mean_delay": 12.5,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 21,
+          "mean_delay": 11.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 10,
+          "unassigned": 0,
+          "max_delay": 34,
+          "mean_delay": 22.5,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": false,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        50,
+        66,
+        250
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        50,
+        66,
+        225
+      ]
+    },
+    {
+      "id": "ALLOC-pessimistic_capacity-0009",
+      "profile": "pessimistic_capacity",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "FEASIBLE",
+            "value": 243,
+            "bound": -415.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          243,
+          97,
+          88
+        ],
+        "elapsed_seconds": 3.0021155000140425
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 10,
+          "unassigned": 0,
+          "max_delay": 32,
+          "mean_delay": 24.3,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 30,
+          "mean_delay": 16.166666666666668,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 44,
+          "mean_delay": 22.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        243,
+        97,
+        88
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        243,
+        97,
+        88
+      ]
+    },
+    {
+      "id": "ALLOC-unobserved_walkin-0009",
+      "profile": "unobserved_walkin",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 177,
+            "bound": 177.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 94,
+            "bound": 94.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 154,
+            "bound": 154.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          177,
+          94,
+          154
+        ],
+        "elapsed_seconds": 0.6584865000040736
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 31,
+          "mean_delay": 19.666666666666668,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 46,
+          "mean_delay": 23.5,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 33,
+          "mean_delay": 22.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": false,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        177,
+        94,
+        154
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        177,
+        94,
+        154
+      ]
+    },
+    {
+      "id": "ALLOC-future_walkin-0009",
+      "profile": "future_walkin",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 185,
+            "bound": 185.0
+          },
+          {
+            "index": 4,
+            "status": "FEASIBLE",
+            "value": 106,
+            "bound": -342.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          185,
+          106,
+          75
+        ],
+        "elapsed_seconds": 3.001990399992792
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 31,
+          "mean_delay": 23.125,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 33,
+          "mean_delay": 15.142857142857142,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 5,
+          "unassigned": 0,
+          "max_delay": 25,
+          "mean_delay": 15.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        185,
+        106,
+        75
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        185,
+        106,
+        75
+      ]
+    },
+    {
+      "id": "ALLOC-travel_underestimate-0009",
+      "profile": "travel_underestimate",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 134,
+            "bound": 134.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 351,
+            "bound": 351.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 69,
+            "bound": 69.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          134,
+          351,
+          69
+        ],
+        "elapsed_seconds": 0.3016646000032779
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 51,
+          "mean_delay": 22.333333333333332,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 11,
+          "unassigned": 0,
+          "max_delay": 94,
+          "mean_delay": 31.90909090909091,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 40,
+          "mean_delay": 23.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": false,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        134,
+        351,
+        70
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        134,
+        351,
+        69
+      ]
+    },
+    {
+      "id": "ALLOC-travel_overestimate-0009",
+      "profile": "travel_overestimate",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 125,
+            "bound": 125.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 89,
+            "bound": 89.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 224,
+            "bound": -438.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          125,
+          89,
+          224
+        ],
+        "elapsed_seconds": 3.001785000000382
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 37,
+          "mean_delay": 17.857142857142858,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 3,
+          "unassigned": 0,
+          "max_delay": 47,
+          "mean_delay": 29.666666666666668,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 10,
+          "unassigned": 0,
+          "max_delay": 36,
+          "mean_delay": 22.4,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        125,
+        89,
+        224
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        125,
+        89,
+        224
+      ]
+    },
+    {
+      "id": "ALLOC-duration_underestimate-0009",
+      "profile": "duration_underestimate",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 53,
+            "bound": 53.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 281,
+            "bound": 281.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 159,
+            "bound": 159.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          53,
+          281,
+          159
+        ],
+        "elapsed_seconds": 2.3699934000032954
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 19,
+          "mean_delay": 13.25,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 10,
+          "unassigned": 0,
+          "max_delay": 46,
+          "mean_delay": 28.1,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 6,
+          "unassigned": 0,
+          "max_delay": 62,
+          "mean_delay": 26.5,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": false,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        53,
+        281,
+        159
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        53,
+        281,
+        159
+      ]
+    },
+    {
+      "id": "ALLOC-missing_resource_info-0009",
+      "profile": "missing_resource_info",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 150,
+            "bound": 150.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 243,
+            "bound": 243.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 96,
+            "bound": 96.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          150,
+          243,
+          96
+        ],
+        "elapsed_seconds": 0.5621198999870103
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 7,
+          "unassigned": 0,
+          "max_delay": 34,
+          "mean_delay": 21.428571428571427,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 9,
+          "unassigned": 0,
+          "max_delay": 51,
+          "mean_delay": 27.0,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 42,
+          "mean_delay": 24.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        150,
+        243,
+        96
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        150,
+        243,
+        96
+      ]
+    },
+    {
+      "id": "ALLOC-locked_destination-0009",
+      "profile": "locked_destination",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "INFEASIBLE"
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "NEEDS_REVIEW",
+        "elapsed_seconds": 0.01869180001085624
+      }
+    },
+    {
+      "id": "ALLOC-locked_overdue-0009",
+      "profile": "locked_overdue",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "INFEASIBLE"
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "NEEDS_REVIEW",
+        "elapsed_seconds": 0.01232390000950545
+      }
+    },
+    {
+      "id": "ALLOC-locked_conflict-0009",
+      "profile": "locked_conflict",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "INFEASIBLE"
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "NEEDS_REVIEW",
+        "elapsed_seconds": 0.011037299991585314
+      }
+    },
+    {
+      "id": "ALLOC-fixed_treatment-0009",
+      "profile": "fixed_treatment",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 88,
+            "bound": 88.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 157,
+            "bound": 157.0
+          },
+          {
+            "index": 5,
+            "status": "FEASIBLE",
+            "value": 200,
+            "bound": -333.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": false,
+        "status": "FEASIBLE",
+        "objective": [
+          0,
+          0,
+          0,
+          88,
+          157,
+          200
+        ],
+        "elapsed_seconds": 3.001027599995723
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 40,
+          "mean_delay": 22.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 32,
+          "mean_delay": 19.625,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 41,
+          "mean_delay": 25.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        0,
+        88,
+        158,
+        207
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        88,
+        157,
+        200
+      ]
+    },
+    {
+      "id": "ALLOC-short_horizon-0009",
+      "profile": "short_horizon",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 0,
+            "bound": 0.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 176,
+            "bound": 176.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 156,
+            "bound": 156.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 96,
+            "bound": 96.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          0,
+          0,
+          0,
+          176,
+          156,
+          96
+        ],
+        "elapsed_seconds": 0.1240193999838084
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 36,
+          "mean_delay": 22.0,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 8,
+          "unassigned": 0,
+          "max_delay": 30,
+          "mean_delay": 19.5,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 4,
+          "unassigned": 0,
+          "max_delay": 38,
+          "mean_delay": 24.0,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": true,
+      "greedy_objective": [
+        0,
+        0,
+        1,
+        177,
+        156,
+        87
+      ],
+      "solver_objective": [
+        0,
+        0,
+        0,
+        176,
+        156,
+        96
+      ]
+    },
+    {
+      "id": "ALLOC-compound_failure-0009",
+      "profile": "compound_failure",
+      "split": "test",
+      "meta": {
+        "snapshot_version": 1,
+        "policy": "severity_first",
+        "stages": [
+          {
+            "index": 0,
+            "status": "OPTIMAL",
+            "value": 6,
+            "bound": 6.0
+          },
+          {
+            "index": 1,
+            "status": "OPTIMAL",
+            "value": 13,
+            "bound": 13.0
+          },
+          {
+            "index": 2,
+            "status": "OPTIMAL",
+            "value": 8,
+            "bound": 8.0
+          },
+          {
+            "index": 3,
+            "status": "OPTIMAL",
+            "value": 734,
+            "bound": 734.0
+          },
+          {
+            "index": 4,
+            "status": "OPTIMAL",
+            "value": 744,
+            "bound": 744.0
+          },
+          {
+            "index": 5,
+            "status": "OPTIMAL",
+            "value": 489,
+            "bound": 489.0
+          }
+        ],
+        "hint_rejected": false,
+        "fallback": false,
+        "budget_seconds": 3.0,
+        "lex_optimal": true,
+        "status": "OPTIMAL",
+        "objective": [
+          6,
+          13,
+          8,
+          734,
+          744,
+          489
+        ],
+        "elapsed_seconds": 0.3818293000222184
+      },
+      "observed_metrics": {
+        "4": {
+          "total": 20,
+          "unassigned": 6,
+          "max_delay": 108,
+          "mean_delay": 52.42857142857143,
+          "deadline_violations": 0
+        },
+        "2": {
+          "total": 27,
+          "unassigned": 13,
+          "max_delay": 81,
+          "mean_delay": 53.142857142857146,
+          "deadline_violations": 0
+        },
+        "1": {
+          "total": 17,
+          "unassigned": 8,
+          "max_delay": 82,
+          "mean_delay": 54.333333333333336,
+          "deadline_violations": 0
+        }
+      },
+      "actual_feasible": false,
+      "greedy_objective": [
+        6,
+        13,
+        8,
+        734,
+        754,
+        526
+      ],
+      "solver_objective": [
+        6,
+        13,
+        8,
+        734,
+        744,
+        489
+      ]
+    }
+  ],
+  "limitations": [
+    "스냅샷 모델 내 평가이며 실제 치료시간 단축의 증거는 아님",
+    "actual은 숨겨진 실제 상태에서 실행 가능한지 검사하는 용도. 추가 정보를 가진 정책과의 공정 비교가 아님"
+  ]
+}

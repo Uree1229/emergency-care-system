@@ -12,6 +12,14 @@ function transcript(){return {...payload(),pending:{request:{path:'/api/voice/se
 function create(){return {...payload(),sessionId:null,version:0,pending:{request:{path:'/api/voice/sessions',method:'POST',body:{actor_id:'QUICK-SYNTHETIC',client_request_id:'R-CREATE-SYNTHETIC'}},job:{text:'synthetic line',mode:'auto',utteranceId:'U-SYNTHETIC',phase:'create'},attempt:attempt({beforeVersion:0})}};}
 function answer(){return {...payload(),pending:{request:{path:'/api/voice/sessions/VS-SYNTHETIC/followup/answers',method:'POST',body:{question_id:'Q-SYNTHETIC',profile:'voice_extended_v1',utterance_id:'U-ANSWER-SYNTHETIC',text:'synthetic answer',actor_id:'QUICK-SYNTHETIC',client_request_id:'R-ANSWER-SYNTHETIC',expected_version:3,unavailable:true}},job:{text:'synthetic answer',questionId:'Q-SYNTHETIC',utteranceId:'U-ANSWER-SYNTHETIC',phase:'answer'},attempt:attempt({target:'answer',questionId:'Q-SYNTHETIC',questionText:'synthetic question?',apiText:'synthetic answer'})}};}
 function correction(){return {...payload(),pending:{request:{path:'/api/voice/sessions/VS-SYNTHETIC/fields',method:'PATCH',body:{changes:{systolic_bp:110,diastolic_bp:70,symptoms:['흉통'],denied_symptoms:['구토']},unset_fields:['glucose','spo2'],change_kind:'correction',actor_id:'QUICK-SYNTHETIC',client_request_id:'R-CORRECTION-SYNTHETIC',expected_version:3}},job:{phase:'correct',changes:{systolic_bp:110,diastolic_bp:70,symptoms:['흉통'],denied_symptoms:['구토']},unsetFields:['glucose','spo2']},attempt:attempt({target:'correction',mode:'dictation',apiText:'',sourceText:''})}};}
+function workflow(phase='submit'){
+  const context={consent:true,lat:37.5051,lon:126.9573,required_capabilities:['응급의학'],resource_demands:{ed_bed:1}};
+  const changes={age:47,avpu:'A',consciousness:'alert',pre_ktas:'unclassified'};
+  const review=phase==='review-fields',extra=phase==='confirm'?{confirmed:true}:review?{changes,unset_fields:['glucose'],change_kind:'correction'}:{context,start_inquiry:false};
+  const job=phase==='confirm'?{phase}:review?{phase,changes:clone(changes),unsetFields:['glucose']}:{phase,context:clone(context)};
+  return {...payload(),pending:{request:{path:'/api/voice/sessions/VS-SYNTHETIC/'+(review?'fields':phase),method:review?'PATCH':'POST',body:{actor_id:'QUICK-SYNTHETIC',client_request_id:'R-WORKFLOW',expected_version:3,...extra}},job,attempt:attempt({target:'workflow',mode:'dictation',apiText:'',sourceText:''})}};
+}
+function workflowUI(){return {sessionId:'VS-SYNTHETIC',version:3,step:'submit',lat:'37.5051',lon:'126.9573',consent:false,requiredCapabilities:['응급의학'],editor:{age:'47',pre_ktas:'unclassified'},editorDirty:true};}
 function saved(value=payload(),overrides={}){return {...value,createdAt:NOW,expiresAt:NOW+TTL,...overrides};}
 function rawStorage(value){return memory({[RECOVERY_KEY]:typeof value==='string'?value:JSON.stringify(value)});}
 function assertRejected(value){const storage=memory({[RECOVERY_KEY]:'previous-synthetic-recovery'});assert.throws(()=>writeDraftRecovery(storage,value,{now:NOW}));assert.equal(storage.getItem(RECOVERY_KEY),'previous-synthetic-recovery');}
@@ -98,6 +106,41 @@ test('clear is explicit, idempotent, safe on denied storage, and never calls cle
   for(const blocked of [null,{}, {removeItem(){throw Error('denied');}}])assert.equal(clearDraftRecovery(blocked),false);
 });
 test('invalid clocks cannot write or restore and never erase an existing snapshot',()=>{for(const now of [-1,NaN,Infinity,'0',Number.MAX_SAFE_INTEGER]){assert.throws(()=>writeDraftRecovery(memory(),payload(),{now}));assert.equal(readDraftRecovery(rawStorage(saved()),ORIGIN,{now}).status,'invalid');}});
+
+for(const phase of ['confirm','submit','review-fields'])test(`unified ${phase} persists one exact operational request in the existing patient notebook`,()=>{
+  const input=workflow(phase),storage=memory(),before=JSON.stringify(input.pending.request);input.workflowUI=workflowUI();
+  writeDraftRecovery(storage,input,{now:NOW});const restored=readDraftRecovery(storage,ORIGIN,{now:NOW});
+  assert.equal(restored.status,'valid');assert.equal(JSON.stringify(restored.payload.pending.request),before);
+  assert.deepEqual(restored.payload.pending.job,input.pending.job);assert.deepEqual(restored.payload.workflowUI,input.workflowUI);
+});
+
+for(const [name,mutate]of [
+  ['automatic inquiry',p=>p.pending.request.body.start_inquiry=true],['wrong patient draft',p=>p.pending.request.path='/api/voice/sessions/VS-OTHER/submit'],
+  ['mixed voice attempt',p=>p.pending.attempt.target='transcript'],['fake spoken submit command',p=>p.pending.attempt.sourceText='환자 정보 전송'],
+  ['manual workflow',p=>p.pending.attempt.manual=true],['pending job changes context',p=>p.pending.job.context.lon=125],
+  ['false consent',p=>p.pending.job.context.consent=p.pending.request.body.context.consent=false],['resource expansion',p=>p.pending.job.context.resource_demands.icu=p.pending.request.body.context.resource_demands.icu=1],
+  ['future expected version',p=>p.pending.request.body.expected_version=4],['another actor',p=>p.pending.request.body.actor_id='OTHER'],
+  ['workflow trigger',p=>p.pending.attempt.trigger={action:'recommend',command:'병원 추천해줘'}],['unapplied suffix',p=>p.pending.attempt.excludedText='raw suffix']
+])test(`unified workflow recovery rejects ${name} while preserving the previous checkpoint`,()=>{const input=workflow();mutate(input);assertRejected(input);});
+
+test('optional workflow UI preserves unfinished review and consent without changing legacy checkpoint shape',()=>{
+  const input={...payload(),workflowUI:workflowUI()},storage=memory();writeDraftRecovery(storage,input,{now:NOW});
+  assert.deepEqual(readDraftRecovery(storage,ORIGIN,{now:NOW}).payload.workflowUI,input.workflowUI);
+  assert.equal(Object.hasOwn(writeDraftRecovery(memory(),payload(),{now:NOW}),'workflowUI'),false);
+  const preSession={...input,sessionId:null,version:0,workflowUI:{...workflowUI(),sessionId:null,version:0,step:null,editor:{},editorDirty:false}};
+  writeDraftRecovery(memory(),preSession,{now:NOW});
+  const staleEditor={...input,version:5};assert.equal(writeDraftRecovery(memory(),staleEditor,{now:NOW}).workflowUI.version,3);
+});
+
+for(const [name,mutate]of [
+  ['cross-session UI',ui=>ui.sessionId='VS-OTHER'],['future editor version',ui=>ui.version=4],['negative version',ui=>ui.version=-1],
+  ['invalid step',ui=>ui.step='auto-submit'],['coerced consent',ui=>ui.consent='true'],['coerced dirty flag',ui=>ui.editorDirty=1],
+  ['long latitude',ui=>ui.lat='x'.repeat(129)],['numeric coordinate input',ui=>ui.lon=126.9],
+  ['unapproved editor metadata',ui=>ui.editor.patient_id='P-OTHER'],['non-text field edit',ui=>ui.editor.age=47],
+  ['too long field edit',ui=>ui.editor.age='x'.repeat(16001)],['duplicate capability',ui=>ui.requiredCapabilities=['응급의학','응급의학']],
+  ['empty capability',ui=>ui.requiredCapabilities=['']],['capability control character',ui=>ui.requiredCapabilities=['응급\u0000의학']],
+  ['additional UI state',ui=>ui.auto_confirm=true],['stored audio',ui=>ui.audio_base64='encoded']
+])test(`workflow UI fails closed on ${name}`,()=>{const input={...payload(),workflowUI:workflowUI()};mutate(input.workflowUI);assertRejected(input);});
 
 for(const [name,mutate]of [
   ['arbitrary external URL',v=>v.pending.request.path='https://other.test/api/voice/sessions'],

@@ -23,7 +23,7 @@ REVISION = 'team-release-20261030-v1'
 MANIFEST = 'release-manifest.json'
 PAYLOAD = 'source'
 ENTRYPOINTS = ('server.team_runtime', 'server.team_lan', 'server.team_readiness',
-    'simulation.viewer_server', 'server.team_release_20261030')
+    'server.flow_console_runtime', 'simulation.viewer_server', 'server.team_release_20261030')
 STATIC_EXTENSIONS = frozenset(('.html', '.js', '.mjs', '.css', '.svg', '.png', '.jpg', '.jpeg', '.ico', '.woff', '.woff2', '.geojson'))
 VIEWER_DATA = (
     'map_replay_data.json', 'online_allocation_data.json', 'road_online_allocation_data.json',
@@ -41,6 +41,14 @@ DOCS = (
     'CALL_RECORD_API.md', 'BACKEND_MEASUREMENT_API.md', 'SYSTEM_STATUS.md',
     'R1_MINIMUM_INPUT.md', 'VOICE_PTT_DESIGN.md', 'FRONTEND_FREE_FLOW.md',
     'PEER_REVIEW_SERVER_CONTRACT.md', 'TEAM_IMPLEMENTATION.md',
+    'FLOW_CONSOLE.md', 'COMMON_DEMO_RELEASE_20261105.md',
+    'PARAMEDIC_UNIFIED_WORKSPACE_20261103.md', 'VOICE_RECOGNITION_CONTEXT_20261103.md',
+    'VOICE_DEMO_GIT_INTEGRATION_BASELINE_20261104.md',
+    'VOICE_CURRENT_FEATURES_DEV2_20261103.md', 'VOICE_IMPROVEMENT_EFFORTS_DEV2_20261103.md',
+    'ALLOCATION_PRESENTATION_EVIDENCE_20261105.md', 'RESOURCE_COST_COMPARISON_20261105.html',
+    'ALLOCATION_BASELINE_AND_E2E_20261030.md', 'ALLOCATION_BENCHMARK.md',
+    'INQUIRY_V3_EXPERIMENT.md', 'JOINT_POLICY_EXPERIMENT.md', 'ONLINE_ALLOCATION.md',
+    'HOSPITAL_OPERATIONS_20261030.md', 'USABILITY_EVALUATION_20261030.md',
 )
 PYTHON_TESTS = (
     'test_team_release_20261030.py', 'test_team_release_info.py', 'test_team_runtime.py', 'test_team_runtime_profile.py',
@@ -53,11 +61,23 @@ PYTHON_TESTS = (
     'test_server.py', 'test_inquiry_workflow.py',
     'test_team_lan.py', 'test_team_readiness.py', 'test_enroute_notifications_20261030.py',
     'test_data_provenance_20261030.py', 'test_hospital_operations_http.py',
+    'test_flow_console.py', 'test_voice_recognition_context.py', 'test_voice_unified_unknown_defaults.py',
 )
 EXACT_FILES = ('solver_improved.py', 'requirements-server.txt', 'README.md', 'TEAM_START.ps1', 'TEAM_VERIFY.ps1',
     'datasets/demo/seoul_public_catalog.json', 'datasets/examples/cau_public_flow_cases.json',
     'datasets/examples/cau_seoul_patient_001.json')
-EXACT_DOC_FILES = ('docs/api/SERVER_SCHEMA_20261102.json',)
+EXACT_DOC_FILES = (
+    'docs/api/SERVER_SCHEMA_20261102.json',
+    'docs/evidence/20261105/manifest.json', 'docs/evidence/20261105/allocation-seed9.json',
+    'docs/evidence/20261105/resource-workload.json', 'docs/evidence/20261105/verify.py',
+    'docs/team-handoff/20261105/README.md', 'docs/team-handoff/20261105/dev1/README.md',
+    'docs/team-handoff/20261105/dev2/README.md',
+    'docs/team-handoff/20261102/README.md', 'docs/team-handoff/20261102/CURRENT_STATE.md',
+    'docs/team-handoff/20261102/COMMON_RUNTIME.md',
+    'docs/team-handoff/20261102/dev1/README.md', 'docs/team-handoff/20261102/dev1/AI_START.md',
+    'docs/team-handoff/20261102/dev1/MOBILE_APP_IMPROVEMENTS_20261103.md',
+    'docs/team-handoff/20261102/dev2/README.md', 'docs/team-handoff/20261102/dev2/AI_START.md',
+)
 REQUIRED = frozenset((*EXACT_FILES, *EXACT_DOC_FILES, 'server/team_runtime.py', 'server/team_runtime_profile.py',
     'server/team_release_20261030.py', 'config/server_allocation_baseline_20261030.json',
     'config/team_runtime_profile_20261030.json', 'paramedic-ui/index.html', 'patient-ui/index.html',
@@ -65,7 +85,15 @@ REQUIRED = frozenset((*EXACT_FILES, *EXACT_DOC_FILES, 'server/team_runtime.py', 
     'server/team_release_info.py', 'test_team_release_info.py',
     'docs/README.md', 'docs/PROJECT_STATUS.md', 'docs/RUNNING.md', 'docs/ARCHITECTURE.md',
     'docs/ALGORITHMS.md', 'docs/VOICE.md', 'docs/TESTING.md', 'docs/DEMO.md',
+    'docs/FLOW_CONSOLE.md', 'docs/COMMON_DEMO_RELEASE_20261105.md',
+    'docs/VOICE_CURRENT_FEATURES_DEV2_20261103.md', 'docs/VOICE_IMPROVEMENT_EFFORTS_DEV2_20261103.md',
+    'docs/ALLOCATION_PRESENTATION_EVIDENCE_20261105.md', 'docs/RESOURCE_COST_COMPARISON_20261105.html',
     'server/team_lan.py', 'server/team_readiness.py',
+    'server/flow_console.py', 'server/flow_console_runtime.py', 'server/voice_recognition_context.py',
+    'hospital-ui/inquiry-layout.css', 'paramedic-ui/field-workflow.mjs',
+    'paramedic-ui/field-workflow.css', 'paramedic-ui/field-entry.mjs',
+    'paramedic-ui/unified-entry.mjs', 'paramedic-ui/legacy.html',
+    'paramedic-ui/critical-conversation.mjs', 'paramedic-ui/critical-conversation-audio.mjs',
     'config/team_release_source_refs_20261030.json', 'paramedic-ui/evaluation-cases.json',
     'simulation/viewer/index.html', 'simulation/viewer/demo.html',
     *(f'simulation/viewer/{name}' for name in VIEWER_DATA), 'test_team_release_20261030.py'))

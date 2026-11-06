@@ -16,7 +16,7 @@ import {MainRecovery,findMainRecovery,emptyMainInput,MAIN_RECOVERY_PREFIX} from 
 // WAV bytes and download objects are synthetic and remain in memory. There is
 // no microphone, physical audio playback, STT, real HTTP, DB or file download.
 const source=fs.readFileSync(new URL('./paramedic-ui/app.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'');
-const html=fs.readFileSync(new URL('./paramedic-ui/index.html',import.meta.url),'utf8');
+const html=fs.readFileSync(new URL('./paramedic-ui/legacy.html',import.meta.url),'utf8');
 const idEntries=[...html.matchAll(/<(\w+)[^>]*\bid="([^"]+)"[^>]*>/g)];
 const flush=async()=>{for(let i=0;i<8;i++)await nextTurn();};
 
@@ -121,7 +121,8 @@ async function harness({browser=true,search='',initialStorage={},restoredSession
   };
   const location={search,origin:'http://127.0.0.1:18042',pathname:'/paramedic/',hash:''};
   class TestURL extends URL{static createObjectURL(blob){const url=`blob:fake-local-${++objectSequence}`;objects.set(url,blob);return url;}static revokeObjectURL(url){revoked.push(url);}}
-  const context=vm.createContext({VoiceClient:TestClient,requestId:makeId,normalizeServer,VoiceCapture:FakeCapture,captureDescription,localAudioTestMetadata,readDraftHandoff,clearDraftHandoff,MainFollowup,patientNavigation,MainTreatmentReview,MainRecovery,findMainRecovery,emptyMainInput,TextEncoder,
+  // This API/capture harness keeps the legacy flat DOM; staged DOM behavior has its own focused test.
+  const context=vm.createContext({initStagedReview:()=>({active:false,update(){}}),canReturnToConversation:()=>false,VoiceClient:TestClient,requestId:makeId,normalizeServer,VoiceCapture:FakeCapture,captureDescription,localAudioTestMetadata,readDraftHandoff,clearDraftHandoff,MainFollowup,patientNavigation,MainTreatmentReview,MainRecovery,findMainRecovery,emptyMainInput,TextEncoder,
     document:{getElementById:id=>{assert.ok(elements[id],`Unknown element ${id}`);return elements[id];},createElement,querySelectorAll:()=>[]},
     window:{addEventListener:(name,callback)=>{events[name]=callback;},history:{replaceState(state,title,value){historyReplacements.push(value);const next=new URL(value,location.origin);location.search=next.search;location.pathname=next.pathname;location.hash=next.hash;}}},
     sessionStorage:{get length(){return storage.size;},key:index=>[...storage.keys()][index]??null,getItem:key=>storage.has(key)?storage.get(key):null,setItem:(key,value)=>{if(key===storageWriteFailureKey)throw Error('Synthetic storage denied');storage.set(key,value);},removeItem:key=>storage.delete(key)},

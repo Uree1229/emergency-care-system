@@ -1,0 +1,3889 @@
+{
+  "kind": "historical_synthetic_workload_extract",
+  "extraction_date": "2026-11-06",
+  "sources": [
+    {
+      "path": "simulation_results/server_inquiry_v3_validation_20261012.json",
+      "sha256": "d344ae4ee5d0e4dd41d1466a263a944ef35217c239cb7ce881dfa4de65604e41",
+      "bytes": 12360949
+    },
+    {
+      "path": "simulation_results/online_allocation_validation_20261013.json",
+      "sha256": "0de319b268d8482f465601089d59edda2211ed96839b81d7bde66f1c40088ab3",
+      "bytes": 36938065
+    }
+  ],
+  "inquiry_scenarios": [
+    {
+      "scenario": "immediate_all_accept-7101",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 60,
+      "capped_wait_sum_seconds": 18.0
+    },
+    {
+      "scenario": "immediate_all_accept-7101",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 89,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "immediate_all_accept-7102",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 42,
+      "capped_wait_sum_seconds": 10.0
+    },
+    {
+      "scenario": "immediate_all_accept-7102",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 70,
+      "capped_wait_sum_seconds": 10.0
+    },
+    {
+      "scenario": "immediate_all_accept-7103",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 51,
+      "capped_wait_sum_seconds": 11.0
+    },
+    {
+      "scenario": "immediate_all_accept-7103",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 88,
+      "capped_wait_sum_seconds": 11.0
+    },
+    {
+      "scenario": "immediate_all_accept-7104",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 47,
+      "capped_wait_sum_seconds": 9.0
+    },
+    {
+      "scenario": "immediate_all_accept-7104",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 80,
+      "capped_wait_sum_seconds": 9.0
+    },
+    {
+      "scenario": "immediate_all_accept-7105",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 44,
+      "capped_wait_sum_seconds": 9.0
+    },
+    {
+      "scenario": "immediate_all_accept-7105",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 83,
+      "capped_wait_sum_seconds": 9.0
+    },
+    {
+      "scenario": "immediate_all_accept-7106",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 47,
+      "capped_wait_sum_seconds": 8.0
+    },
+    {
+      "scenario": "immediate_all_accept-7106",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 90,
+      "capped_wait_sum_seconds": 8.0
+    },
+    {
+      "scenario": "immediate_all_accept-7107",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 59,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "immediate_all_accept-7107",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 77,
+      "capped_wait_sum_seconds": 9.0
+    },
+    {
+      "scenario": "immediate_all_accept-7108",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 39,
+      "capped_wait_sum_seconds": 11.0
+    },
+    {
+      "scenario": "immediate_all_accept-7108",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 65,
+      "capped_wait_sum_seconds": 11.0
+    },
+    {
+      "scenario": "immediate_all_accept-7109",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 38,
+      "capped_wait_sum_seconds": 8.0
+    },
+    {
+      "scenario": "immediate_all_accept-7109",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 70,
+      "capped_wait_sum_seconds": 8.0
+    },
+    {
+      "scenario": "immediate_all_accept-7110",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 55,
+      "capped_wait_sum_seconds": 10.0
+    },
+    {
+      "scenario": "immediate_all_accept-7110",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 96,
+      "capped_wait_sum_seconds": 10.0
+    },
+    {
+      "scenario": "immediate_all_accept-7111",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 34,
+      "capped_wait_sum_seconds": 10.0
+    },
+    {
+      "scenario": "immediate_all_accept-7111",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 64,
+      "capped_wait_sum_seconds": 10.0
+    },
+    {
+      "scenario": "immediate_all_accept-7112",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 49,
+      "capped_wait_sum_seconds": 11.0
+    },
+    {
+      "scenario": "immediate_all_accept-7112",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 83,
+      "capped_wait_sum_seconds": 11.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7101",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 180,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7101",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 236,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7102",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 184,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7102",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 222,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7103",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 175,
+      "capped_wait_sum_seconds": 18.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7103",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 218,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7104",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 190,
+      "capped_wait_sum_seconds": 13.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7104",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 236,
+      "capped_wait_sum_seconds": 13.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7105",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 157,
+      "capped_wait_sum_seconds": 13.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7105",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 213,
+      "capped_wait_sum_seconds": 13.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7106",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 177,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7106",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 218,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7107",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 202,
+      "capped_wait_sum_seconds": 22.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7107",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 240,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7108",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 183,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7108",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 232,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7109",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 206,
+      "capped_wait_sum_seconds": 19.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7109",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 247,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7110",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 187,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7110",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 230,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7111",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 171,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7111",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 227,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7112",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 180,
+      "capped_wait_sum_seconds": 16.0
+    },
+    {
+      "scenario": "delayed_near_fast_far-7112",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 215,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "no_response_near-7101",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 402,
+      "capped_wait_sum_seconds": 26.0
+    },
+    {
+      "scenario": "no_response_near-7101",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 446,
+      "capped_wait_sum_seconds": 19.0
+    },
+    {
+      "scenario": "no_response_near-7102",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 396,
+      "capped_wait_sum_seconds": 24.0
+    },
+    {
+      "scenario": "no_response_near-7102",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 456,
+      "capped_wait_sum_seconds": 23.0
+    },
+    {
+      "scenario": "no_response_near-7103",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 365,
+      "capped_wait_sum_seconds": 20.0
+    },
+    {
+      "scenario": "no_response_near-7103",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 406,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "no_response_near-7104",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 372,
+      "capped_wait_sum_seconds": 32.0
+    },
+    {
+      "scenario": "no_response_near-7104",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 419,
+      "capped_wait_sum_seconds": 16.0
+    },
+    {
+      "scenario": "no_response_near-7105",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 367,
+      "capped_wait_sum_seconds": 13.0
+    },
+    {
+      "scenario": "no_response_near-7105",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 407,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "no_response_near-7106",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 368,
+      "capped_wait_sum_seconds": 20.0
+    },
+    {
+      "scenario": "no_response_near-7106",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 416,
+      "capped_wait_sum_seconds": 20.0
+    },
+    {
+      "scenario": "no_response_near-7107",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 375,
+      "capped_wait_sum_seconds": 24.0
+    },
+    {
+      "scenario": "no_response_near-7107",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 425,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "no_response_near-7108",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 343,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "no_response_near-7108",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 393,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "no_response_near-7109",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 363,
+      "capped_wait_sum_seconds": 20.0
+    },
+    {
+      "scenario": "no_response_near-7109",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 388,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "no_response_near-7110",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 338,
+      "capped_wait_sum_seconds": 29.0
+    },
+    {
+      "scenario": "no_response_near-7110",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 395,
+      "capped_wait_sum_seconds": 27.0
+    },
+    {
+      "scenario": "no_response_near-7111",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 359,
+      "capped_wait_sum_seconds": 26.0
+    },
+    {
+      "scenario": "no_response_near-7111",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 406,
+      "capped_wait_sum_seconds": 18.0
+    },
+    {
+      "scenario": "no_response_near-7112",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 373,
+      "capped_wait_sum_seconds": 34.0
+    },
+    {
+      "scenario": "no_response_near-7112",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 408,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "simultaneous_w1-7101",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 7,
+      "inquiries": 57,
+      "review_started": 45,
+      "review_work_seconds": 2188,
+      "capped_wait_sum_seconds": 1497.0
+    },
+    {
+      "scenario": "simultaneous_w1-7101",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 7,
+      "inquiries": 61,
+      "review_started": 47,
+      "review_work_seconds": 2373,
+      "capped_wait_sum_seconds": 1496.0
+    },
+    {
+      "scenario": "simultaneous_w1-7102",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 45,
+      "review_work_seconds": 2226,
+      "capped_wait_sum_seconds": 1545.0
+    },
+    {
+      "scenario": "simultaneous_w1-7102",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 51,
+      "review_work_seconds": 2522,
+      "capped_wait_sum_seconds": 1552.0
+    },
+    {
+      "scenario": "simultaneous_w1-7103",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 42,
+      "review_work_seconds": 2211,
+      "capped_wait_sum_seconds": 1492.0
+    },
+    {
+      "scenario": "simultaneous_w1-7103",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 47,
+      "review_work_seconds": 2453,
+      "capped_wait_sum_seconds": 1494.0
+    },
+    {
+      "scenario": "simultaneous_w1-7104",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 40,
+      "review_work_seconds": 2164,
+      "capped_wait_sum_seconds": 1627.0
+    },
+    {
+      "scenario": "simultaneous_w1-7104",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 46,
+      "review_work_seconds": 2467,
+      "capped_wait_sum_seconds": 1626.0
+    },
+    {
+      "scenario": "simultaneous_w1-7105",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 42,
+      "review_work_seconds": 2171,
+      "capped_wait_sum_seconds": 1576.0
+    },
+    {
+      "scenario": "simultaneous_w1-7105",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 47,
+      "review_work_seconds": 2395,
+      "capped_wait_sum_seconds": 1545.0
+    },
+    {
+      "scenario": "simultaneous_w1-7106",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 43,
+      "review_work_seconds": 2191,
+      "capped_wait_sum_seconds": 1522.0
+    },
+    {
+      "scenario": "simultaneous_w1-7106",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 50,
+      "review_work_seconds": 2514,
+      "capped_wait_sum_seconds": 1518.0
+    },
+    {
+      "scenario": "simultaneous_w1-7107",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 41,
+      "review_work_seconds": 2190,
+      "capped_wait_sum_seconds": 1644.0
+    },
+    {
+      "scenario": "simultaneous_w1-7107",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 46,
+      "review_work_seconds": 2420,
+      "capped_wait_sum_seconds": 1525.0
+    },
+    {
+      "scenario": "simultaneous_w1-7108",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 43,
+      "review_work_seconds": 2267,
+      "capped_wait_sum_seconds": 1563.0
+    },
+    {
+      "scenario": "simultaneous_w1-7108",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 48,
+      "review_work_seconds": 2509,
+      "capped_wait_sum_seconds": 1525.0
+    },
+    {
+      "scenario": "simultaneous_w1-7109",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 43,
+      "review_work_seconds": 2257,
+      "capped_wait_sum_seconds": 1632.0
+    },
+    {
+      "scenario": "simultaneous_w1-7109",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 47,
+      "review_work_seconds": 2442,
+      "capped_wait_sum_seconds": 1623.0
+    },
+    {
+      "scenario": "simultaneous_w1-7110",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 42,
+      "review_work_seconds": 2268,
+      "capped_wait_sum_seconds": 1594.0
+    },
+    {
+      "scenario": "simultaneous_w1-7110",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 46,
+      "review_work_seconds": 2423,
+      "capped_wait_sum_seconds": 1516.0
+    },
+    {
+      "scenario": "simultaneous_w1-7111",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 42,
+      "review_work_seconds": 2234,
+      "capped_wait_sum_seconds": 1624.0
+    },
+    {
+      "scenario": "simultaneous_w1-7111",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 47,
+      "review_work_seconds": 2512,
+      "capped_wait_sum_seconds": 1624.0
+    },
+    {
+      "scenario": "simultaneous_w1-7112",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 57,
+      "review_started": 44,
+      "review_work_seconds": 2192,
+      "capped_wait_sum_seconds": 1482.0
+    },
+    {
+      "scenario": "simultaneous_w1-7112",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 6,
+      "inquiries": 61,
+      "review_started": 48,
+      "review_work_seconds": 2382,
+      "capped_wait_sum_seconds": 1442.0
+    },
+    {
+      "scenario": "staggered_w2-7101",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 50,
+      "review_started": 48,
+      "review_work_seconds": 3183,
+      "capped_wait_sum_seconds": 916.0
+    },
+    {
+      "scenario": "staggered_w2-7101",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 56,
+      "review_work_seconds": 3701,
+      "capped_wait_sum_seconds": 840.0
+    },
+    {
+      "scenario": "staggered_w2-7102",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 50,
+      "review_started": 48,
+      "review_work_seconds": 3112,
+      "capped_wait_sum_seconds": 928.0
+    },
+    {
+      "scenario": "staggered_w2-7102",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 58,
+      "review_work_seconds": 3734,
+      "capped_wait_sum_seconds": 886.0
+    },
+    {
+      "scenario": "staggered_w2-7103",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 53,
+      "review_started": 50,
+      "review_work_seconds": 3318,
+      "capped_wait_sum_seconds": 968.0
+    },
+    {
+      "scenario": "staggered_w2-7103",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 56,
+      "review_work_seconds": 3707,
+      "capped_wait_sum_seconds": 890.0
+    },
+    {
+      "scenario": "staggered_w2-7104",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 53,
+      "review_started": 53,
+      "review_work_seconds": 3514,
+      "capped_wait_sum_seconds": 1027.0
+    },
+    {
+      "scenario": "staggered_w2-7104",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 61,
+      "review_started": 59,
+      "review_work_seconds": 3908,
+      "capped_wait_sum_seconds": 957.0
+    },
+    {
+      "scenario": "staggered_w2-7105",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 53,
+      "review_started": 48,
+      "review_work_seconds": 3209,
+      "capped_wait_sum_seconds": 967.0
+    },
+    {
+      "scenario": "staggered_w2-7105",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 56,
+      "review_work_seconds": 3817,
+      "capped_wait_sum_seconds": 878.0
+    },
+    {
+      "scenario": "staggered_w2-7106",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 50,
+      "review_started": 50,
+      "review_work_seconds": 3373,
+      "capped_wait_sum_seconds": 953.0
+    },
+    {
+      "scenario": "staggered_w2-7106",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 58,
+      "review_work_seconds": 3951,
+      "capped_wait_sum_seconds": 947.0
+    },
+    {
+      "scenario": "staggered_w2-7107",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 56,
+      "review_started": 52,
+      "review_work_seconds": 3472,
+      "capped_wait_sum_seconds": 1065.0
+    },
+    {
+      "scenario": "staggered_w2-7107",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 61,
+      "review_started": 60,
+      "review_work_seconds": 3946,
+      "capped_wait_sum_seconds": 966.0
+    },
+    {
+      "scenario": "staggered_w2-7108",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 53,
+      "review_started": 51,
+      "review_work_seconds": 3425,
+      "capped_wait_sum_seconds": 956.0
+    },
+    {
+      "scenario": "staggered_w2-7108",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 61,
+      "review_started": 59,
+      "review_work_seconds": 3960,
+      "capped_wait_sum_seconds": 946.0
+    },
+    {
+      "scenario": "staggered_w2-7109",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 53,
+      "review_started": 48,
+      "review_work_seconds": 3147,
+      "capped_wait_sum_seconds": 882.0
+    },
+    {
+      "scenario": "staggered_w2-7109",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 55,
+      "review_work_seconds": 3532,
+      "capped_wait_sum_seconds": 819.0
+    },
+    {
+      "scenario": "staggered_w2-7110",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 50,
+      "review_started": 50,
+      "review_work_seconds": 3427,
+      "capped_wait_sum_seconds": 995.0
+    },
+    {
+      "scenario": "staggered_w2-7110",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 58,
+      "review_work_seconds": 3908,
+      "capped_wait_sum_seconds": 945.0
+    },
+    {
+      "scenario": "staggered_w2-7111",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 50,
+      "review_started": 50,
+      "review_work_seconds": 3452,
+      "capped_wait_sum_seconds": 999.0
+    },
+    {
+      "scenario": "staggered_w2-7111",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 58,
+      "review_work_seconds": 4029,
+      "capped_wait_sum_seconds": 985.0
+    },
+    {
+      "scenario": "staggered_w2-7112",
+      "policy": "fixed_3",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 50,
+      "review_started": 45,
+      "review_work_seconds": 3012,
+      "capped_wait_sum_seconds": 888.0
+    },
+    {
+      "scenario": "staggered_w2-7112",
+      "policy": "fixed_5",
+      "patients": 8,
+      "selected": 8,
+      "inquiries": 58,
+      "review_started": 56,
+      "review_work_seconds": 3739,
+      "capped_wait_sum_seconds": 896.0
+    },
+    {
+      "scenario": "all_unavailable_control-7101",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 272,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7101",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 272,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7102",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 260,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7102",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 260,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7103",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 254,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7103",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 254,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7104",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 262,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7104",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 262,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7105",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 244,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7105",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 244,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7106",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 295,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7106",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 295,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7107",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 194,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7107",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 194,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7108",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 224,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7108",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 224,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7109",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 240,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7109",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 240,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7110",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 266,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7110",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 266,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7111",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 245,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7111",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 245,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7112",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 229,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "all_unavailable_control-7112",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 0,
+      "inquiries": 8,
+      "review_started": 8,
+      "review_work_seconds": 229,
+      "capped_wait_sum_seconds": 300.0
+    },
+    {
+      "scenario": "historical_shift-7101",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 171,
+      "capped_wait_sum_seconds": 16.0
+    },
+    {
+      "scenario": "historical_shift-7101",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 428,
+      "capped_wait_sum_seconds": 16.0
+    },
+    {
+      "scenario": "historical_shift-7102",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 197,
+      "capped_wait_sum_seconds": 26.0
+    },
+    {
+      "scenario": "historical_shift-7102",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 489,
+      "capped_wait_sum_seconds": 26.0
+    },
+    {
+      "scenario": "historical_shift-7103",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 195,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "historical_shift-7103",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 476,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "historical_shift-7104",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 201,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "historical_shift-7104",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 500,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "historical_shift-7105",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 188,
+      "capped_wait_sum_seconds": 22.0
+    },
+    {
+      "scenario": "historical_shift-7105",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 470,
+      "capped_wait_sum_seconds": 22.0
+    },
+    {
+      "scenario": "historical_shift-7106",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 158,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "historical_shift-7106",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 460,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "historical_shift-7107",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 206,
+      "capped_wait_sum_seconds": 25.0
+    },
+    {
+      "scenario": "historical_shift-7107",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 493,
+      "capped_wait_sum_seconds": 25.0
+    },
+    {
+      "scenario": "historical_shift-7108",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 173,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "historical_shift-7108",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 447,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "historical_shift-7109",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 198,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "historical_shift-7109",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 463,
+      "capped_wait_sum_seconds": 17.0
+    },
+    {
+      "scenario": "historical_shift-7110",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 200,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "historical_shift-7110",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 488,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "historical_shift-7111",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 190,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "historical_shift-7111",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 480,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "historical_shift-7112",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 3,
+      "review_started": 3,
+      "review_work_seconds": 169,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "historical_shift-7112",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 467,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "history_helpful-7101",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 613,
+      "capped_wait_sum_seconds": 74.0
+    },
+    {
+      "scenario": "history_helpful-7101",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 588,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "history_helpful-7102",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 640,
+      "capped_wait_sum_seconds": 75.0
+    },
+    {
+      "scenario": "history_helpful-7102",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 625,
+      "capped_wait_sum_seconds": 18.0
+    },
+    {
+      "scenario": "history_helpful-7103",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 616,
+      "capped_wait_sum_seconds": 73.0
+    },
+    {
+      "scenario": "history_helpful-7103",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 599,
+      "capped_wait_sum_seconds": 13.0
+    },
+    {
+      "scenario": "history_helpful-7104",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 601,
+      "capped_wait_sum_seconds": 72.0
+    },
+    {
+      "scenario": "history_helpful-7104",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 589,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "history_helpful-7105",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 610,
+      "capped_wait_sum_seconds": 72.0
+    },
+    {
+      "scenario": "history_helpful-7105",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 590,
+      "capped_wait_sum_seconds": 12.0
+    },
+    {
+      "scenario": "history_helpful-7106",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 603,
+      "capped_wait_sum_seconds": 76.0
+    },
+    {
+      "scenario": "history_helpful-7106",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 587,
+      "capped_wait_sum_seconds": 22.0
+    },
+    {
+      "scenario": "history_helpful-7107",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 618,
+      "capped_wait_sum_seconds": 78.0
+    },
+    {
+      "scenario": "history_helpful-7107",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 592,
+      "capped_wait_sum_seconds": 18.0
+    },
+    {
+      "scenario": "history_helpful-7108",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 620,
+      "capped_wait_sum_seconds": 74.0
+    },
+    {
+      "scenario": "history_helpful-7108",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 599,
+      "capped_wait_sum_seconds": 14.0
+    },
+    {
+      "scenario": "history_helpful-7109",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 572,
+      "capped_wait_sum_seconds": 82.0
+    },
+    {
+      "scenario": "history_helpful-7109",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 547,
+      "capped_wait_sum_seconds": 22.0
+    },
+    {
+      "scenario": "history_helpful-7110",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 591,
+      "capped_wait_sum_seconds": 75.0
+    },
+    {
+      "scenario": "history_helpful-7110",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 576,
+      "capped_wait_sum_seconds": 26.0
+    },
+    {
+      "scenario": "history_helpful-7111",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 662,
+      "capped_wait_sum_seconds": 75.0
+    },
+    {
+      "scenario": "history_helpful-7111",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 634,
+      "capped_wait_sum_seconds": 15.0
+    },
+    {
+      "scenario": "history_helpful-7112",
+      "policy": "fixed_3",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 6,
+      "review_started": 6,
+      "review_work_seconds": 650,
+      "capped_wait_sum_seconds": 78.0
+    },
+    {
+      "scenario": "history_helpful-7112",
+      "policy": "fixed_5",
+      "patients": 1,
+      "selected": 1,
+      "inquiries": 5,
+      "review_started": 5,
+      "review_work_seconds": 620,
+      "capped_wait_sum_seconds": 18.0
+    }
+  ],
+  "allocation_scenarios": [
+    {
+      "scenario": "online-delayed_replies-11101",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11101",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11101",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 24,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11101",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11101",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11101",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11101",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11101",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11101",
+      "policy": "R1",
+      "patients": 14,
+      "inquiries": 102,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11101",
+      "policy": "C1",
+      "patients": 14,
+      "inquiries": 34,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11101",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11101",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11101",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11101",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11101",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11101",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11101",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11101",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11102",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11102",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11102",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11102",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11102",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11102",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11102",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11102",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11102",
+      "policy": "R1",
+      "patients": 16,
+      "inquiries": 105,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11102",
+      "policy": "C1",
+      "patients": 16,
+      "inquiries": 82,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-resource_change_enroute-11102",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11102",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11102",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11102",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11102",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11102",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11102",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11102",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11103",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11103",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11103",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11103",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11103",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11103",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11103",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11103",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11103",
+      "policy": "R1",
+      "patients": 16,
+      "inquiries": 111,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11103",
+      "policy": "C1",
+      "patients": 16,
+      "inquiries": 88,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-resource_change_enroute-11103",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11103",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11103",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11103",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11103",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11103",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11103",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11103",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11104",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11104",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11104",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11104",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11104",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 23,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11104",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11104",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11104",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11104",
+      "policy": "R1",
+      "patients": 14,
+      "inquiries": 100,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11104",
+      "policy": "C1",
+      "patients": 14,
+      "inquiries": 34,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11104",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11104",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11104",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11104",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11104",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11104",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11104",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11104",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11105",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11105",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11105",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11105",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11105",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 24,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11105",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11105",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11105",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11105",
+      "policy": "R1",
+      "patients": 16,
+      "inquiries": 107,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11105",
+      "policy": "C1",
+      "patients": 16,
+      "inquiries": 82,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-resource_change_enroute-11105",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11105",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11105",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11105",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11105",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11105",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11105",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11105",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11106",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11106",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11106",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11106",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11106",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11106",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11106",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11106",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11106",
+      "policy": "R1",
+      "patients": 15,
+      "inquiries": 106,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11106",
+      "policy": "C1",
+      "patients": 15,
+      "inquiries": 37,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11106",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11106",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11106",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11106",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11106",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11106",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11106",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11106",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11107",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11107",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11107",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 23,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11107",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11107",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11107",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11107",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11107",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11107",
+      "policy": "R1",
+      "patients": 15,
+      "inquiries": 106,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11107",
+      "policy": "C1",
+      "patients": 15,
+      "inquiries": 37,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11107",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11107",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11107",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11107",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11107",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11107",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11107",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11107",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11108",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11108",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11108",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11108",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11108",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11108",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11108",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11108",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11108",
+      "policy": "R1",
+      "patients": 16,
+      "inquiries": 106,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11108",
+      "policy": "C1",
+      "patients": 16,
+      "inquiries": 82,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-resource_change_enroute-11108",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11108",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11108",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11108",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11108",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11108",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11108",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11108",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11109",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11109",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11109",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 23,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11109",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11109",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 23,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11109",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11109",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11109",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11109",
+      "policy": "R1",
+      "patients": 16,
+      "inquiries": 111,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11109",
+      "policy": "C1",
+      "patients": 16,
+      "inquiries": 82,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-resource_change_enroute-11109",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11109",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11109",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11109",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11109",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11109",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11109",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11109",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11110",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11110",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11110",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11110",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11110",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11110",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11110",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11110",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11110",
+      "policy": "R1",
+      "patients": 14,
+      "inquiries": 101,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11110",
+      "policy": "C1",
+      "patients": 14,
+      "inquiries": 34,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11110",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11110",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11110",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11110",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11110",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11110",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11110",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11110",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11111",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11111",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11111",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 23,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11111",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11111",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 17,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11111",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11111",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11111",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11111",
+      "policy": "R1",
+      "patients": 14,
+      "inquiries": 97,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11111",
+      "policy": "C1",
+      "patients": 14,
+      "inquiries": 34,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11111",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11111",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11111",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11111",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11111",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11111",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11111",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11111",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11112",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-delayed_replies-11112",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 9,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11112",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 20,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_greedy_trap-11112",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-scarce_long_detour-11112",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 19,
+      "unassigned": 1,
+      "not_arrived": 1,
+      "untreated": 1
+    },
+    {
+      "scenario": "online-scarce_long_detour-11112",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 3,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11112",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-staggered_singleton-11112",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-large_simultaneous-11112",
+      "policy": "R1",
+      "patients": 15,
+      "inquiries": 108,
+      "unassigned": 4,
+      "not_arrived": 4,
+      "untreated": 4
+    },
+    {
+      "scenario": "online-large_simultaneous-11112",
+      "policy": "C1",
+      "patients": 15,
+      "inquiries": 37,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11112",
+      "policy": "R1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-resource_change_enroute-11112",
+      "policy": "C1",
+      "patients": 2,
+      "inquiries": 8,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11112",
+      "policy": "R1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-arrival_assessment_transfer-11112",
+      "policy": "C1",
+      "patients": 1,
+      "inquiries": 4,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-no_capacity_control-11112",
+      "policy": "R1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-no_capacity_control-11112",
+      "policy": "C1",
+      "patients": 3,
+      "inquiries": 0,
+      "unassigned": 3,
+      "not_arrived": 3,
+      "untreated": 3
+    },
+    {
+      "scenario": "online-abundant_control-11112",
+      "policy": "R1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    },
+    {
+      "scenario": "online-abundant_control-11112",
+      "policy": "C1",
+      "patients": 4,
+      "inquiries": 12,
+      "unassigned": 0,
+      "not_arrived": 0,
+      "untreated": 0
+    }
+  ],
+  "limitations": [
+    "A compact extract of existing synthetic results, not a new performance run.",
+    "No actual human review time, call reduction or monetary savings were measured.",
+    "The C1 comparison uses a different objective/model from the adopted severity_first server solver."
+  ]
+}

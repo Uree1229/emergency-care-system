@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "kind": "presentation_evidence_snapshot",
+  "assembled_date": "2026-11-06",
+  "original_result_date": "2026-11-05",
+  "verified_source_reference": "73ac66d0c9232b8cde8fe46656de744b4cc48c1d",
+  "source_git_blob_sha256": {
+    "solver_improved.py": "3ea6bb4704ed1f9f07b2c3ae4a8b7264bc5d7b927c98087f8b24bc896372544c",
+    "datasets/evaluate.py": "9ade99c41496065702423864cb5332f362ca4430a2a61b4a392ff3cf6dc97e9b",
+    "datasets/io.py": "6a94c6a308e11b0e49f4a8608d34d0eaa2b1a9628daa79c1721914d58be4bba3"
+  },
+  "input": {
+    "path": "datasets/generated/allocation.jsonl.gz",
+    "sha256": "b99a16a2bdec35689eeff73a20c38c863d8c5e361f0249edc91744d833d6b134",
+    "split": "test",
+    "limit": 50,
+    "seed": 9
+  },
+  "allocation_result": {
+    "path": "allocation-seed9.json",
+    "sha256": "b0252350c72e5ed8a0f4574fb329e8e834bc1fda7f6ae2d3f33ed0083f2e0acf",
+    "bytes": 101523,
+    "examined": 50,
+    "observed_paired": 46,
+    "better": 20,
+    "tied": 26,
+    "lex_optimal": 26,
+    "feasible": 20,
+    "needs_review": 3,
+    "skipped": 1,
+    "hidden_actual_invalid": 5
+  },
+  "files": {
+    "allocation-seed9.json": "b0252350c72e5ed8a0f4574fb329e8e834bc1fda7f6ae2d3f33ed0083f2e0acf",
+    "resource-workload.json": "18434bcdaece0d995d8bec6b6190510e06e23cb736b9d39716c12bf6328c7586"
+  },
+  "execution_provenance": "The original result does not record execution source or runtime hashes. Source reference and input hashes are supplied for inspection and reproduction; they do not prove historical execution identity.",
+  "limitations": [
+    "Stored-result aggregation was checked. The solver was not rerun to manufacture the same counts.",
+    "Three-second solver results may vary with runtime and hardware.",
+    "46 observed-valid paired cases contain five plans infeasible under hidden actual state.",
+    "The overall 600-case run was interrupted; only the completed first 50 examined cases are included."
+  ]
+}

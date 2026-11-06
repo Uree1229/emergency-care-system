@@ -162,11 +162,52 @@ class TeamReleaseTests(unittest.TestCase):
                      'docs/ALGORITHMS.md', 'docs/VOICE.md', 'docs/TESTING.md', 'docs/DEMO.md',
                      'docs/FINAL_ALGORITHM_DECISION_20261030.md', 'docs/WAITING_PROTECTION_20261030.md',
                      'docs/API.md', 'docs/VOICE_INPUT_API.md', 'docs/INQUIRY_WORKFLOW.md',
+                     'server/flow_console_runtime.py', 'server/voice_recognition_context.py',
+                     'hospital-ui/inquiry-layout.css', 'paramedic-ui/field-workflow.mjs',
+                     'paramedic-ui/field-workflow.css', 'paramedic-ui/field-entry.mjs',
+                     'paramedic-ui/unified-entry.mjs', 'paramedic-ui/critical-conversation.mjs',
+                     'paramedic-ui/critical-conversation-audio.mjs',
+                     'docs/ALLOCATION_PRESENTATION_EVIDENCE_20261105.md',
+                     'docs/RESOURCE_COST_COMPARISON_20261105.html',
+                     'docs/VOICE_CURRENT_FEATURES_DEV2_20261103.md',
+                     'docs/evidence/20261105/allocation-seed9.json',
+                     'docs/evidence/20261105/resource-workload.json',
+                     'docs/evidence/20261105/verify.py',
+                     'docs/team-handoff/20261105/dev1/README.md',
+                     'docs/team-handoff/20261105/dev2/README.md',
+                     'docs/team-handoff/20261102/COMMON_RUNTIME.md',
                      'docs/api/SERVER_SCHEMA_20261102.json'):
             self.assertIsNotNone(release.role(name), name)
         for name in ('outputs/raw.gz', '.solver_deps/ortools.py', 'simulation/fixtures/private.json.gz', 'data/snapshot.db', '.env.local',
                      'docs/api/other.json', 'docs/TEAM_RELEASE_20261030.md', 'docs/SERVER_DOMAIN_20261102.md'):
             self.assertIsNone(release.role(name), name)
+
+    def test_latest_runtime_and_fixed_evidence_are_in_snapshot_with_import_closure(self):
+        self.write('server/flow_console_runtime.py',
+                   'from . import flow_console, voice_recognition_context\n')
+        self.write('docs/evidence/20261105/private.json', 'private sentinel')
+        names = release.selected_paths(self.source)
+        self.assertIn('server.flow_console_runtime', release.ENTRYPOINTS)
+        self.assertIn('docs/evidence/20261105/allocation-seed9.json', names)
+        self.assertIn('docs/team-handoff/20261105/dev1/README.md', names)
+        self.assertNotIn('docs/evidence/20261105/private.json', names)
+        closure = release.dependency_check(self.source, names)
+        self.assertTrue(closure['ok'], closure)
+        self.assertIn('server.flow_console', closure['local_modules'])
+        self.assertIn('server.voice_recognition_context', closure['local_modules'])
+
+    def test_missing_latest_feature_or_explicit_evidence_stops_packaging(self):
+        for name in ('server/voice_recognition_context.py', 'hospital-ui/inquiry-layout.css',
+                     'paramedic-ui/field-workflow.mjs', 'docs/evidence/20261105/manifest.json'):
+            with self.subTest(name=name):
+                path = self.source/name
+                original = path.read_bytes()
+                path.unlink()
+                try:
+                    with self.assertRaises((ValueError, FileNotFoundError)):
+                        release.selected_paths(self.source)
+                finally:
+                    path.write_bytes(original)
 
 
 if __name__ == '__main__':

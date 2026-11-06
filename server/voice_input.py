@@ -92,6 +92,8 @@ def _row(conn, sid, actor, now):
     # question state. This makes value and question undo one atomic operation.
     meta = json.loads(row['field_metadata'])
     for answer in conn.execute('SELECT question_id FROM voice_followup_answers WHERE session_id=?', (sid,)):
+        if answer['question_id'] in _unavailable_questions(meta):
+            continue  # Scoped dispositions already preserve unresolved siblings.
         for key in voice_followup.lookup(answer['question_id'])['fields']:
             meta[key] = {**meta.get(key, {}), 'followup_unavailable_for': answer['question_id']}
     row['field_metadata'] = _json(meta)
@@ -190,7 +192,10 @@ def _followup_plan(conn, row, profile='voice_extended_v1'):
 def _unavailable_questions(metadata):
     return [qid for qid in voice_followup.PROFILES['voice_extended_v1']
             if all(metadata.get(key, {}).get('followup_unavailable_for') == qid
-                   for key in voice_followup.lookup(qid)['fields'])]
+                   for key in voice_followup.lookup(qid)['fields']) or
+            any(metadata.get(key, {}).get('followup_unavailable_for') == qid and
+                metadata.get(key, {}).get('followup_unavailable_scope') == 'remaining'
+                for key in voice_followup.lookup(qid)['fields'])]
 
 
 def _readback_text(fields, metadata, field=None):
@@ -414,6 +419,7 @@ def _merge(row, patch, evidence, now, source, kind, replace=False):
             if key not in meta:
                 continue
             meta[key].pop('followup_unavailable_for', None)
+            meta[key].pop('followup_unavailable_scope', None)
             # Age and symptom branches are alternatives. A new answer should
             # clear the old question's flags, while remaining uncertain symptom
             # values still produce their own question in voice_followup.plan.
@@ -464,6 +470,7 @@ def _recognition_metadata(meta, report):
     for key in report['disputed_fields']:
         item = meta[key]
         item.pop('followup_unavailable_for', None)
+        item.pop('followup_unavailable_scope', None)
         item['recognition_context'] = dict(revision=report['revision'],
             status='needs_clarification', coverage=report['coverage'])
         if key in LIST_FIELDS and report.get('disputed_symptoms'):
@@ -737,13 +744,34 @@ _UNAVAILABLE_ANSWER = re.compile(
     r'안쟀어요|안쟀어|확인불가|측정불가|확인못함|측정못함|측정못했어|확인못했어|지금은못재|건너뛰기|건너뛰어|넘어가|넘겨)$')
 _ANSWER_ENDING = re.compile(r'\s*(?:입니다|이에요|이요|합니다|해요|하다|어요|요|임|함)$')
 
+# Full utterances only. A bulk disposition never supplies clinical observations,
+# and cannot match a question, quote, negative instruction, reported speech or a
+# sentence containing a number/another value. Do not fuzzy-match STT syllables.
+_UNAVAILABLE_DISPOSITION = (
+    r'(?:모름|모르겠어요|모르겠습니다|몰라요|미확인|미측정|확인불가|측정불가)'
+    r'(?:(?:으로|로)?(?:(?:처리|기록)(?:해줘요?|해주세요|해주십시오|해)?|'
+    r'남겨(?:줘요?|주세요|주십시오)?|해줘요?|해주세요|해주십시오))?')
+_REMAINING_UNAVAILABLE = re.compile(
+    r'^(?:(?:그럼|그러면|이제|일단|우선))?'
+    r'(?:(?:남은|나머지)(?:항목|질문|정보|값|내용)?(?:은|는|을|를)?'
+    r'(?:(?:전부|모두|다)(?:다)?)?|'
+    r'(?:항목|질문|정보|값|내용)(?:은|는|을|를)?(?:전부|모두)(?:다)?|'
+    r'(?:전부|모두)(?:다)?)' + _UNAVAILABLE_DISPOSITION + r'$')
+_SINGLE_UNAVAILABLE_DISPOSITION = re.compile(r'^' + _UNAVAILABLE_DISPOSITION + r'$')
+
+
+def _remaining_unavailable_answer(text):
+    compact = re.sub(r'\s+', '', text.strip().strip('.!。').strip())
+    return bool(_REMAINING_UNAVAILABLE.fullmatch(compact))
+
 
 def _unavailable_answer(text, question_id):
     value = re.sub(r'[\s.!。]', '', text)
     label = _ANSWER_LABELS[question_id]
     if value.startswith(label):
         value = re.sub(r'^(?:은|는|이|가|을|를)', '', value[len(label):])
-    return bool(_UNAVAILABLE_ANSWER.fullmatch(value))
+    return bool(_UNAVAILABLE_ANSWER.fullmatch(value) or
+                _SINGLE_UNAVAILABLE_DISPOSITION.fullmatch(value))
 
 
 def _answer_context(question, text):
@@ -776,6 +804,16 @@ def _answer_context(question, text):
                 return '나이 ' + raw + ('' if re.search(r'(?:세|살)$', raw) else '세')
             return None
         if qid == 'blood_pressure':
+            dashed = re.fullmatch(r'([0-9]{1,3})\s{0,8}[-–−]\s{0,8}([0-9]{1,3})\s{0,3}(?:mmHg)?', raw, re.I)
+            if dashed:
+                try:
+                    voice_terms.normalize_fields({'systolic_bp': int(dashed.group(1)),
+                                                  'diastolic_bp': int(dashed.group(2))})
+                except service.ServiceError:
+                    return None
+                # The offered BP question supplies the label, never a value.
+                # answer_followup still stores the untouched original text.
+                return '혈압 ' + raw
             pair = re.fullmatch('(' + numeric + r')\s*(?:에|/|대|의|하고|\s+)\s*('
                                 + numeric + r')\s*(?:mmHg)?', raw, re.I)
             if pair:
@@ -850,6 +888,42 @@ def answer_followup(conn, now, sid, body):
             (sid, uid)).fetchone() is None, 'VOICE_UTTERANCE_FINALIZED', '이미 처리한 발화입니다', 409)
         count = conn.execute('SELECT COUNT(*) FROM voice_utterances WHERE session_id=?', (sid,)).fetchone()[0]
         service._require(count < 100, 'VOICE_SESSION_FULL', '세션당 발화 100개를 초과했습니다', 409)
+        if _remaining_unavailable_answer(text):
+            alternatives = voice_recognition_context.validate(text, body.get('recognition_alternatives', []))
+            service._require(all(_remaining_unavailable_answer(value) for value in alternatives),
+                             'VOICE_ANSWER_CONFLICT',
+                             '인식 후보가 다른 전체 미확인 지시는 적용하지 않았습니다. 원문을 확인하세요', 422)
+            remaining = [q for q in plan['items'] if q['askable']]
+            service._require(bool(remaining), 'VOICE_QUESTION_CHANGED',
+                             '더 확인할 질문이 없습니다. 최신 기록을 검토하세요', 409)
+            fields, meta = json.loads(row['fields']), json.loads(row['field_metadata'])
+            for question in remaining:
+                unresolved = set(question['missing_fields']) | set(question['clarification_fields'])
+                if question.get('uncertain_items'):
+                    unresolved.add('uncertain_symptoms')
+                # Only unresolved siblings receive the group disposition. For
+                # example a recorded systolic BP keeps its original metadata.
+                for key in question['fields']:
+                    if key in unresolved:
+                        meta[key] = {**meta.get(key, {}),
+                                     'followup_unavailable_for': question['id'],
+                                     'followup_unavailable_scope': 'remaining'}
+            conn.execute('INSERT INTO voice_utterances VALUES(?,?,?,?,?,?,?)',
+                         (sid, uid, text, 'dictation', 'guided_followup', now, now))
+            _advance(conn, now, row, fields, meta, json.loads(row['warnings']),
+                     'followup_answer', undoable=meta != json.loads(row['field_metadata']))
+            current = _row(conn, sid, actor, now)
+            updated_plan = _followup_plan(conn, current, profile)
+            ids = [q['id'] for q in remaining]
+            return {'session': _public(conn, current), 'followup': updated_plan,
+                    'answer': {'question_id': offered['id'], 'accepted': True,
+                               'unavailable': True, 'unavailable_scope': 'remaining',
+                               'unavailable_question_ids': ids, 'contextual_answer': False,
+                               'review_required': False, 'interpretation_notes': [],
+                               'applied_fields': [], 'ignored_fields': []},
+                    'speak_text': (f'남은 항목 {len(ids)}개를 미확인으로 남겼습니다. '
+                                   '이미 기록한 값은 유지했습니다. 기록 내용을 검토해 주세요.'),
+                    'tts': 'client', 'operational_effect': 'draft_only'}
         parsed = _extract(text, now, row)
         allowed = set(offered['fields'])
         contextual = False
@@ -931,6 +1005,7 @@ def answer_followup(conn, now, sid, body):
         result = {'session': _public(conn, current), 'followup': updated_plan,
                 'answer': {'question_id': offered['id'], 'accepted': accepted,
                            'unavailable': unavailable, 'contextual_answer': contextual,
+                           'unavailable_question_ids': [offered['id']] if unavailable else [],
                            'review_required': bool(interpretation_notes), 'interpretation_notes': interpretation_notes,
                            'applied_fields': sorted(patch), 'ignored_fields': ignored_fields},
                 'speak_text': speak, 'tts': 'client', 'operational_effect': 'draft_only'}
