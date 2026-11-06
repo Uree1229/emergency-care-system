@@ -21,7 +21,7 @@
 
 | 구간 | 계약 |
 |---|---|
-| 공통 서버와 대화 | [API](API.md), [CHAT_API](CHAT_API.md), [프런트 연결](FRONTEND_FREE_FLOW.md) |
+| 공통 서버와 대화 | [API](API.md), [화면 연결 규칙](API.md#12-화면-연결-규칙-2026-11-06-추가), [CHAT_API](CHAT_API.md), [프런트 연결](FRONTEND_FREE_FLOW.md) |
 | 음성 초안·치료 조건 | [음성 API](VOICE_INPUT_API.md), [최소 입력](R1_MINIMUM_INPUT.md), [녹음·명령 설계](VOICE_PTT_DESIGN.md), [치료 조건 검토](VOICE_TREATMENT_REVIEW_API_20261030.md), [문맥·복수 후보 검토](VOICE_RECOGNITION_CONTEXT_20261103.md), [명령 보류](VOICE_COMMAND_GATE_20261031.md), [소음 억제 비교](VOICE_RNNOISE_COMPARISON_20261031.md) |
 | 구급대 화면 입력 복구 | [대기 작업 통합](PARAMEDIC_PENDING_INTEGRATION_20261102.md) |
 | 환자 정보 변경 | [환자 수정](PATIENT_AMENDMENTS_API.md), [배정 입력 검토](ALLOCATION_INPUT_REVIEW_API_20261030.md), [이송 중 변경](ENROUTE_PATIENT_CHANGE_20261030.md) |
@@ -32,6 +32,8 @@
 ## 연구와 원자료
 
 `*_EXPERIMENT.md`, 알고리즘 프로토콜, `simulation_results/`는 당시 입력·비교·실패를 기록한 연구 근거다. 현재 제품의 기능 안내는 위 주제별 문서에서 확인한다. 실험 재현은 해당 버전의 코드·설정·잠금 파일을 함께 사용한다. [연구 안내](ALGORITHMS.md)
+
+연구 기록과 결과 보고서에 있는 `.codex-build/`, `outputs/`, `data/` 링크와, 2026-10-28부터 git에서 뺀 `simulation_results/` 원자료(JSON·사례 파일) 링크는 원래 작업 PC와 그 백업에만 있는 파일을 가리킨다. GitHub와 새 클론에서는 열리지 않는다. 연구 기록은 봉인된 근거라서 이 링크를 고치지 않았고, 현재 안내 문서의 같은 경로는 링크 대신 경로로 적었다.
 
 `research/`는 공개자료 조사와 출처, `design/`은 기획 배경, `testing/`은 사람 시험용 대본·양식이다. `proposals/current/`와 `reports/`의 제출용 문서는 작성 당시 자료로 보관한다. 현재 데이터 필드와 수집 코드는 [필드 매핑](../api_field_mapping.md), [서버 안내](../server/README.md)를 따른다.
 

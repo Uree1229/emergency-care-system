@@ -20,7 +20,7 @@
 
 ## 지금 확인할 수 있는 것과 없는 것
 
-현재 보관 기준선: [요약 보고서](../outputs/speech_evaluation_20261030/reference_v3/report.md) · [HTML 비교표](../outputs/speech_evaluation_20261030/reference_v3/report.html).
+현재 보관 기준선: 요약 보고서(`outputs/speech_evaluation_20261030/reference_v3/report.md`) · HTML 비교표(`outputs/speech_evaluation_20261030/reference_v3/report.html`).
 
 | 합성 개발 대본의 관찰 16개 항목 | 결과 |
 |---|---:|

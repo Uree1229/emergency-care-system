@@ -48,6 +48,9 @@ GET /api/hospitals/{hid}/accounting-reconciliations 및 /{id}
 본문 {request_id,reason,handled_by,expected_version,expected_resource_versions,confirm_no_resource_release:true}. expected_resource_versions는 병원 운영 자원 전체의 최신 버전이다. 공공 관측값을 넣지 마라. 정상 퇴실의 서버 409를 자동으로 이 API로 우회하거나 자원을 직접 차감하지 마라. 별도 명시 확인과 사유, 동일 요청 재시도, 버전 충돌 재검토, 성공 후 상세 재조회와 감사 페이지를 구현하라. 성공 시 추가 차감은 0이다.
 docs/ACCOUNTING_RECONCILIATION.md를 먼저 읽어라.
 
+README 갱신(후순위, 11-06 추가) — hospital-ui/README.md 실행 안내
+H01~H03과 다른 PR로 진행하라. 지금 README의 `server.app --seed`는 기존 DB 파일을 지운다. docs/RUNNING.md의 새 DB 경로 server.chat_demo 실행과 /hospital/?hid=H01 기준으로 고치고, 수용 제한 화면을 미구현으로 적은 문장을 현재 상태에 맞게 바꿔라. 세부 기준은 dev2/README.md에 있다.
+
 서버 의존 사항:
 - 제한 해제 route가 DELETE의 handled_by를 사용하지 않아 감사 actor가 기본 hospital로 남는 문제가 있다. 서버 코드를 고치지 말고 재현·요청·응답을 서버 담당자에게 전달하라.
 - 제한 연장은 현재 POST→DELETE 두 요청이고 등록에 멱등 요청 ID 계약이 없다. 응답 유실을 새 POST 자동 반복으로 처리하지 마라. 서버 계약 협의가 필요한 부분을 분리하라.

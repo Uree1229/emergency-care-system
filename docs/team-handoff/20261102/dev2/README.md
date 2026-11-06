@@ -122,6 +122,18 @@ GET  /api/hospitals/{hid}/accounting-reconciliations/{id}
 
 계약은 `docs/ACCOUNTING_RECONCILIATION.md`를 따른다. 공공 병상 관측값은 `expected_resource_versions`에 넣지 않는다. 이 API는 실제 정산을 수행하는 기능이 아니라 담당자의 정산 확인 후 추가 차감 없이 기록을 종결하는 기능이다.
 
+## README 실행 안내 갱신 — 후순위 (2026-11-06 추가)
+
+**현재 문제:** `hospital-ui/README.md`의 실행 절차는 10-13 시연 기준이다. 그대로 따라 하면 기존 DB 파일이 지워진다. 11-05 문서 정리(PR #20)는 팀원 폴더를 고치지 않았으므로 dev2가 직접 갱신한다. H01~H03과 다른 PR로 진행한다.
+
+| README의 현재 문구 | 문제 | 바꿀 내용 |
+|---|---|---|
+| `py -3 -m server.app --seed --scenario sudden --port 8000` | `--seed`는 `--db`(기본 `data/demo.db`)와 `-wal`·`-shm` 파일을 지운 뒤 가상 병원 10곳으로 새로 만든다 | [실행 안내](../../../RUNNING.md#가상-환자병원-화면-시연)처럼 새 DB 경로로 `server.chat_demo` 실행 |
+| `?hid=H07`, "H02, H07에 대기 문의" | `sudden` 시나리오에만 맞는 값 | 새 실행의 `/hospital/?hid=H01`과 구급대 화면에서 문의한 건 |
+| "수용 제한 등록·해제 화면(H03~H04 등)… 아직 남아 있습니다" | 지금 병원 화면에는 수용 제한 탭이 있다 | 남은 범위는 [현재 상태](../../../PROJECT_STATUS.md)로 연결 |
+
+**완료 기준:** README만 따라 새 DB로 서버를 켜고 병원 화면에서 문의를 확인할 수 있다. 기존 DB를 지우는 명령이 남아 있지 않다. Codex 정리안(커밋 `7f9d27e`)의 [hospital-ui/README.md](https://github.com/Uree1229/emergency-care-system/blob/7f9d27ea582b74c1c894a0d508ef12f903afc97d/hospital-ui/README.md)를 초안으로 참고할 수 있다.
+
 ## 서버 담당자에게 전달할 의존 사항
 
 - **제한 해제 감사 담당자:** UI의 `changeRestriction`은 DELETE 본문에 `handled_by`를 보내지만 `server/app.py`의 제한 해제 route는 본문을 읽지 않고 `clear_restriction` 기본 actor `hospital`을 사용한다. 화면 본문만 바꿔 해결할 수 없다. 재현과 실제 요청을 서버 담당자에게 전달한다.
