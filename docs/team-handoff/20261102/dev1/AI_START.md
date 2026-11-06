@@ -12,6 +12,7 @@
 - docs/team-handoff/20261102/CURRENT_STATE.md
 - docs/team-handoff/20261102/dev1/README.md
 - docs/team-handoff/20261102/dev1/AI_START.md (이 프롬프트 자체)
+- docs/team-handoff/20261102/dev1/MOBILE_APP_IMPROVEMENTS_20261103.md (모바일 앱 전환 개선 M01~M09)
 
 기준은 main 580460a 기반 이번 UI 후속 변경을 포함한 소스다. 과거 문서의 '로컬 완료', 다른 미공개 코드,
 옛 실행 묶음에만 있는 기능을 현재 main 기능으로 가정하지 않는다.
@@ -129,6 +130,12 @@ D01 완료 기준:
   원본을 보존하고 처리본을 업무 STT에 자동 전달하지 않는다.
 이 기능들이 /patient/ 수동 등록 D01과 채팅 D02 복구를 대신하지 않는다.
 D01/D02에 잡음 처리나 명령 정책 변경을 섞지 않는다.
+
+모바일 앱 전환 M01~M09:
+구급대원 화면은 휴대폰 앱으로 쓸 예정이다. MOBILE_APP_IMPROVEMENTS_20261103.md의
+측정 결과·개선 항목·완료 기준을 따른다. D01/D02와 별도 작업이며 같은 PR에 섞지 않는다.
+화면 구조를 바꿔도 VoiceClient 재시도·409 처리·원요청 보존 계약은 유지한다.
+웹 음성 인식이 앱 WebView에서 되는지는 추정하지 말고 시제품에서 확인한다.
 
 기본 검증 명령(저장소 루트):
 python scripts/test_suites.py list

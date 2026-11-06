@@ -157,12 +157,15 @@ class TeamReleaseTests(unittest.TestCase):
     def test_allowlist_has_root_launchers_current_ui_tests_and_no_raw_archive(self):
         for name in ('TEAM_START.ps1', 'TEAM_VERIFY.ps1', 'server/team_release_info.py',
                      'test_team_release_info.py', 'test_hospital_workflow.mjs', 'test_paramedic_main_workflow.mjs',
-                     'test_patient_workflow_state.mjs', 'paramedic-ui/evaluation-cases.json', 'docs/TEAM_RELEASE_20261030.md',
-                     'docs/SERVER_INTEGRATION_20261030.md', 'docs/SERVER_DOMAIN_20261102.md',
+                     'test_patient_workflow_state.mjs', 'paramedic-ui/evaluation-cases.json',
+                     'docs/README.md', 'docs/PROJECT_STATUS.md', 'docs/RUNNING.md', 'docs/ARCHITECTURE.md',
+                     'docs/ALGORITHMS.md', 'docs/VOICE.md', 'docs/TESTING.md', 'docs/DEMO.md',
+                     'docs/FINAL_ALGORITHM_DECISION_20261030.md', 'docs/WAITING_PROTECTION_20261030.md',
+                     'docs/API.md', 'docs/VOICE_INPUT_API.md', 'docs/INQUIRY_WORKFLOW.md',
                      'docs/api/SERVER_SCHEMA_20261102.json'):
             self.assertIsNotNone(release.role(name), name)
         for name in ('outputs/raw.gz', '.solver_deps/ortools.py', 'simulation/fixtures/private.json.gz', 'data/snapshot.db', '.env.local',
-                     'docs/api/other.json'):
+                     'docs/api/other.json', 'docs/TEAM_RELEASE_20261030.md', 'docs/SERVER_DOMAIN_20261102.md'):
             self.assertIsNone(release.role(name), name)
 
 

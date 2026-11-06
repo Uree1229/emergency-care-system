@@ -1,8 +1,8 @@
 # 공통 서버 API 명세 (병원 웹 · 환자 웹용)
 
 이 문서는 병원 웹과 환자 모바일 웹을 만드는 팀원을 위한 명세입니다. 서버 코드는 `server/`에 있고, 업무 규칙의 원본은 `server/service.py`입니다.
-이번 피어리뷰를 반영한 담당자별 화면 작업·연결 순서·완료 기준은 [팀원 API 연결 전달 문서](TEAM_FEEDBACK_API_HANDOFF_20261029.md)를 참고하세요.
-이송 건별 시스템 알림과 자유대화 API는 [대화 API 명세](CHAT_API.md)에 정리했습니다. 이송자·병원 화면과 연결됐으며, 각자 PC에서 실행하는 방법은 [팀원 테스트 가이드](TEAM_TEST_GUIDE.md)를 따릅니다.
+이번 피어리뷰를 반영한 담당자별 화면 작업·연결 순서·완료 기준은 [팀원 API 연결 전달 문서](RUNNING.md)를 참고하세요.
+이송 건별 시스템 알림과 자유대화 API는 [대화 API 명세](CHAT_API.md)에 정리했습니다. 이송자·병원 화면과 연결됐으며, 각자 PC에서 실행하는 방법은 [팀원 테스트 가이드](TESTING.md)를 따릅니다.
 업무 시작·종료 계측과 중요 사건 수신·담당자 확인 API는 [업무 계측과 중요 사건 명세](BACKEND_MEASUREMENT_API.md)에 정리했습니다. 신규 API의 화면 연결은 각 담당자의 후속 작업입니다.
 통화 전달 내용·상대 기관측 확인·정정 이력은 [통화 결과 기록 API](CALL_RECORD_API.md)를 사용합니다. 기록의 내용 확인과 의료적 수용 확정을 구분합니다.
 문의 이후 환자정보 보완은 [버전 기반 수정 API](PATIENT_AMENDMENTS_API.md), 이송 ID를 모르는 새 통화 발견은 [병원 전체 통화함](CALL_RECORD_API.md#8-병원-전체-통화함)을 사용합니다.
@@ -393,7 +393,7 @@ ACCEPTED ─10분 경과─▶ EXPIRED      어느 단계든 ─취소·다른 �
 
 `NO_VALID_ACCEPTED_HOSPITAL`은 현재 환자 버전과 유효기간을 만족하는 수용 응답이 없을 때만 사용합니다. 응답은 있으나 계산 후보가 되지 못하면 `NO_ELIGIBLE_ACCEPTED_HOSPITAL`과 구체적 사유를 표시합니다. 공개 자료만 있고 운영 자원이 없는 병원도 기존 수용 응답과 사람의 확정은 가능합니다. **솔버 미배정을 병원 수용 불가로 표시하거나, 기존 수동 확정 버튼을 추천 성공에 종속시키지 않습니다.**
 
-추천 패널은 현재 양쪽 UI에 아직 연결되지 않았습니다. 상세 연결 순서와 팀원별 완료 기준은 [추천 표시 연결 안내](TEAM_RECOMMENDATION_INTEGRATION.md)를 따릅니다.
+추천 패널은 현재 양쪽 UI에 아직 연결되지 않았습니다. 상세 연결 순서와 팀원별 완료 기준은 [추천 표시 연결 안내](RUNNING.md)를 따릅니다.
 
 계획 결과에는 `result.treatment_requirements`(실제로 적용한 조건), `result.treatment_evaluation`(선택 병원의 평가, 선택 병원이 없으면 null), `result.treatment_evaluations`(병원 ID별 평가)가 포함됩니다. 공개 근거만으로 확인되지 않은 조건은 `TREATMENT_CONFIRMATION_REQUIRED:<병원ID>`, 오래된 관측은 `PUBLIC_DATA_STALE:<병원ID>` 경고로 표시합니다. 이 경고가 있다는 이유만으로 병원의 유효한 환자별 수용 응답을 무효화하지는 않습니다.
 

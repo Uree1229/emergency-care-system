@@ -66,7 +66,7 @@ python -m server.chat_demo --db data/dev2-ui-20261102.db --port 18021
 
 `/conversation-demo.html`도 제공한다. 이 페이지는 브라우저에서 실행되면 합성 사례를 생성하고 시연 제어로 병원 응답·이송 절차를 호출하는 도구이므로, 읽기 전용 기동 확인에는 위 상태 API를 사용한다. 자신의 합성 DB에서만 연다.
 
-현재 main은 세 역할 정적 경로를 모두 제공한다([등록 코드](../../../server/app.py)). 이전 [11월 2일 시작 문서](../../TEAM_START_20261102.md)의 “main에는 `/paramedic/`가 없다”는 문장은 이 기준 커밋의 상태와 다르다. 화면이 존재하는 것과 모든 최신 API가 화면에 연결되어 있는 것은 각각 확인한다.
+현재 main은 세 역할 정적 경로를 모두 제공한다([등록 코드](../../../server/app.py)). 이전 [11월 2일 시작 문서](https://github.com/Uree1229/emergency-care-system/blob/6fbf6c6d50d2c5b2b8d3163e88a8d052b5ff44a3/docs/TEAM_START_20261102.md)의 “main에는 `/paramedic/`가 없다”는 문장은 이 기준 커밋의 상태와 다르다. 화면이 존재하는 것과 모든 최신 API가 화면에 연결되어 있는 것은 각각 확인한다.
 
 ## 3. 공통 통신 계약
 
@@ -77,7 +77,7 @@ python -m server.chat_demo --db data/dev2-ui-20261102.db --port 18021
 - **상태·사람의 결정:** 후보·추천·수용 응답·목적지 확정은 별개다. 병원 수용 뒤 구급대원이 명시적으로 확정·출발한다. 목적지는 자동 변경하지 않는다. 자유채팅 문장으로 수용·확정 API를 대신하지 않는다. planning이 꺼져 있으면 추천 요청의 `PLANNER_DISABLED`를 숨기지 않는다.
 - **알림:** 실제 화면 표시 후 `delivered`, 사용자의 확인 후 `acknowledge`를 호출한다. 재연결 시 전진 커서와 과거 미확인 사건 조회를 각각 복구한다. GET 성공을 사용자 확인으로 처리하지 않는다.
 
-상세 계약은 [기본 API](../../API.md), [음성 API](../../VOICE_INPUT_API.md), [재전송·경합·복구](../../TEAM_CONNECTION_CHECK_20261030.md)를 참고한다. `GET /api/patients/{pid}/recommendation`은 조회이고 `POST .../replan`은 명시적인 재계산 요청이다. 폴링마다 POST하지 않는다.
+상세 계약은 [기본 API](../../API.md), [음성 API](../../VOICE_INPUT_API.md), [재전송·경합·복구](https://github.com/Uree1229/emergency-care-system/blob/6fbf6c6d50d2c5b2b8d3163e88a8d052b5ff44a3/docs/TEAM_CONNECTION_CHECK_20261030.md)를 참고한다. `GET /api/patients/{pid}/recommendation`은 조회이고 `POST .../replan`은 명시적인 재계산 요청이다. 폴링마다 POST하지 않는다.
 
 **CORS:** 위 `chat_demo`는 서버와 화면을 같은 origin에서 제공하며 기본 handler의 `Access-Control-Allow-Origin: *`를 사용한다. 별도 개발 서버에서 화면을 열 때는 실제 브라우저의 요청 URL·preflight·응답을 확인한다. 이후 `team_runtime`은 CORS 헤더를 보내지 않으므로 이 설정을 그대로 가정하지 않는다. 가능한 한 공통 서버가 제공하는 같은 origin의 화면을 사용한다.
 
@@ -102,7 +102,7 @@ python -m server.chat_demo --db data/dev2-ui-20261102.db --port 18021
 python -m server.app --db data/voice-dev1-20261102.db --port 8000 --no-planner --no-inquiry-worker
 ```
 
-`/paramedic/quick-test.html` 또는 `/paramedic/command-practice.html`을 연다. dev2는 DB 이름을 바꾼다. 이 명령은 **문의·배정 워커 모두 OFF**이며 `--seed`를 붙이지 않는다. [긴 문장 음성 시험 안내](../../TEAM_VOICE_TEST_GUIDE_20261031.md)를 따른다. 실제 브라우저 음성 인식은 브라우저·인터넷·권한에 따라 달라진다. 키 없는 텍스트 API 시험을 실제 마이크 성공으로 기록하지 않는다.
+`/paramedic/quick-test.html` 또는 `/paramedic/command-practice.html`을 연다. dev2는 DB 이름을 바꾼다. 이 명령은 **문의·배정 워커 모두 OFF**이며 `--seed`를 붙이지 않는다. [긴 문장 세트](../../testing/TEAM_VOICE_COMMAND_LONG_SENTENCES_20261031.md)와 [연습 자료 수집](../../VOICE.md#연습-자료-수집)을 따른다. 실제 브라우저 음성 인식은 브라우저·인터넷·권한에 따라 달라진다. 키 없는 텍스트 API 시험을 실제 마이크 성공으로 기록하지 않는다.
 
 메인의 미저장 입력·불확실 요청 복구는 같은 탭의 `sessionStorage`를 사용하며 자동 재전송하지 않는다. Quick은 기본 800ms 후속 인식 보류와 버튼 전용 관찰을 제공한다. 이 값은 실험 설정이지 검증된 최적값이 아니다. `noise-compare.html`은 원본과 RNNoise 처리본을 로컬에서 비교하는 선택형 도구이며 업무 STT에 처리본을 자동 연결하지 않는다.
 
@@ -131,9 +131,9 @@ python -m server.team_runtime serve --db data/team-common-20261102.db --port 180
 
 일반 Git clone에서는 `TEAM_START.ps1`·`TEAM_VERIFY.ps1`를 실행하지 않는다. 두 스크립트는 이웃 `release-manifest.json`과 `source/` 구조를 갖춘 검증 배포 묶음용이다. README의 `outputs/...` 고정 묶음 링크가 새 clone에 없을 수 있다. main 소스 실행은 위 Python 모듈 명령으로 한다.
 
-공통 DB는 전용 표식·기관을 검사하고 재사용하며 같은 DB의 중복 실행을 잠근다. `chat_demo` DB를 공통 DB로 돌려 쓰지 않는다. 환자·문의·음성 기록을 지우는 `--seed`·DB 삭제로 연결 문제를 해결하지 않는다. 오래된 합성 자원의 명시 갱신·새 사례 생성·백업은 중앙 서버 담당자가 [공통 실행 규칙](../../TEAM_COMMON_RUNTIME_20261030.md)에 따라 수행한다. 공통 full의 `/api/team-runtime` 및 `team_readiness` 사전 점검은 `chat_demo`의 기동 검사와 다르다.
+공통 DB는 전용 표식·기관을 검사하고 재사용하며 같은 DB의 중복 실행을 잠근다. `chat_demo` DB를 공통 DB로 돌려 쓰지 않는다. 환자·문의·음성 기록을 지우는 `--seed`·DB 삭제로 연결 문제를 해결하지 않는다. 오래된 합성 자원의 명시 갱신·새 사례 생성·백업은 중앙 서버 담당자가 [공통 실행 규칙](../../RUNNING.md#공통-서버와-두-워커)에 따라 수행한다. 공통 full의 `/api/team-runtime` 및 `team_readiness` 사전 점검은 `chat_demo`의 기동 검사와 다르다.
 
-휴대폰의 `127.0.0.1`은 휴대폰 자신이다. 같은 Wi-Fi 공유는 중앙 서버 담당자가 [HTTPS LAN 절차](../../TEAM_LAN_20261102.md)에 따라 별도로 준비한다. `team_runtime`은 loopback에서 실행하고 LAN gateway로 연결한다. 기기별 인증서 신뢰·팀 토큰·실제 마이크 권한을 확인한다. 토큰은 병원별 로그인 인증을 대신하지 않는다. 개인키·토큰·외부 API 키를 저장소나 채팅에 공유하지 않는다. 이 문서의 PC 로컬 기동 성공을 휴대폰 성공으로 기록하지 않는다.
+휴대폰의 `127.0.0.1`은 휴대폰 자신이다. 같은 Wi-Fi 공유는 중앙 서버 담당자가 [HTTPS LAN 절차](../../RUNNING.md#같은-wi-fi의-다른-기기)에 따라 별도로 준비한다. `team_runtime`은 loopback에서 실행하고 LAN gateway로 연결한다. 기기별 인증서 신뢰·팀 토큰·실제 마이크 권한을 확인한다. 토큰은 병원별 로그인 인증을 대신하지 않는다. 개인키·토큰·외부 API 키를 저장소나 채팅에 공유하지 않는다. 이 문서의 PC 로컬 기동 성공을 휴대폰 성공으로 기록하지 않는다.
 
 ## 7. 테스트 묶음
 

@@ -76,7 +76,7 @@ python -m simulation.viewer_server --reuse-data
 
 화면은 지도·재생바와 정책 비교 패널로 구성된다. 우측에서 환자를 선택하고, 각 정책의 **진행 상황 · 판단 근거**를 펼쳐 응답 근거·환자별 상태·정책 설정을 확인한다. 지도는 휠 또는 `+`/`−` 버튼으로 확대·축소하고 전체 보기 버튼으로 되돌린다. 입력 컨트롤 밖에서 `Space`는 재생·일시정지, 좌우 방향키는 1분 이동이다. 상단 메뉴로 결과 비교와 실험 기록에 이동할 수 있다. 좁은 화면에서는 비교 패널이 지도 아래로 이동한다.
 
-새 화면은 같은 서버의 `/lab.html`이다. **지도 재생 · 결과 비교 · 발표** 세 탭으로 나뉘고, 비교·발표 내용은 저장 기록에서 자동으로 만든다. 기존 화면을 대체하기 전 시험판이다. [새 화면 안내](../docs/SIM_VIEWER_LAB_20261030.md)
+새 화면은 같은 서버의 `/lab.html`이다. **지도 재생 · 결과 비교 · 발표** 세 탭으로 나뉘고, 비교·발표 내용은 저장 기록에서 자동으로 만든다. 기존 화면을 대체하기 전 시험판이다. [새 화면 안내](../docs/DEMO.md)
 
 ### 시연 흐름과 비교 조건
 
@@ -261,7 +261,7 @@ python -m simulation.priority_audit
 python -m unittest test_priority_assignment test_priority_scenarios test_priority_integration test_priority_experiment test_priority_audit
 ```
 
-위 명령은 완료한 실험의 재현이다. 정책 수정 후에는 새 파일명과 미사용 검증 입력이 필요하다. 검증1001~1020·2001~2020·3001~3020·5001~5020 및 중단4001~4020은 재사용하지 않는다. [전체 결과](../simulation_results/priority_protection_corrected.md), [독립 감사](../simulation_results/priority_protection_corrected_audit.json), [핸드오프](../docs/HANDOFF_20261011.md)에 군별 분모·공통 환자 구간·악화 조건을 남겼다. 관련301개 테스트와 전체 지도 실제 HTTP 재생·정지·필터·미래정보 차단·화면 검사를 통과했다. 실제 의료 효과나 현행 119 체계 대비 개선을 입증한 결과는 아니다.
+위 명령은 완료한 실험의 재현이다. 정책 수정 후에는 새 파일명과 미사용 검증 입력이 필요하다. 검증1001~1020·2001~2020·3001~3020·5001~5020 및 중단4001~4020은 재사용하지 않는다. [전체 결과](../simulation_results/priority_protection_corrected.md), [독립 감사](../simulation_results/priority_protection_corrected_audit.json), [핸드오프](../docs/PROJECT_STATUS.md)에 군별 분모·공통 환자 구간·악화 조건을 남겼다. 관련301개 테스트와 전체 지도 실제 HTTP 재생·정지·필터·미래정보 차단·화면 검사를 통과했다. 실제 의료 효과나 현행 119 체계 대비 개선을 입증한 결과는 아니다.
 
 ## 서버 문의 정책 기록 재생 (2026-10-12)
 

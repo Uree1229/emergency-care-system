@@ -4,15 +4,15 @@
 
 치료조건 검토 연결: [변경안 미리보기·명시 적용·배정 재평가 API](VOICE_TREATMENT_REVIEW_API_20261030.md). 기존 환자 음성 초안 응답에 `session.treatment_review`를 추가했다. `/treatment-review`, `/treatment-review/preview`, `/treatment-review/apply`로 기존 유지·서버 제안·담당자 직접 조건을 검토하고 적용한다. 초안 확인과 치료조건 승인은 별도이며 값·조건·기존 수용·배정 입력 변경을 원자적으로 처리한다. 목적지 확정 전만 지원하고 기존 submit 호환 계약은 유지한다. 관련461개 회귀·초안12단계·가상 병원11단계 통과.
 
-UI 핸드오프 5.1·5.5 반영: [조사 오인식 방지·자연스러운 질문 답변·검증 결과](VOICE_UI_HANDOFF_SERVER_FIX_20261030.md). `capabilities.handoff_parser_revision: "voice-ui-handoff-20261030-v1"`. 기존 `voice_revision`과 요청 형식은 유지한다. 질문 문맥의 `분당 20분`·`37도 2`·`30분 전쯤`처럼 의미를 보완한 답변에는 `answer.review_required`, `answer.interpretation_notes`와 해당 `field_metadata`의 같은 검토 표시를 제공한다. 실제 인식 원문은 발화와 근거에 보존하며, 이 표시는 미응답 재질문이나 수용·이송 판단을 뜻하지 않는다.
+UI 핸드오프 5.1·5.5 반영: [조사 오인식 방지·자연스러운 질문 답변·검증 결과](VOICE.md). `capabilities.handoff_parser_revision: "voice-ui-handoff-20261030-v1"`. 기존 `voice_revision`과 요청 형식은 유지한다. 질문 문맥의 `분당 20분`·`37도 2`·`30분 전쯤`처럼 의미를 보완한 답변에는 `answer.review_required`, `answer.interpretation_notes`와 해당 `field_metadata`의 같은 검토 표시를 제공한다. 실제 인식 원문은 발화와 근거에 보존하며, 이 표시는 미응답 재질문이나 수용·이송 판단을 뜻하지 않는다.
 
-DB 사전·명령 확장: [공식 용어 DB와 명령12종·조회/삭제/이력 API](VOICE_DICTIONARY_AND_COMMANDS_20261030.md). KOSTOM v7 진단97,832행·심평원20250930 참고47,796행을 저장하고, 실행용 동의어는 프로젝트 검토 대상만 DB에서 읽는다. 새 `dictionary`, `dictionary/search`, `command-catalog` 조회 API와 명령의 `fields`, `rejected`, `read_only` 응답을 추가했다. 자동모드의 확인·제출은 기존 화면 조작 계약을 유지한다. 관련 회귀403개·초안12단계·가상 병원11단계 통과.
+DB 사전·명령 확장: [공식 용어 DB와 명령12종·조회/삭제/이력 API](VOICE.md). KOSTOM v7 진단97,832행·심평원20250930 참고47,796행을 저장하고, 실행용 동의어는 프로젝트 검토 대상만 DB에서 읽는다. 새 `dictionary`, `dictionary/search`, `command-catalog` 조회 API와 명령의 `fields`, `rejected`, `read_only` 응답을 추가했다. 자동모드의 확인·제출은 기존 화면 조작 계약을 유지한다. 관련 회귀403개·초안12단계·가상 병원11단계 통과.
 
-환자정보 연결 보완: [기존 값 보존·삭제·재확인 상태·가상 병원 전체 흐름 검증](VOICE_PATIENT_LINK_VERIFICATION_20261030.md). `capabilities.patient_projection_revision: "voice-patient-link-20261030-v1"`. 기존 API 본문은 유지하며 서버 회귀356개, 초안12단계·가상 환자/병원11단계가 통과했다. 실제 마이크·STT 정확도 시험은 별도다.
+환자정보 연결 보완: [기존 값 보존·삭제·재확인 상태·가상 병원 전체 흐름 검증](VOICE.md). `capabilities.patient_projection_revision: "voice-patient-link-20261030-v1"`. 기존 API 본문은 유지하며 서버 회귀356개, 초안12단계·가상 환자/병원11단계가 통과했다. 실제 마이크·STT 정확도 시험은 별도다.
 
-서버 연결 검증 업데이트: [전체 검증 결과와 Claude 화면 연결 목록](VOICE_CONNECTION_VERIFICATION_20261030.md). `connection_revision: "voice-connection-20261030-v1"`은 질문 답변 취소·미측정 상태 복원·증상 대안 필드의 재질문 해소 수정을 포함한다. 기존 API 본문은 유지한다. 미측정 상태도 버전 이력에 함께 저장해 값과 질문 상태가 원자적으로 복원된다. 서버 회귀174개·실제 HTTP 클라이언트12단계 통과이며 실제 음성 인식 정확도 검증과는 별개다.
+서버 연결 검증 업데이트: [전체 검증 결과와 Claude 화면 연결 목록](VOICE.md). `connection_revision: "voice-connection-20261030-v1"`은 질문 답변 취소·미측정 상태 복원·증상 대안 필드의 재질문 해소 수정을 포함한다. 기존 API 본문은 유지한다. 미측정 상태도 버전 이력에 함께 저장해 값과 질문 상태가 원자적으로 복원된다. 서버 회귀174개·실제 HTTP 클라이언트12단계 통과이며 실제 음성 인식 정확도 검증과는 별개다.
 
-2026-10-30 V2 추가: [서버·Claude 앱의 작업 경계와 상세 연결 계약](VOICE_V2_CLAUDE_HANDOFF.md).
+2026-10-30 V2 추가: [서버·Claude 앱의 작업 경계와 상세 연결 계약](VOICE.md).
 
 - `mode: "auto"`와 자연스러운 새 상태 보고(`observe`)를 지원한다. 예: “혈압이 지금 100에 80까지 떨어졌어”. 새 관찰과 잘못 입력한 값의 정정(`edit`)을 이력에서 구분한다. 기존 dictation/command도 유지한다.
 - 최신 `session`에는 `followup` 질문 계획과 `latest_changes` 변경 전후 값이 추가된다. 현재 값이 모호하면 이전 관찰을 보존하면서 `field_metadata[field].needs_clarification`을 표시한다.
@@ -410,4 +410,4 @@ Data URL 접두어를 붙인 문자열이나 WebM·MP3 파일은 이 서버 계�
   - 불확실·대략값 표현은 꾸미는 값 주변에만 적용한다. 뒤에 붙는 표현은 값 끝에서 10자 안, '대략·약'은 값 앞 10자 안이다.
   - '이상·이하·미만·넘음'은 수에 붙을 때만 대략값이다. '발음 이상', '넘어짐'은 대략값이 아니다.
   - 가족이 주어인 나열('어머니는 70세 흉통, 기침')은 '환자·본인·이번·현재·지금'이 나올 때까지 계속 가족 정보로 본다.
-- 정확도와 남은 과제는 [R1 맞춤 목록](VOICE_R1_ALIGNMENT.md) 0절을 본다. 화면에서 새 칸을 보여 주고 고치는 부분은 앱 담당이 연결한다.
+- 정확도와 남은 과제는 [R1 맞춤 목록](VOICE.md) 0절을 본다. 화면에서 새 칸을 보여 주고 고치는 부분은 앱 담당이 연결한다.

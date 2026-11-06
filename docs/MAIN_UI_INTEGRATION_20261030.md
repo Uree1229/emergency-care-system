@@ -58,7 +58,7 @@ GET 성공만으로 수신을 기록하지 않는다. 문서가 보이고 해당
 
 ## 실행과 확인 주소
 
-정규 공통 실행은 [팀 공통 실행](TEAM_COMMON_RUNTIME_20261030.md)의 full 모드를 사용한다. 이 작업의 격리 검증 서버가 켜져 있는 동안에는 다음 주소로 볼 수 있다.
+정규 공통 실행은 [팀 공통 실행](RUNNING.md#공통-서버와-두-워커)의 full 모드를 사용한다. 이 작업의 격리 검증 서버가 켜져 있는 동안에는 다음 주소로 볼 수 있다.
 
 - [메인 음성·기록 화면](http://127.0.0.1:18049/paramedic/).
 - [기존 대기 환자 진행 화면](http://127.0.0.1:18049/patient/?pid=ER-W1&actor_id=workflow-crew).
@@ -82,4 +82,4 @@ $workflowPython = 'C:\Users\PC\.cache\codex-runtimes\codex-primary-runtime\depen
 - 병원: `hospital-ui/index.html`, `workflow-state.mjs`, `workflow-panel.mjs`, `workflow-panel.css`. 기존 `operations.mjs` 보존.
 - 관련 UI 시험과 각 화면 README·현재 잔여 목록을 갱신했다. 서버 API·솔버 구현은 변경하지 않았다.
 
-다음 작업은 [현재 잔여 목록](CURRENT_REMAINING_WORK_20261030.md)의 공통 버전 확정, 실제 기기·마이크·실패 복구 리허설, 구급대 계측과 실제 사용성 측정, 다른 PC 재현이다. 알고리즘 추가 연구는 종료 상태를 유지하고 최종발표 제작은 보류한다.
+다음 작업은 [현재 잔여 목록](PROJECT_STATUS.md#남은-확인)의 공통 버전 확정, 실제 기기·마이크·실패 복구 리허설, 구급대 계측과 실제 사용성 측정, 다른 PC 재현이다. 알고리즘 추가 연구는 종료 상태를 유지하고 최종발표 제작은 보류한다.
