@@ -11,12 +11,23 @@
 
 ## 실행
 
-1. 저장소 루트에서 서버를 켭니다.
+1. 새 `sudden` 시연을 준비하려면 저장소 루트에서 아래 명령을 실행합니다. 실행할 때마다 전용 폴더에 새 가상 DB를 만듭니다.
    ```powershell
-   py -3 -m server.app --seed --scenario sudden --port 8000
+   $demoPort = 8000
+   $demoDir = New-Item -ItemType Directory -Path ('data/hospital-ui-demo-' + [guid]::NewGuid().ToString('N')) -ErrorAction Stop
+   $demoDb = Join-Path $demoDir.FullName 'demo.db'
+   py -3 -m server.app --db $demoDb --seed --scenario sudden --port $demoPort
    ```
-2. 서버의 `http://127.0.0.1:8000/hospital/?hid=H07`을 엽니다. 같은 서버 주소를 자동 사용합니다. `hospital-ui/index.html`을 직접 열어 서버 주소를 입력하는 기존 방식도 사용할 수 있습니다. 빌드나 설치가 필요 없습니다.
+2. 서버의 `http://127.0.0.1:8000/hospital/?hid=H07`을 엽니다. `8000`을 사용 중이면 위의 `$demoPort`에 빈 포트를 지정하고 브라우저 주소에도 같은 포트를 씁니다. `hospital-ui/index.html`을 직접 열어 서버 주소를 입력할 수도 있습니다. 화면 빌드나 설치가 필요 없습니다.
 3. 위쪽에서 병원을 고르고 담당자 이름을 입력합니다. 시연 시나리오에서는 H02, H07에 대기 문의가 있습니다.
+
+이어서 시연하려면 `Ctrl+C`로 서버를 종료한 뒤 같은 터미널에서 아래 명령을 실행합니다. 새 터미널에서는 서버가 출력했던 `DB:` 경로와 포트를 `$demoDb`와 `$demoPort`에 먼저 지정합니다. `--seed`는 지정한 DB와 관련 파일을 삭제하고 다시 만들므로 새 가상 DB를 만들 때만 사용합니다.
+
+```powershell
+py -3 -m server.app --db $demoDb --port $demoPort
+```
+
+이미 팀 공통 서버가 실행 중이면 [시연 안내](../docs/DEMO.md)의 병원 화면 경로를 사용합니다.
 
 주소 뒤에 `?hid=H07&server=http://127.0.0.1:8000`을 붙이면 병원과 서버 주소를 바로 정할 수 있습니다.
 
