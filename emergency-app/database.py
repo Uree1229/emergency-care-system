@@ -1,5 +1,7 @@
 import sqlite3
 import os
+import secrets
+from contextlib import closing
 from pathlib import Path
 
 
@@ -26,9 +28,22 @@ def create_database():
             guardian_phone TEXT
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS intake_retry_key (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            secret BLOB NOT NULL
+        )
+    """)
+    cursor.execute('INSERT OR IGNORE INTO intake_retry_key VALUES (1, ?)', (secrets.token_bytes(32),))
 
     conn.commit()
     conn.close()
+
+
+def get_retry_signing_key():
+    """Keep retry signatures valid across restarts using the same profile DB."""
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        return conn.execute('SELECT secret FROM intake_retry_key WHERE id = 1').fetchone()[0]
 
 
 # 환자 정보 저장

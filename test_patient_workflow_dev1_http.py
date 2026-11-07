@@ -320,6 +320,31 @@ class Dev1HttpFlow(unittest.TestCase):
                 self.assertEqual(result.status_code, 400, result.text[:300])
                 self.assertEqual(self.counts(), (0, 0, 0))
 
+    def test_first_submit_cannot_bypass_profile_or_catalogue_validation(self):
+        profile_id = self.register()
+        form = self.chain(profile_id)
+        expected = self.bridge.build_episode_payload(self.profile_db.get_patient(profile_id), 'transporter',
+            'yes', 'yes', '가슴 통증, 호흡 곤란', ['응급의학과'], False, 37.5051, 126.9573, True,
+            body_parts=['가슴', '왼팔'])
+        forged = json.dumps(dict(expected, name='임의로 바꾼 이름'))
+        unlisted = ['목록에 없는 진료과']
+        cases = [
+            ({'episode_payload': forged}, 409),
+            ({'episode_payload': 'v1.' + '0' * 64 + '.' + forged}, 409),
+            ({'episode_payload': '[' * 1500 + '0' + ']' * 1500}, 409),
+            ({'episode_payload': json.dumps(dict(expected, required_capabilities=unlisted)),
+              'required_capabilities': unlisted}, 400),
+        ]
+        for changes, status in cases:
+            with self.subTest(status=status, signed=changes['episode_payload'].startswith('v1.')):
+                denied = self.post(form, consent='yes', **changes)
+                self.assertEqual(denied.status_code, status)
+                self.assertEqual(self.counts(), (0, 0, 0))
+        self.assertFalse(any(method == 'POST' for method, _ in self.network))
+        patient = self.created(self.post(form, consent='yes', episode_payload=json.dumps(expected)))
+        self.assertEqual(patient['name'], '합성 환자 A')
+        self.assertEqual(self.counts()[:2], (1, 1))
+
     def test_connect_failure_preserves_exact_form_and_retry_creates_once(self):
         profile_id = self.register()
         form = self.chain(profile_id)
@@ -344,13 +369,25 @@ class Dev1HttpFlow(unittest.TestCase):
         self.assertEqual(values['consent'], ['yes'])
         self.assertEqual(values['voice_payload'], [raw_voice])
         self.assertEqual(values['voice_confirmed'], ['yes'])
+        token = values['episode_payload'][0]
+        version, signature, raw = token.split('.', 2)
+        tampered = dict(json.loads(raw), name='서명 이후 바꾼 이름')
+        for changes in (
+            {'episode_payload': f'{version}.{signature}.{json.dumps(tampered)}'},
+            {'submission_id': str(uuid.uuid4())},
+            {'flow_token': str(uuid.uuid4()), 'voice_payload': '', 'voice_confirmed': ''},
+        ):
+            with self.subTest(fields=tuple(changes)):
+                self.assertEqual(self.post(retry, consent='yes', **changes).status_code, 409)
+                self.assertEqual(self.counts(), (0, 0, 0))
         changed = self.post(retry, consent='yes', latitude='37.6')
         self.assertEqual(changed.status_code, 409)
         self.assertEqual(self.counts(), (0, 0, 0))
         with closing(sqlite3.connect(self.profile_path)) as local:
             local.execute('UPDATE patients SET name=? WHERE id=?', ('전송 후 수정한 프로필', profile_id))
             local.commit()
-        patient = self.created(self.post(retry, consent='yes'))
+        with patch.object(self.main, 'hospital_catalog', return_value=[]):
+            patient = self.created(self.post(retry, consent='yes'))
         self.assertEqual(patient['name'], '합성 환자 A', 'Retry must retain the original profile snapshot')
         self.assertEqual(patient['extra']['voice_intake']['transcript'], json.loads(raw_voice)['transcript'])
         self.assertEqual(self.counts()[:2], (1, 1))

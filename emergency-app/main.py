@@ -26,7 +26,7 @@ import re
 import uuid
 from common_server import (CommonServerError, hospital_catalog, new_submission_id,
                            build_episode_payload, create_episode, transport_url,
-                           confirmed_voice_intake, restore_episode_payload)
+                           confirmed_voice_intake, restore_episode_payload, sign_episode_payload)
 
 
 
@@ -68,7 +68,7 @@ from api_integrations import enrich_hospitals, enrich_hospitals_with_hira, enric
 
 
 
-from database import create_database, save_patient, get_patients, get_patient
+from database import create_database, save_patient, get_patients, get_patient, get_retry_signing_key
 
 
 
@@ -3861,19 +3861,25 @@ def emergency_connect(submission_id: str = Form(''), patient_id: str = Form('0')
         allowed_symptoms = {'가슴 통증', '호흡 곤란', '출혈', '의식 저하', '기타'}
         if any(value not in allowed_symptoms for value in symptom):
             raise CommonServerError('직접 선택한 증상 항목을 확인하세요.')
-        # An exact retry remains possible if the catalogue changed after the first attempt.
-        if not episode_payload:
-            catalog = hospital_catalog()
-            known = {str(cap) for hospital in catalog for cap in hospital.get('capabilities', [])}
-            if not set(required_capabilities) <= known:
-                raise CommonServerError('선택한 진료 분야가 공통 서버의 저장 목록에 없습니다.')
         voice = confirmed_voice_intake(voice_payload, voice_confirmed, flow_token, local_id)
+        try:
+            flow_token = str(uuid.UUID(flow_token))
+        except ValueError:
+            flow_token = new_submission_id()
         expected = build_episode_payload(profile=profile, reporter_role=reporter_role,
             consciousness=consciousness, breathing=breathing, symptoms=', '.join(dict.fromkeys(symptom)),
             required_capabilities=required_capabilities, special_team=special_team == 'yes', lat=lat, lon=lon,
             consent=True, inquiry_policy=inquiry_policy, body_parts=body_part, voice_intake=voice)
-        payload = restore_episode_payload(episode_payload, expected)
-        original_payload = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        signing_key = get_retry_signing_key()
+        payload = restore_episode_payload(episode_payload, expected, signing_key, submission_id, flow_token)
+        # Only a verified snapshot can preserve the catalogue from the first attempt.
+        if payload is None:
+            catalog = hospital_catalog()
+            known = {str(cap) for hospital in catalog for cap in hospital.get('capabilities', [])}
+            if not set(required_capabilities) <= known:
+                raise CommonServerError('선택한 진료 분야가 공통 서버의 저장 목록에 없습니다.')
+            payload = expected
+            original_payload = sign_episode_payload(payload, signing_key, submission_id, flow_token)
         patient = create_episode(payload, submission_id)
     except CommonServerError as exc:
         return _render_emergency_hospitals(local_id, consciousness, breathing, symptom, body_part,

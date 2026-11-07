@@ -5,6 +5,7 @@ module sends a profile snapshot only after consent; it never calls medical APIs.
 """
 from datetime import date, datetime, timedelta, timezone
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -167,24 +168,43 @@ def build_episode_payload(profile, reporter_role, consciousness, breathing, symp
                 extra=extra)
 
 
-def restore_episode_payload(raw, expected):
-    """Keep the original profile snapshot on an exact, explicit form retry."""
-    if not raw:
-        return expected
+def _retry_signature(raw, key, submission_id, flow_token):
+    message = json.dumps(['intake-retry-v1', common_server_base(), submission_id, flow_token, raw],
+                         separators=(',', ':')).encode('ascii')
+    return hmac.digest(key, message, 'sha256').hex()
+
+
+def sign_episode_payload(payload, key, submission_id, flow_token):
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    signature = _retry_signature(raw, key, submission_id, flow_token)
+    return f'v1.{signature}.{raw}'
+
+
+def restore_episode_payload(token, expected, key, submission_id, flow_token):
+    """Return a verified original, or require normal validation for older forms."""
+    if not token:
+        return None
     try:
-        if not isinstance(raw, str) or len(raw) > 40000:
+        if not isinstance(token, str):
+            raise ValueError()
+        if not token.startswith('v1.'):
+            # Older forms may retry only with the current server-built payload and catalogue.
+            if len(token) > 40000 or json.loads(token) != expected:
+                raise ValueError()
+            return None
+        _, signature, raw = token.split('.', 2)
+        if len(signature) != 64:
+            raise ValueError()
+        expected_signature = _retry_signature(raw, key, submission_id, flow_token)
+        if not hmac.compare_digest(signature.encode('utf-8'), expected_signature.encode('ascii')):
             raise ValueError()
         original = json.loads(raw)
         personal = {'name', 'birth', 'contact', 'address', 'guardian', 'guardian_phone', 'age'}
         if (not isinstance(original, dict) or set(original) != set(expected)
                 or any(original[key] != expected[key] for key in expected.keys() - personal)):
             raise ValueError()
-        if any(original[key] is not None and not isinstance(original[key], str) for key in personal - {'age'}):
-            raise ValueError()
-        if original['age'] is not None and (type(original['age']) is not int or not 0 <= original['age'] <= 130):
-            raise ValueError()
         return original
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, KeyError, RecursionError):
         raise CommonServerError('처음 전송한 내용과 입력이 달라 재전송하지 않았습니다. 원래 입력을 확인하거나 새 이송을 시작하세요.',
                                 409, 'SUBMISSION_CONFLICT') from None
 

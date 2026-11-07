@@ -91,15 +91,24 @@ class IntakePayloadTests(unittest.TestCase):
     def test_exact_retry_keeps_original_profile_snapshot_but_rejects_changed_request_fields(self):
         original = payload()
         current = payload(profile=(PROFILE[0], '프로필 수정 뒤 이름', *PROFILE[2:]))
-        raw = json.dumps(original, ensure_ascii=False)
-        self.assertEqual(bridge.restore_episode_payload(raw, current), original)
+        key, submission, flow = b'synthetic test key', str(uuid.uuid4()), str(uuid.uuid4())
+        token = bridge.sign_episode_payload(original, key, submission, flow)
+        self.assertEqual(bridge.restore_episode_payload(token, current, key, submission, flow), original)
+        legacy_profile = (PROFILE[0], '합성 장기 보관 프로필', '1880-01-01', '', '합성 주소' * 9000, '', '')
+        large_snapshot = payload(profile=legacy_profile)
+        large_token = bridge.sign_episode_payload(large_snapshot, key, submission, flow)
+        self.assertGreater(len(large_token), 40068)
+        self.assertEqual(bridge.restore_episode_payload(large_token, current, key, submission, flow), large_snapshot)
+        with patch.dict('os.environ', {'COMMON_API_URL': 'http://127.0.0.1:59999'}):
+            with self.assertRaises(bridge.CommonServerError):
+                bridge.restore_episode_payload(token, current, key, submission, flow)
         for changes in (dict(symptoms='수정한 내용'), dict(lat=38.0), dict(consent=False), dict(body_parts=['머리'])):
             if changes.get('consent') is False:
                 with self.assertRaises(bridge.CommonServerError):
                     payload(**changes)
                 continue
             with self.subTest(changes=changes), self.assertRaises(bridge.CommonServerError):
-                bridge.restore_episode_payload(raw, payload(**changes))
+                bridge.restore_episode_payload(token, payload(**changes), key, submission, flow)
 
     def test_unreadable_or_wrong_success_needs_exact_stored_episode_before_success(self):
         request = payload()
