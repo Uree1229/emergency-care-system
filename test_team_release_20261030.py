@@ -132,6 +132,19 @@ class TeamReleaseTests(unittest.TestCase):
         self.write('hospital-ui/app.mjs', "import './missing.mjs';\n")
         with self.assertRaisesRegex(ValueError, 'missing.mjs'): self.package()
 
+    def test_hospital_vm_harness_text_is_not_a_module_dependency(self):
+        self.write('test_hospital_vm_fixture.mjs', '''
+const rewrite = (text) => text.replaceAll("import('./", "__dynamicImport('./");
+import { fixture } from './hospital-ui/app.mjs';
+const recover = () => import('./hospital-ui/recovery.mjs');
+''')
+        self.write('hospital-ui/recovery.mjs', 'export const recover = true;\n')
+        output = self.package()
+        self.assertTrue((output/'source/test_hospital_vm_fixture.mjs').is_file())
+        (self.source/'hospital-ui/recovery.mjs').unlink()
+        with self.assertRaisesRegex(ValueError, r'Missing local script/style/module: .*recovery\.mjs'):
+            self.package('missing-recovery')
+
     def test_frozen_source_profile_failure_blocks_copy_before_output_creation(self):
         with patch.object(release, 'source_profile', return_value={'ok':False, 'issues':['changed baseline']}):
             with self.assertRaisesRegex(ValueError, 'Frozen allocation'): self.package()

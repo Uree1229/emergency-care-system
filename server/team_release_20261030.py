@@ -226,6 +226,13 @@ class _Assets(HTMLParser):
         if tag == 'link' and 'stylesheet' in a.get('rel', '').lower().split() and a.get('href'): self.refs.append(a['href'])
 
 
+# Match the closing quote to the opening quote. A fragment like "import('./"
+# inside the hospital test harness has no closing single quote.
+_JS_MODULE_REFERENCE = re.compile(
+    r"""\b(?:from\s*|import\s*(?:\(\s*)?)(?P<quote>['"])(?P<reference>[./][^'"\r\n]+)(?P=quote)"""
+)
+
+
 def dependency_check(root, names):
     """Static local import and script/style closure; no payload code executes."""
     root = Path(root).resolve(); included = set(names); errors = []; seen = set(); external = set(); todo = list(ENTRYPOINTS)
@@ -267,7 +274,7 @@ def dependency_check(root, names):
         if name.endswith('.html'):
             parser = _Assets(); parser.feed(text); refs = parser.refs
         else:
-            refs = re.findall(r"(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)['\"]([./][^'\"]+)['\"]", text)
+            refs = [match['reference'] for match in _JS_MODULE_REFERENCE.finditer(text)]
         for ref in refs:
             url = urlsplit(ref)
             if url.scheme or url.netloc: continue
