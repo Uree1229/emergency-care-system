@@ -626,12 +626,17 @@ async function pollReviews() {
     : { key, pending: next.pending, truncated: next.truncated, error: '', checkedAt: new Date().toLocaleTimeString('ko-KR') };
   renderReviews();
 }
-let reviewPatientsSig = '';
+let reviewPatientsSig = '', reviewMarkup = '';
 function renderReviews() {
   const root = $('hospitalReviews'), current = reviewState.key === reviewKey();
-  const show = !!reviewDiscovery && current && (reviewState.pending.length > 0 || !!reviewState.error);
+  const show = !!reviewDiscovery && current && (reviewState.pending.length > 0 || reviewState.truncated || !!reviewState.error);
   root.hidden = !show;
-  root.innerHTML = show ? reviewDiscovery.reviewPanelMarkup({ ...reviewState, server: serverBase, hospital: hid }, esc) : '';
+  const markup = show ? reviewDiscovery.reviewPanelMarkup({ ...reviewState, server: serverBase, hospital: hid }, esc) : '';
+  // Preserve the focused action when polling returns the same visible content.
+  if (markup !== reviewMarkup) {
+    reviewMarkup = markup;
+    root.innerHTML = markup;
+  }
   const sig = [...pendingReviewPatients()].sort().join('|');
   if (sig !== reviewPatientsSig) { reviewPatientsSig = sig; renderIncoming(); }
 }

@@ -68,7 +68,9 @@ class FakeServer {
   }
 }
 class El {
-  constructor(id){this.id=id;this.dataset={};this.value='';this.hidden=false;this.disabled=false;this.textContent='';this.className='';this.style={};this.listeners={};this.innerHTML='';}
+  constructor(id){this.id=id;this.dataset={};this.value='';this.hidden=false;this.disabled=false;this.textContent='';this.className='';this.style={};this.listeners={};this.html='';this.htmlWrites=0;}
+  get innerHTML(){return this.html;}
+  set innerHTML(value){this.html=value;this.htmlWrites++;}
   addEventListener(type,fn){(this.listeners[type]??=[]).push(fn);}
   focus(){}setSelectionRange(){}querySelector(){return null;}querySelectorAll(){return [];}closest(){return null;}contains(){return false;}matches(){return false;}
 }
@@ -105,6 +107,41 @@ test('대기 검토가 없으면 패널을 숨긴다',async()=>{
   const server=new FakeServer();server.reviews.H1=[review(2,{state:'REJECTED'})];
   const {page}=await open(server);
   assert.equal(page.panel.hidden,true);assert.equal(page.panel.innerHTML,'');
+});
+
+test('최신 100건이 모두 닫혔어도 이전 대기 건이 생략될 수 있음을 표시한다',async()=>{
+  const server=new FakeServer();
+  server.reviews.H1=Array.from({length:LIST_LIMIT},(_,i)=>review(i,{state:'REJECTED'}));
+  const {page}=await open(server);
+  assert.equal(page.panel.hidden,false);
+  assert.match(page.panel.innerHTML,/더 오래된 대기 건은 이 목록에 없을 수 있습니다/);
+  assert.doesNotMatch(page.panel.innerHTML,/data-review-id=/);
+});
+
+test('이송 종료·목적지 변경 건은 제외하고 현재 병원의 반려 가능 건은 유지한다',async()=>{
+  const server=new FakeServer();
+  server.reviews.H1=[
+    review(1,{can_decide:false,blockers:['TRANSPORT_ENDED']}),
+    review(2,{can_decide:false,blockers:['DESTINATION_CHANGED']}),
+    review(3,{can_decide:false,blockers:['PATIENT_CHANGED']})
+  ];
+  const {page}=await open(server);
+  assert.doesNotMatch(page.panel.innerHTML,/data-review-id="ER-[12]"/);
+  assert.match(page.panel.innerHTML,/data-review-id="ER-3"/);
+  assert.match(page.panel.innerHTML,/반려만 가능/);
+  assert.doesNotMatch(page.el('incomingList').innerHTML,/변경 검토 대기/);
+});
+
+test('조회 결과의 표시 내용이 같으면 검토 패널의 버튼과 링크를 교체하지 않는다',async()=>{
+  const {page,server}=await open(), initialWrites=page.panel.htmlWrites;
+  server.reviews.H1[0].decision_token='changed-without-visible-effect';
+  await page.poll();
+  assert.equal(page.panel.htmlWrites,initialWrites);
+  server.reviews.H1[0].blockers=['PATIENT_CHANGED'];
+  server.reviews.H1[0].can_decide=false;
+  await page.poll();
+  assert.equal(page.panel.htmlWrites,initialWrites+1);
+  assert.match(page.panel.innerHTML,/반려만 가능/);
 });
 
 test('병원을 바꾸면 이전 병원 목록을 즉시 지우고 늦게 온 이전 응답을 버린다',async()=>{

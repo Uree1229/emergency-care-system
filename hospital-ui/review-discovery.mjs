@@ -31,7 +31,10 @@ export function readReviewList(data, hospital) {
   if (!isObject(data) || !Array.isArray(data.reviews)) return { error: '검토 목록 응답 형식을 확인할 수 없습니다.' };
   if (data.reviews.some((r) => !validReview(r))) return { error: '검토 목록 응답 형식을 확인할 수 없습니다.' };
   if (data.reviews.some((r) => r.hospital_id !== hospital)) return { error: '다른 병원의 검토가 포함된 응답이라 표시하지 않았습니다.' };
-  return { pending: data.reviews.filter((r) => r.state === 'PENDING'), truncated: data.reviews.length >= LIST_LIMIT };
+  // The server rejects every decision for a transport that ended or left this hospital.
+  const pending = data.reviews.filter((r) => r.state === 'PENDING'
+    && !r.blockers.includes('TRANSPORT_ENDED') && !r.blockers.includes('DESTINATION_CHANGED'));
+  return { pending, truncated: data.reviews.length >= LIST_LIMIT };
 }
 
 export function changeLines(proposal) {
