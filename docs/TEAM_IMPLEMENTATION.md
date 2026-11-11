@@ -55,7 +55,7 @@ flowchart LR
 | 테이블 | 보관하는 것 | 화면에서 사용하는 값 |
 |---|---|---|
 | `hospitals` | 병원 ID·이름·위치·진료 분야·출처 | 병원 이름, 위치, 진료 정보 |
-| `resources` | 운영 자원 총량·실제 점유·상태·갱신시각·버전 | 병원 자원 상태와 수정 화면 |
+| `resources` | 운영 자원 총량·실제 점유·상태·갱신시각·버전 | 병원 자원 조회 화면 |
 | `restrictions` | 기관 전체 또는 진료 분야별 제한과 해제 상태 | 수용 제한, 만료 후 재확인 표시 |
 | `patients` | 환자 입력·치료 요구·상태·목적지·ETA·조정 여부·확정 당시 조건·위치 버전 | 환자 상세와 이송 진행 |
 | `inquiries` | 환자와 병원 간 문의·질문·답변·수용 응답·만료 | 양쪽 문의함 |
@@ -105,7 +105,7 @@ erDiagram
 | 순서 | 작업 | 기존 API | 완료 기준 |
 |---|---|---|---|
 | 1 | 기존 문의함 통합 확인 | `GET /api/hospitals/{hid}/inquiries`, `POST /api/inquiries/{iid}/respond` | 모바일이 새로 생성한 문의에 응답하고 모바일에서 반영 확인. 기존 가상 문의만 보여주는 것으로 끝내지 않음 |
-| 2 | 도착 예정과 자원 화면 | `GET /api/hospitals/{hid}/incoming`, `GET /api/hospitals/{hid}`, `PUT .../resources/{type}` | 환자 상태·ETA·필요 자원과 운영 자원 총량·점유·예정·여유 표시. 수정 시 `expected_version` 전송, 409 후 재조회 |
+| 2 | 도착 예정과 자원 화면 | `GET /api/hospitals/{hid}/incoming`, `GET /api/hospitals/{hid}` | 환자 상태·ETA·필요 자원과 운영 자원 총량·점유·예정·여유 조회. 확정·도착·퇴실에 따라 바뀌는 서버 값을 표시 |
 | 3 | 수용 제한 관리 | `POST .../{hid}/restrictions`, `DELETE .../{hid}/restrictions/{rid}` | 제한 사유·범위·종료 예정 등록과 해제. 종료 예정이 지나면 자동 정상 복구로 표시하지 않고 재확인 필요 표시 |
 | 4 | 돌발 유입과 수용 유지 판단 | `POST .../{hid}/external-arrivals`, `GET .../{hid}/incoming`, `POST .../{hid}/patients/{pid}/decision` | 돌발 유입 등록 후 영향 환자 강조. 유지 또는 조정 필요와 사유 제출. 모바일에 조정 요청이 나타나고 목적지는 즉시 바뀌지 않음 |
 | 5 | 도착과 퇴실 및 추천 표시 | `POST .../{hid}/patients/{pid}/arrive`, `/no-show`, `/discharge`, `incoming.planning` | 도착·미도착·퇴실을 상태에 맞게 처리하고 점유 변화 확인. 예상 시작시각·재확인 사유와 계산 상태 표시 |

@@ -93,6 +93,9 @@
   .resource-card label { display:flex; flex-direction:column; gap:5px; min-width:95px; }
   .resource-card input,.resource-card select { width:120px; max-width:100%; height:40px; border:1px solid #C3C9D2; border-radius:8px; padding:6px 9px; }
   .resource-card h3 { margin:0 0 12px; }
+  .resource-figures { display:flex; flex-wrap:wrap; gap:8px 28px; margin:0; }
+  .resource-figures dt { font-size:13px; color:var(--muted); }
+  .resource-figures dd { margin:0; font-size:18px; font-weight:700; }
   .review-issues { margin:0; padding-left:20px; line-height:1.8; }
   .availability-warning { grid-column:1/-1; padding:12px 14px; border-radius:8px; background:var(--orange-bg); color:var(--orange); line-height:1.6; }
   .availability-warning.blocked { background:var(--red-bg); color:var(--red); }
@@ -170,7 +173,7 @@
       <p class="note">수용 응답 후 이송자가 목적지를 확정하면 여기에 표시됩니다.</p>
       <div id="incomingList"></div>
     </div>
-    <div id="resourceHelp" hidden class="empty">운영자가 확인한 총량과 실제 점유를 관리합니다. 확정 이송 수요는 서버가 별도로 계산합니다.</div>
+    <div id="resourceHelp" hidden class="empty">병원 자원은 조회만 합니다. 공개 병상 관측과 서버 값을 보여 주며, 목적지 확정은 이송 수요로, 도착은 실제 점유로, 퇴실은 점유 해제로 서버가 자동 반영합니다.</div>
     <div id="restrictionHelp" hidden class="empty">기관 전체 또는 필요한 진료 분야의 수용 제한을 관리합니다. 종료 예정이 지나면 자동 정상화하지 않고 재확인 필요로 표시합니다.</div>
     <div id="operationsHelp" hidden class="empty">통화 기록은 자기 병원에 공유된 내용만 조회합니다. 기록 내용 확인과 수용 응답을 구분하고 실제 업무를 시작·종료할 때 계측 버튼을 누르세요.</div>
   </section>
@@ -227,7 +230,7 @@ let incomingData = {incoming:[],affected:[],planning:[]}, hospitalData = null;
 let selectedPatientId = params.get('pid') || null, selectedPatient = null;
 let landingPatientId = selectedPatientId;
 let incomingSig = '', resourceSig = '';
-const reviewDrafts = new Map(), resourceDrafts = new Map();
+const reviewDrafts = new Map();
 let externalDraft = {resource_type:null,amount:'1',note:''};
 let restrictionDraft = {scope:'all',reason:'',duration:'3600',note:''};
 let chat = null, chatLoading = false, chatSending = false, chatPending = null, chatRecovery = null;
@@ -247,6 +250,7 @@ const STATE = {
 };
 const SOURCE = { self: '자기신고', expert: '전문가 확인', unknown: '미확인' };
 const ROLE = { self: '본인', guardian: '보호자', transporter: '이송자' };
+const RESOURCE_STATUS = { available: '확인됨', limited: '제한', unknown: '미확인' };
 const RESOURCE = { ed_bed: '응급병상', special_team: '전문팀', operating_room:'수술실', icu_bed:'중환자실 병상', nicu_bed:'신생아 중환자실 병상', delivery_bed:'분만실 병상', pediatric_bed:'소아 병상', isolation_bed:'격리 병상' };
 
 function esc(s) {
@@ -325,7 +329,7 @@ function acceptAvailability(patient) {
   for(const [type,need] of Object.entries(patient.resource_demands || {})) {
     const resource=(hospitalData.resources || []).find(item=>item.resource_type===type), label=RESOURCE[type] || type;
     if(!resource || resource.status==='unknown' || resource.free == null) messages.push(`${label}: 운영 여유 미확인. 공개 가용 수만으로 수용을 확정하지 않으며 병원 판단이 필요합니다.`);
-    else if(resource.free < need) { blocked=true;messages.push(`${label}: 신규 여유 ${Math.max(0,resource.free)}, 필요 ${need}. 운영 자원을 갱신하거나 수용 불가로 응답하세요.`); }
+    else if(resource.free < need) { blocked=true;messages.push(`${label}: 서버 기준 신규 여유 ${Math.max(0,resource.free)}, 필요 ${need}라 수용 응답이 막혀 있습니다. 실제 여유가 다르면 자원 정보 갱신이 필요하며, 이 화면에서는 수정하지 않습니다. 받을 수 없으면 수용 불가로 응답하세요.`); }
     else if(resource.stale) messages.push(`${label}: 운영 정보가 오래되었습니다. 현재 여유를 확인한 뒤 응답하세요.`);
   }
   return {blocked,messages};
@@ -744,9 +748,10 @@ function renderResources() {
   const snapshots=(hospitalData.public_data || []).filter(s=>s.endpoint==='nmc_rltm_beds');
   const publicCards=snapshots.map(s=>`<section class="resource-card"><h3>국립중앙의료원 공개 병상 관측</h3><p class="note">관측 ${s.source_observed_at ? kst(s.source_observed_at) : '시각 미확인'} · 수집 ${kst(s.fetched_at)}${s.stale ? ' · 오래된 관측' : ''}</p><table class="public-observations"><thead><tr><th>항목</th><th>공개 가용 수</th></tr></thead><tbody>${(s.data?.resources || []).map(r=>`<tr><td>${esc(RESOURCE[r.resource_type] || r.resource_type)}</td><td>${r.reported_available == null ? '미확인' : esc(r.reported_available)}</td></tr>`).join('')}</tbody></table><p class="note">공개 병상 정보와 운영 자원은 별도입니다. 위 값은 실제 점유·예약 총량 또는 이 환자의 수용 확답을 의미하지 않습니다.</p></section>`).join('');
   const operatingNotice=!(hospitalData.resources || []).length ? '<div class="empty">이 병원에 확인된 운영 자원이 아직 등록되지 않았습니다. 공개 가용 수를 운영 총량·점유로 자동 변환하지 않습니다. 문의를 받은 병원 역할로 수용 가능 여부를 응답할 수 있습니다.</div>' : '';
+  // 운영 자원은 조회만 한다. 값은 서버가 확정·도착·퇴실에 맞춰 바꾼다.
   $('resourceDetail').innerHTML=publicCards + operatingNotice + (hospitalData.resources || []).map(r=> {
-    const draft=resourceDrafts.get(r.resource_type), values=draft || r;
-    return `<form class="resource-card resource-form" data-resource="${esc(r.resource_type)}" data-version="${draft?.version ?? r.version}"><h3>${esc(RESOURCE[r.resource_type] || r.resource_type)}</h3><div class="row"><label>총량<input id="resource-${esc(r.resource_type)}-capacity" name="capacity" type="number" min="0" step="1" value="${values.capacity}" required></label><label>실제 점유<input id="resource-${esc(r.resource_type)}-occupied" name="occupied" type="number" min="0" step="1" value="${values.occupied}" required></label><label>정보 상태<select name="status" aria-label="${esc(RESOURCE[r.resource_type] || r.resource_type)} 정보 상태">${[['available','확인됨'],['limited','제한'],['unknown','미확인']].map(([v,label])=>`<option value="${v}" ${values.status===v?'selected':''}>${label}</option>`).join('')}</select></label><button type="submit" class="btn-small" ${busy?'disabled':''}>자원 저장</button></div><p class="note">확정 이송 수요 ${r.expected} · 신규 여유 ${r.free == null ? '미확인' : r.free} · 갱신 ${kst(r.updated_at)}${r.stale?' · 오래된 정보':''}${r.over_capacity?' · 실제 점유가 총량을 초과함':''}${draft && draft.version !== r.version?' · 편집 중 다른 갱신 발생, 저장 시 충돌 확인':''}</p></form>`;
+    const free=r.free == null ? '미확인' : r.free, freeCls=r.free == null ? 't-gray' : r.free <= 0 ? 't-high' : 't-blue';
+    return `<section class="resource-card resource-view" data-resource="${esc(r.resource_type)}"><h3>${esc(RESOURCE[r.resource_type] || r.resource_type)} <span class="tag ${freeCls}">신규 여유 ${esc(free)}</span></h3><dl class="resource-figures"><div><dt>총량</dt><dd>${esc(r.capacity)}</dd></div><div><dt>실제 점유</dt><dd>${esc(r.occupied)}</dd></div><div><dt>확정 이송 수요</dt><dd>${esc(r.expected)}</dd></div><div><dt>정보 상태</dt><dd>${esc(RESOURCE_STATUS[r.status] || r.status)}</dd></div></dl><p class="note">갱신 ${kst(r.updated_at)}${r.stale?' · 오래된 정보':''}${r.over_capacity?' · 실제 점유가 총량을 초과함':''}</p></section>`;
   }).join('') + `<form id="externalArrivalForm" class="resource-card"><h3>시연: 시스템 밖 환자 유입</h3><p class="note">가상 데이터 병원에서만 조작할 수 있습니다. 선택한 자원의 실제 점유가 증가하고 관련 이송 건의 조건을 다시 확인합니다.</p><div class="row"><label>사용 자원<select name="resource_type">${(hospitalData.resources || []).map(r=>`<option value="${esc(r.resource_type)}">${esc(RESOURCE[r.resource_type] || r.resource_type)}</option>`).join('')}</select></label><label>수량<input name="amount" type="number" min="1" step="1" value="1" required></label></div><textarea name="note" rows="2" maxlength="1000" placeholder="유입 메모 (예: 가상 중증환자 전문팀 사용)" aria-label="돌발 유입 메모" required></textarea><button type="submit" class="btn-small" ${busy || hospitalData.source !== 'synthetic' || !hospitalData.resources?.length ?'disabled':''}>가상 유입 등록</button></form>`;
   const externalForm=$('externalArrivalForm');
   if(externalDraft.resource_type && (hospitalData.resources || []).some(r=>r.resource_type===externalDraft.resource_type))externalForm.elements.resource_type.value=externalDraft.resource_type;
@@ -760,14 +765,6 @@ function renderResources() {
     const text=document.createElement('p');text.className='note';text.textContent='전송 결과 미확인: 요청 ID '+payload.request_id+' · 원래 내용으로 재시도합니다. 새로고침 후에도 같은 요청을 복원합니다.';externalForm.append(text);
   }
   if(activeId && $(activeId)){ $(activeId).focus();if(start != null && $(activeId).type !== 'number') $(activeId).setSelectionRange(start,start); }
-}
-async function saveResource(form) {
-  const handler=requireHandler();if(!handler||busy)return;
-  const rtype=form.dataset.resource, payload={capacity:Number(form.elements.capacity.value),occupied:Number(form.elements.occupied.value),status:form.elements.status.value,expected_version:Number(form.dataset.version),handled_by:handler};
-  busy=true;lockContext();
-  try {await api(`/api/hospitals/${encodeURIComponent(hid)}/resources/${encodeURIComponent(rtype)}`,{method:'PUT',body:JSON.stringify(payload)});resourceDrafts.delete(rtype);notice('병원 자원 정보를 저장했습니다.',false);}
-  catch(e){if(e.status===409)resourceDrafts.delete(rtype);notice(e.status===409?'다른 담당자가 먼저 갱신했습니다. 최신 값을 다시 불러왔으니 확인 후 재입력하세요.':e.message,true);}
-  finally{busy=false;lockContext();resourceSig='';incomingSig='';await poll();renderResources();}
 }
 async function registerExternal(form) {
   const handler=requireHandler();if(!handler||busy||hospitalData?.source!=='synthetic')return;
@@ -874,8 +871,8 @@ $('incomingList').addEventListener('click',e=>{const button=e.target.closest('[d
 $('hospitalReviews').addEventListener('click',e=>{const button=e.target.closest('[data-review-patient]');if(!button||chatSending||busy)return;selectIncomingPatient(button.dataset.reviewPatient);if(activeTab!=='incoming')setTab('incoming');});
 $('incomingDetail').addEventListener('input',e=>{if(e.target.id==='reviewNote'&&selectedPatientId)reviewDrafts.set(selectedPatientId,e.target.value);});
 $('incomingDetail').addEventListener('click',e=>{const button=e.target.closest('[data-patient-action]');if(button)hospitalAction(button.dataset.patientAction);});
-$('resourceDetail').addEventListener('input',e=>{const form=e.target.closest('.resource-form');if(form)resourceDrafts.set(form.dataset.resource,{capacity:form.elements.capacity.value,occupied:form.elements.occupied.value,status:form.elements.status.value,version:Number(form.dataset.version)});const externalForm=e.target.closest('#externalArrivalForm');if(externalForm)externalDraft={resource_type:externalForm.elements.resource_type.value,amount:externalForm.elements.amount.value,note:externalForm.elements.note.value};});
-$('resourceDetail').addEventListener('submit',e=>{e.preventDefault();if(e.target.matches('.resource-form'))saveResource(e.target);else if(e.target.id==='externalArrivalForm')registerExternal(e.target);});
+$('resourceDetail').addEventListener('input',e=>{const externalForm=e.target.closest('#externalArrivalForm');if(externalForm)externalDraft={resource_type:externalForm.elements.resource_type.value,amount:externalForm.elements.amount.value,note:externalForm.elements.note.value};});
+$('resourceDetail').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='externalArrivalForm')registerExternal(e.target);});
 $('restrictionDetail').addEventListener('input',e=>{const form=e.target.closest('#restrictionForm');if(form)readRestrictionDraft(form);});
 $('restrictionDetail').addEventListener('change',e=>{const form=e.target.closest('#restrictionForm');if(form)readRestrictionDraft(form);});
 $('restrictionDetail').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='restrictionForm')changeRestriction('add');});
@@ -926,7 +923,7 @@ function resetWorkspace(){
   workflowPatient=null;
   seen.clear();newUntil.clear();firstLoad=true;lastSig='';incomingSig='';resourceSig='';
   data={open:[],recent:[]};incomingData={incoming:[],affected:[],planning:[]};hospitalData=null;
-  questionDrafts.clear();inquiryNotices.clear();reviewDrafts.clear();resourceDrafts.clear();externalDraft={resource_type:null,amount:'1',note:''};restrictionDraft={scope:'all',reason:'',duration:'3600',note:''};resetChat();
+  questionDrafts.clear();inquiryNotices.clear();reviewDrafts.clear();externalDraft={resource_type:null,amount:'1',note:''};restrictionDraft={scope:'all',reason:'',duration:'3600',note:''};resetChat();
   reviewSeq++;reviewLoading=false;reviewState={key:null,pending:[],error:'',truncated:false,checkedAt:''};
   render();renderIncoming();renderResources();renderRestrictions();renderReviews();notice('',false);
   renderHospitalContext();
