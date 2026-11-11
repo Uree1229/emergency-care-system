@@ -103,6 +103,16 @@
   .wide { grid-column:1/-1; }
   textarea { font:inherit; border:1px solid #C3C9D2; border-radius:8px; padding:10px; width:100%; resize:vertical; }
   .chat { margin-top:16px; }
+  .review-alerts { margin:16px 24px 0; padding:14px 18px; background:#fff; border:1px solid var(--orange-line); border-radius:12px; line-height:1.6; overflow-wrap:anywhere; }
+  .review-alerts-head { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+  .review-alerts h2 { margin:0; }
+  .review-alert-list { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .review-alert { border-top:1px solid var(--line); padding-top:10px; }
+  .review-alert-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .review-alert-changes,.review-alert-blockers { margin:6px 0; padding-left:20px; font-size:14px; }
+  .review-alert-blockers { color:var(--orange); }
+  .review-alert-error { color:var(--red); }
+  a.btn-small { display:inline-flex; align-items:center; color:var(--blue); text-decoration:none; }
   .chat-log { padding:16px 20px; max-height:360px; overflow:auto; display:flex; flex-direction:column; gap:10px; }
   .chat-item { background:#F1F3F7; border-radius:8px; padding:10px 12px; font-size:14px; overflow-wrap:anywhere; }
   .chat-item.mine { background:var(--blue-bg); }
@@ -137,6 +147,7 @@
 </aside>
 
 <section id="hospitalImportantEvents" class="workflow-events" aria-label="선택 환자 중요 사건" hidden></section>
+<section id="hospitalReviews" class="review-alerts" aria-label="임상변경 검토 대기" hidden></section>
 
 <nav class="workspace-tabs" aria-label="업무 선택">
   <button type="button" class="active" data-tab="inquiries">수용 문의</button>
@@ -220,6 +231,8 @@ const reviewDrafts = new Map(), resourceDrafts = new Map();
 let externalDraft = {resource_type:null,amount:'1',note:''};
 let restrictionDraft = {scope:'all',reason:'',duration:'3600',note:''};
 let chat = null, chatLoading = false, chatSending = false, chatPending = null, chatRecovery = null;
+// 병원별 임상변경 검토 대기. key가 현재 서버·병원·작업공간과 같을 때만 표시한다.
+let reviewDiscovery = null, reviewLoading = false, reviewSeq = 0, reviewState = {key:null,pending:[],error:'',truncated:false,checkedAt:''};
 let operations=null, operationsBusy=false;
 let workflow=null, workflowPatient=null;
 
@@ -406,6 +419,7 @@ async function poll() {
       if(activeTab==='resources') await operations.refreshExternal();
     }
     syncWorkflow({events:true});
+    pollReviews();
   } catch (e) {
     if (version !== contextVersion) return;
     $('conn').textContent = e.status ? e.message : '서버에 연결할 수 없습니다. 서버가 켜져 있는지 확인하세요.';
@@ -595,14 +609,51 @@ function setTab(tab) {
   if (operations) { if(tab==='operations')operations.show(selectedPatientId||current()?.patient?.id||'');else operations.hide();if(tab==='resources')operations.refreshExternal(); }
   syncWorkflow({events:true});
 }
+function reviewKey() { return `${contextVersion}|${serverBase}|${hid}`; }
+function pendingReviewPatients() { return new Set(reviewState.key === reviewKey() ? reviewState.pending.map(r => r.patient_id) : []); }
+async function pollReviews() {
+  if (!reviewDiscovery || reviewLoading) return;
+  const key = reviewKey(), seq = ++reviewSeq, hospitalId = hid, base = serverBase;
+  reviewLoading = true;
+  let next;
+  try { next = reviewDiscovery.readReviewList(await api(`/api/hospitals/${encodeURIComponent(hospitalId)}/transport-change-reviews`, {}, base), hospitalId); }
+  catch (e) { next = { error: `검토 목록을 불러오지 못했습니다. ${e.message}` }; }
+  finally { if (seq === reviewSeq) reviewLoading = false; }
+  // 다른 병원·서버로 바뀌었거나 더 새 조회가 시작됐으면 이 응답을 버린다.
+  if (seq !== reviewSeq || key !== reviewKey()) return;
+  const previous = reviewState.key === key ? reviewState : { key, pending: [], error: '', truncated: false, checkedAt: '' };
+  reviewState = next.error ? { ...previous, error: next.error }
+    : { key, pending: next.pending, truncated: next.truncated, error: '', checkedAt: new Date().toLocaleTimeString('ko-KR') };
+  renderReviews();
+}
+let reviewPatientsSig = '', reviewMarkup = '';
+function renderReviews() {
+  const root = $('hospitalReviews'), current = reviewState.key === reviewKey();
+  const show = !!reviewDiscovery && current && (reviewState.pending.length > 0 || reviewState.truncated || !!reviewState.error);
+  root.hidden = !show;
+  const markup = show ? reviewDiscovery.reviewPanelMarkup({ ...reviewState, server: serverBase, hospital: hid }, esc) : '';
+  // Preserve the focused action when polling returns the same visible content.
+  if (markup !== reviewMarkup) {
+    reviewMarkup = markup;
+    root.innerHTML = markup;
+  }
+  const sig = [...pendingReviewPatients()].sort().join('|');
+  if (sig !== reviewPatientsSig) { reviewPatientsSig = sig; renderIncoming(); }
+}
+function selectIncomingPatient(pid) {
+  if (chatSending || busy) return;
+  selectedPatientId = pid; selectedPatient = incomingData.incoming.find(p => p.id === pid) || null;
+  resetChat(); notice('', false); renderHospitalContext(); renderIncoming(); pollChat();
+}
 function renderIncoming() {
   $('incomingCount').textContent = incomingData.incoming.length;
+  const reviewing = pendingReviewPatients();
   const unconfirmed = new Set((chatRecovery?.store.list(serverBase, hid) || []).map(record => record.patient));
   $('chatPendingBadge').textContent = unconfirmed.size; $('chatPendingBadge').hidden = !unconfirmed.size;
   const unconfirmedTag = '<span class="tag t-mid">전송 결과 미확인</span>';
   const listed = incomingData.incoming.map(p => {
     const review = p.transport_review || {}, risk = review.state === 'RECHECK_REQUIRED';
-    return `<button type="button" class="card ${p.id === selectedPatientId ? 'selected' : ''} ${risk ? 'overdue' : ''}" data-patient="${esc(p.id)}"><div class="top"><b>${esc(p.id)}</b><span class="tag ${risk ? 't-mid' : 't-blue'}">${esc(PATIENT_STATES[p.state] || p.state)}</span></div><div class="title">${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</div><div class="meta"><span data-eta="${esc(p.id)}">${esc(etaText(p))}</span><span>${esc(REVIEW_STATES[review.state] || '감시 미설정')}</span>${unconfirmed.has(p.id) ? unconfirmedTag : ''}</div></button>`;
+    return `<button type="button" class="card ${p.id === selectedPatientId ? 'selected' : ''} ${risk ? 'overdue' : ''}" data-patient="${esc(p.id)}"><div class="top"><b>${esc(p.id)}</b><span class="tag ${risk ? 't-mid' : 't-blue'}">${esc(PATIENT_STATES[p.state] || p.state)}</span></div><div class="title">${esc(p.age ?? '?')}세 · ${esc(p.symptoms)}</div><div class="meta"><span data-eta="${esc(p.id)}">${esc(etaText(p))}</span><span>${esc(REVIEW_STATES[review.state] || '감시 미설정')}</span>${unconfirmed.has(p.id) ? unconfirmedTag : ''}${reviewing.has(p.id) ? '<span class="tag t-mid">변경 검토 대기</span>' : ''}</div></button>`;
   });
   // 참여가 끝나 목록에서 빠진 환자도 보관한 요청의 결과를 확인하러 돌아올 수 있어야 한다.
   const unlisted = [...unconfirmed].filter(id => !incomingData.incoming.some(p => p.id === id)).map(id =>
@@ -819,7 +870,8 @@ function discardChatPending(){
 }
 document.querySelector('.workspace-tabs').addEventListener('click',e=>{const tab=e.target.closest('[data-tab]');if(tab)setTab(tab.dataset.tab);});
 $('chatDiscard').addEventListener('click',discardChatPending);
-$('incomingList').addEventListener('click',e=>{const button=e.target.closest('[data-patient]');if(!button||chatSending||busy)return;selectedPatientId=button.dataset.patient;selectedPatient=incomingData.incoming.find(p=>p.id===selectedPatientId)||null;resetChat();notice('',false);renderHospitalContext();renderIncoming();pollChat();});
+$('incomingList').addEventListener('click',e=>{const button=e.target.closest('[data-patient]');if(button)selectIncomingPatient(button.dataset.patient);});
+$('hospitalReviews').addEventListener('click',e=>{const button=e.target.closest('[data-review-patient]');if(!button||chatSending||busy)return;selectIncomingPatient(button.dataset.reviewPatient);if(activeTab!=='incoming')setTab('incoming');});
 $('incomingDetail').addEventListener('input',e=>{if(e.target.id==='reviewNote'&&selectedPatientId)reviewDrafts.set(selectedPatientId,e.target.value);});
 $('incomingDetail').addEventListener('click',e=>{const button=e.target.closest('[data-patient-action]');if(button)hospitalAction(button.dataset.patientAction);});
 $('resourceDetail').addEventListener('input',e=>{const form=e.target.closest('.resource-form');if(form)resourceDrafts.set(form.dataset.resource,{capacity:form.elements.capacity.value,occupied:form.elements.occupied.value,status:form.elements.status.value,version:Number(form.dataset.version)});const externalForm=e.target.closest('#externalArrivalForm');if(externalForm)externalDraft={resource_type:externalForm.elements.resource_type.value,amount:externalForm.elements.amount.value,note:externalForm.elements.note.value};});
@@ -875,7 +927,8 @@ function resetWorkspace(){
   seen.clear();newUntil.clear();firstLoad=true;lastSig='';incomingSig='';resourceSig='';
   data={open:[],recent:[]};incomingData={incoming:[],affected:[],planning:[]};hospitalData=null;
   questionDrafts.clear();inquiryNotices.clear();reviewDrafts.clear();resourceDrafts.clear();externalDraft={resource_type:null,amount:'1',note:''};restrictionDraft={scope:'all',reason:'',duration:'3600',note:''};resetChat();
-  render();renderIncoming();renderResources();renderRestrictions();notice('',false);
+  reviewSeq++;reviewLoading=false;reviewState={key:null,pending:[],error:'',truncated:false,checkedAt:''};
+  render();renderIncoming();renderResources();renderRestrictions();renderReviews();notice('',false);
   renderHospitalContext();
   if(operations){operations.sync();if(activeTab==='operations')operations.refresh();if(activeTab==='resources')operations.refreshExternal();}
   syncWorkflow({events:true,restore:true});
@@ -910,6 +963,8 @@ setInterval(() => {
 }, 1000);
 
 renderHospitalContext();
+import('./review-discovery.mjs').then(module=>{reviewDiscovery=module;pollReviews();})
+  .catch(error=>notice('임상변경 검토 목록 도구를 불러오지 못했습니다. '+error.message,true));
 import('./chat-recovery.mjs').then(({ChatRecoveryStore,ChatSaveError,newChatRequest,isRejected,confirmsChatRequest})=>{
   let storage=null;try{storage=localStorage;}catch{}
   chatRecovery={store:new ChatRecoveryStore({storage}),ChatSaveError,newChatRequest,isRejected,confirmsChatRequest};

@@ -51,7 +51,7 @@ test('validation also accepts frozen original pending objects without mutation',
   assert.equal(assertTransportRetryScope(pending,scope,'hospital-original'),true);
 });
 
-function page(pending,{hospitalActor='hospital-other',succeed=false}={}){
+function page(pending,{hospitalActor='hospital-other',succeed=false,reviewEntry=false,destination='H01',patientState='IN_TRANSIT'}={}){
   const elements=new Map(),windowEvents=new Map(),requests=[],memory=new Map();
   const key='enroute-review-pending:http://fixture.test';memory.set(key,JSON.stringify(pending));
   function element(id){
@@ -65,7 +65,8 @@ function page(pending,{hospitalActor='hospital-other',succeed=false}={}){
   const approval={checked:true,disabled:false,dataset:{hospitalDecisionConfirm:'true'}};
   element('hospitalActor').value=hospitalActor;element('requestConfirm').checked=true;
   element('reviews').querySelectorAll=selector=>selector==='[data-hospital-decision-confirm]'?[approval]:[];
-  const environment={URL,URLSearchParams,location:{origin:'http://fixture.test',search:'?pid=P-SYNTHETIC&hid=H01&actor_id=crew-synthetic'},
+  const search='?pid=P-SYNTHETIC&hid=H01'+(reviewEntry?'&view=hospital-review':'&actor_id=crew-synthetic');
+  const environment={URL,URLSearchParams,location:{origin:'http://fixture.test',search},
     document:{getElementById:element,querySelectorAll:()=>[...elements.values(),approval],createElement:tag=>element('created-'+tag)},
     window:{addEventListener:(name,fn)=>windowEvents.set(name,fn)},
     sessionStorage:{getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)},
@@ -75,7 +76,7 @@ function page(pending,{hospitalActor='hospital-other',succeed=false}={}){
       if(!succeed)throw Error('synthetic lost response');
       const result=opts.method==='POST'?{session:{id:'VS-synthetic'},duplicate:true}
         :path.startsWith('/api/voice/')?{session:{id:'VS-synthetic',version:2,confirmed:true,speak_text:'synthetic'}}
-        :path.startsWith('/api/patients/')?{id:scope.pid,state:'IN_TRANSIT',version:4,destination_hospital_id:'H01',resource_demands:{ed_bed:1}}
+        :path.startsWith('/api/patients/')?{id:scope.pid,state:patientState,version:4,destination_hospital_id:destination,resource_demands:{ed_bed:1}}
         :{reviews:[]};
       return {ok:true,status:200,json:async()=>result};
     },assertTransportRetryScope,hospitalDecisionActor,resetHospitalApprovalChecks};
@@ -104,4 +105,23 @@ test('actual UI crew request retry ignores the separately displayed hospital act
   const pending=request(),p=page(pending,{hospitalActor:'unrelated-hospital',succeed:true});await p.element('retry').emit('click');
   const posts=p.requests.filter(row=>row.method==='POST');assert.equal(posts.length,1);assert.equal(posts[0].path,pending.path);assert.deepEqual(posts[0].body,pending.body);
   assert.equal(p.memory.has(p.key),false);
+});
+test('hospital queue links keep the original hospital and stop if transport moved or ended',async()=>{
+  for(const changed of [{destination:'H02'},{patientState:'ARRIVED'}]){
+    const p=page(null,{succeed:true,reviewEntry:true,...changed});
+    await p.element('load').emit('click');
+    assert.deepEqual(p.requests.map(row=>row.path),['/api/patients/P-SYNTHETIC']);
+    assert.equal(p.element('hospitalId').value,'H01');
+    assert.equal(p.element('hospitalLink').href,'/hospital/?hid=H01');
+    assert.match(p.element('status').textContent,/목적지가 바뀌었거나 이송이 종료/);
+  }
+});
+test('hospital queue loads the same active hospital, and unmarked crew links still follow the destination',async()=>{
+  const hospital=page(null,{succeed:true,reviewEntry:true});
+  await hospital.element('load').emit('click');
+  assert.equal(hospital.requests.at(-1).path,'/api/hospitals/H01/transport-change-reviews');
+  const crew=page(null,{succeed:true,destination:'H02'});
+  await crew.element('load').emit('click');
+  assert.equal(crew.element('hospitalId').value,'H02');
+  assert.equal(crew.requests.at(-1).path,'/api/hospitals/H02/transport-change-reviews');
 });
