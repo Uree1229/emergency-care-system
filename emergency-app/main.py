@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, Query, HTTPException
+from fastapi import FastAPI, Form, Query
 
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -11,7 +11,6 @@ import math
 import os
 
 import json
-import sqlite3
 
 import urllib.parse
 
@@ -21,8 +20,13 @@ import urllib.error
 
 import xml.etree.ElementTree as ET
 
-from urllib.parse import quote
-from html import escape
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit, parse_qsl
+from html import escape, unescape
+import re
+import uuid
+from common_server import (CommonServerError, hospital_catalog, new_submission_id,
+                           build_episode_payload, create_episode, transport_url,
+                           confirmed_voice_intake, restore_episode_payload, sign_episode_payload)
 
 
 
@@ -54,7 +58,7 @@ def load_local_env():
 
         if key and value:
 
-            os.environ[key] = value
+            os.environ.setdefault(key, value)
 
 
 
@@ -64,7 +68,7 @@ from api_integrations import enrich_hospitals, enrich_hospitals_with_hira, enric
 
 
 
-from database import create_database, save_patient, get_patients, get_patient
+from database import create_database, save_patient, get_patients, get_patient, get_retry_signing_key
 
 
 
@@ -72,10 +76,6 @@ from database import create_database, save_patient, get_patients, get_patient
 
 app = FastAPI()
 
-# Presentation-only middleware: preserves existing endpoints, query parameters,
-# forms, GPS scripts, API calls, and voice-report sessionStorage logic.
-from starlette.responses import Response
-import re
 
 @app.middleware("http")
 async def medical_ui_theme(request, call_next):
@@ -85,15 +85,18 @@ async def medical_ui_theme(request, call_next):
     payload = b"".join([part async for part in response.body_iterator])
     html = payload.decode("utf-8", errors="replace")
     theme = '<link rel="stylesheet" href="/static/medical-ui.css?v=2">'
+    if request.url.path in ('/emergency/check', '/emergency/breathing', '/emergency/symptoms', '/emergency/bodymap'):
+        theme += '<link rel="stylesheet" href="/static/medical-intake.css">'
     if re.search(r"</head\s*>", html, flags=re.I):
         html = re.sub(r"</head\s*>", theme + "</head>", html, count=1, flags=re.I)
     else:
         html = theme + html
     current = request.url.path
     links = [("/", "홈"), ("/voice-intake", "음성 문진"), ("/register", "환자 등록"), ("/patients", "환자 목록"), ("/emergency", "응급상황 접수")]
-    menu = "".join('<a href="{}" {} class="{}">{}</a>'.format(
+    menu = "".join('<a href="{}" {} class="{}" {}>{}</a>'.format(
         href, 'aria-current="page"' if current == href else "",
-        "med-emergency" if href == "/emergency" else "", title
+        "med-emergency" if href == "/emergency" else "",
+        "data-voice-intake-link" if href == "/voice-intake" else "", title
     ) for href, title in links)
     header = '<header class="med-header"><nav class="med-nav" aria-label="주 메뉴"><a class="med-brand" href="/"><span class="med-brand-mark">✚</span><span>퀵119 <small style="font-size:10px;color:#8394a7;font-weight:600">QUICK119</small></span></a><div class="med-links">' + menu + '</div></nav></header>'
     banner = '<div class="med-banner"><div class="med-banner-inner"><strong>응급 안내</strong> · 위급한 상황에서는 앱 사용보다 <strong>119 신고를 우선</strong>하세요. 병상 정보는 실제 수용을 보장하지 않습니다.</div></div>'
@@ -103,12 +106,106 @@ async def medical_ui_theme(request, call_next):
     if re.search(r"</body\s*>", html, flags=re.I):
         html = re.sub(r"</body\s*>", footer+"</body>", html, count=1, flags=re.I)
     headers = {k:v for k,v in response.headers.items() if k.lower() not in ("content-length","content-encoding","transfer-encoding")}
-    return Response(content=html, status_code=response.status_code, headers=headers, media_type="text/html; charset=utf-8")
-
+    return HTMLResponse(html, status_code=response.status_code, headers=headers)
 
 
 
 BASE_DIR = Path(__file__).resolve().parent
+
+# Voice assets are separate from the teammate's existing template URLs.
+app.mount('/assets', StaticFiles(directory=BASE_DIR / 'static', check_dir=False), name='intake-assets')
+
+
+def _observed_state(value, yes_text, no_text):
+    if value == 'yes':
+        return yes_text, 'normal'
+    if value == 'no':
+        return no_text, 'warning'
+    return '미확인', 'unknown'
+
+
+def _flow_response(response, flow_token='', patient_id=None):
+    """Carry one opaque intake flow through existing forms without copying audio."""
+    try:
+        token = str(uuid.UUID(flow_token))
+    except (ValueError, TypeError, AttributeError):
+        token = new_submission_id()
+    html = response.body.decode('utf-8')
+    hidden = '<input type="hidden" name="flow_token" value="' + token + '">'
+    html = re.sub(r'(<form\b[^>]*>)(.*?)(</form>)',
+                  lambda m: m[1] + ('' if re.search(r'name=[\"\x27]flow_token[\"\x27]', m[2]) else hidden)
+                  + m[2] + m[3], html, flags=re.S | re.I)
+    def link(match):
+        url = urlsplit(unescape(match[2]))
+        if url.scheme or url.netloc or not (url.path.startswith('/emergency') or url.path == '/voice-intake'):
+            return match[0]
+        query = [(k, v) for k, v in parse_qsl(url.query, keep_blank_values=True) if k != 'flow_token']
+        query.append(('flow_token', token))
+        return 'href=' + match[1] + escape(urlunsplit((url.scheme, url.netloc, url.path, urlencode(query), url.fragment)), quote=True) + match[1]
+    html = re.sub(r'href=([\"\x27])([^\"\x27]*)\1', link, html, flags=re.I)
+    pid = '' if patient_id is None else str(patient_id or 0)
+    hook = ('<section id="voice-intake-summary" data-flow-token="' + token
+            + '" data-patient-id="' + escape(pid, quote=True) + '"'
+            + (' data-bind-select="voice-patient-select"' if patient_id is None else '') + '></section>'
+            + '<script type="module" src="/assets/voice-intake-flow.mjs"></script>')
+    html = re.sub(r'(<(?:main|div)\b[^>]*class="container"[^>]*>)', lambda m: m[0] + hook, html, count=1)
+    if 'id="voice-intake-summary"' not in html:
+        marker = '<div class="cards">' if '<div class="cards">' in html else '</body>'
+        html = html.replace(marker, hook + marker, 1)
+    return HTMLResponse(html, status_code=response.status_code)
+
+
+def _connect_form_html(hospitals, patient_id, consciousness, breathing, symptom, body_part,
+                       latitude, longitude, *, submission_id, flow_token, reporter_role='',
+                       required_capabilities=None, special_team=False, consent=False,
+                       inquiry_policy='fixed_3', error='', episode_payload='', voice_payload='', voice_confirmed=''):
+    selected = set(required_capabilities or [])
+    capabilities = sorted({str(cap) for hospital in hospitals for cap in hospital.get('capabilities', [])} | selected)
+    options = ''.join('<label style="display:block;margin:9px 0"><input type="checkbox" name="required_capabilities" value="'
+                      + escape(cap, quote=True) + '"' + (' checked' if cap in selected else '') + '> '
+                      + escape(cap) + '</label>' for cap in capabilities)
+    roles = ''.join('<option value="' + value + '"' + (' selected' if reporter_role == value else '') + '>' + label + '</option>'
+                    for value, label in (('', '입력자 선택'), ('self', '환자 본인'), ('guardian', '보호자'), ('transporter', '구급대·이송자')))
+    policies = ''.join('<option value="' + value + '"' + (' selected' if inquiry_policy == value else '') + '>' + label + '</option>'
+                       for value, label in (('fixed_1', '고정 1곳'), ('fixed_3', '고정 3곳 (기본)'), ('fixed_5', '고정 5곳'),
+                                            ('observed_v2', '관측 기반 V2'), ('observed_v3', '관측 기반 V3')))
+    fields = [('submission_id', submission_id), ('flow_token', flow_token), ('patient_id', patient_id or 0),
+              ('consciousness', consciousness), ('breathing', breathing), ('episode_payload', episode_payload),
+              ('voice_payload', voice_payload), ('voice_confirmed', voice_confirmed)]
+    fields += [('symptom', value) for value in symptom] + [('body_part', value) for value in body_part]
+    hidden = ''.join('<input type="hidden" name="' + key + '" value="' + escape(str(value), quote=True) + '">' for key, value in fields)
+    error_html = '<div id="connect-error" role="alert">' + escape(error) + '</div>' if error else ''
+    return f'''<section class="common-connect" style="margin-top:25px">
+    <style>.common-connect label{{display:block;margin:14px 0;line-height:1.6}}
+    .common-connect input:not([type=checkbox]):not([type=hidden]),.common-connect select{{display:block;width:100%;min-height:44px;font-size:16px;padding:10px;margin:8px 0;box-sizing:border-box}}
+    .common-connect button{{min-height:44px;font-size:16px;padding:12px;margin:12px 0;border:0;border-radius:9px;background:#1976d2;color:white;cursor:pointer}}
+    .common-connect fieldset{{margin:20px 0;border:1px solid #d9e3f0;border-radius:10px;padding:14px}}
+    .common-connect #connect-error{{padding:14px;color:#b71c1c;border:1px solid #d32f2f;border-radius:10px;overflow-wrap:anywhere}}
+    .common-connect #connect-submit{{display:block;width:100%;font-weight:bold}}</style>
+    <h2>🔗 정보 전송과 병원 문의</h2>
+    {error_html}<p>위의 공개 병원 조회는 참고 정보이며 수용 확약이 아닙니다. 아래 버튼을 눌러야 공통 서버에 이송 건을 등록하고 문의를 시작합니다.</p>
+    <form id="common-connect-form" action="/emergency/connect" method="post">{hidden}
+      <label for="reporter-role">입력자</label><select id="reporter-role" name="reporter_role" required>{roles}</select>
+      <p>환자의 실제 위치를 확인하거나 직접 관측한 좌표를 입력하세요.</p>
+      <button id="location-button" type="button">현재 위치로 입력</button><span id="connect-location-status" role="status"></span>
+      <label for="connect-latitude">위도</label><input id="connect-latitude" name="latitude" required inputmode="decimal" value="{escape(str(latitude if latitude is not None else ''), quote=True)}">
+      <label for="connect-longitude">경도</label><input id="connect-longitude" name="longitude" required inputmode="decimal" value="{escape(str(longitude if longitude is not None else ''), quote=True)}">
+      <fieldset><legend>확인된 필요 진료 분야 (직접 선택)</legend><p>증상과 주변 병원 조회 결과로 진료 분야나 자원 수요를 자동 추정하지 않습니다.</p>{options or '<p>공통 서버의 진료 분야를 확인하지 못했습니다.</p>'}</fieldset>
+      <details><summary>개발 시연 설정</summary><label><input name="special_team" type="checkbox" value="yes"{' checked' if special_team else ''}>가상 전문팀 1개 (합성 시험 전용)</label>
+        <label>문의 정책<select id="inquiry-policy" name="inquiry_policy">{policies}</select></label></details>
+      <label><input id="connect-consent" type="checkbox" name="consent" value="yes" required{' checked' if consent else ''}>환자 상태·위치·연락 정보를 공통 서버와 문의 병원에 전달하는 데 동의합니다.</label>
+      <button id="connect-submit" type="submit">정보 전송 및 병원 탐색 시작</button>
+    </form></section><script>
+    document.getElementById('location-button').addEventListener('click',()=>{{
+      const status=document.getElementById('connect-location-status');
+      if(!navigator.geolocation){{status.textContent='위치를 사용할 수 없습니다. 관측한 좌표를 직접 입력하세요.';return;}}
+      navigator.geolocation.getCurrentPosition(position=>{{
+        document.getElementById('connect-latitude').value=position.coords.latitude;
+        document.getElementById('connect-longitude').value=position.coords.longitude;
+        status.textContent='현재 기기에서 관측한 위치';
+      }},()=>{{status.textContent='위치를 확인하지 못했습니다. 관측한 좌표를 직접 입력하세요.';}},{{enableHighAccuracy:true,timeout:10000,maximumAge:0}});
+    }});
+    </script>'''
 
 
 
@@ -312,6 +409,7 @@ def register_patient(
 
 
 @app.get("/patients", response_class=HTMLResponse)
+
 def patients_page():
     patients = get_patients()
     rows = []
@@ -328,40 +426,24 @@ def patients_page():
             <td data-label="연락처">{phone}</td>
             <td data-label="관리" class="q119-actions">
                 <a class="q119-btn q119-btn-outline" href="/patients/{patient_id}">상세 보기</a>
-                <form method="post" action="/patients/{patient_id}/delete" onsubmit="return confirm('정말 이 환자를 삭제하시겠습니까?\\n삭제 후에는 복구할 수 없습니다.');">
-                    <button class="q119-btn q119-btn-delete" type="submit">삭제</button>
-                </form>
             </td>
         </tr>""")
     table_rows = "\n".join(rows) if rows else '<tr><td colspan="5" class="q119-empty">등록된 환자가 없습니다. 환자를 먼저 등록해 주세요.</td></tr>'
     return HTMLResponse(f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>환자 목록 | 퀵119</title></head>
     <body><main class="q119-page">
       <div class="q119-page-heading"><div><p class="q119-eyebrow">PATIENT MANAGEMENT</p><h1>환자 목록</h1><p>등록된 환자를 확인하고 관리할 수 있습니다.</p></div><a class="q119-btn q119-btn-primary" href="/register">+ 환자 등록</a></div>
-      <section class="q119-surface"><div class="q119-surface-heading"><h2>등록 환자 <span class="q119-count">{len(patients)}명</span></h2><p>삭제 버튼을 누르면 확인창이 나타납니다.</p></div>
+      <section class="q119-surface"><div class="q119-surface-heading"><h2>등록 환자 <span class="q119-count">{len(patients)}명</span></h2><p>환자 이름 또는 상세 보기로 등록 정보를 확인할 수 있습니다.</p></div>
       <div class="q119-table-scroll"><table class="q119-table"><thead><tr><th>번호</th><th>환자명</th><th>생년월일</th><th>연락처</th><th>관리</th></tr></thead><tbody>{table_rows}</tbody></table></div></section>
       <a class="q119-back" href="/">← 메인으로 돌아가기</a>
     </main></body></html>""")
 
 
-@app.post("/patients/{patient_id}/delete")
-def delete_patient(patient_id: int):
-    # GET 요청으로는 삭제되지 않도록 POST 전용으로 처리합니다.
-    if patient_id < 1:
-        raise HTTPException(status_code=400, detail="잘못된 환자 번호입니다.")
-    if get_patient(patient_id) is None:
-        raise HTTPException(status_code=404, detail="환자를 찾을 수 없습니다.")
-    db_path = BASE_DIR / "emergency.db"
-    with sqlite3.connect(db_path, timeout=10) as connection:
-        connection.execute("PRAGMA foreign_keys = ON")
-        try:
-            cursor = connection.execute("DELETE FROM patients WHERE id = ?", (patient_id,))
-            if cursor.rowcount == 0:
-                raise HTTPException(status_code=404, detail="환자를 찾을 수 없습니다.")
-            connection.commit()
-        except sqlite3.IntegrityError:
-            raise HTTPException(status_code=409, detail="연결된 접수 기록이 있어 삭제할 수 없습니다.")
-    return RedirectResponse(url="/patients", status_code=303)
 
+
+
+# ==================================================
+
+# 환자 상세정보
 
 # ==================================================
 
@@ -513,7 +595,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    이름: {patient[1]}
+                    이름: {escape(str(patient[1]))}
 
                 </div>
 
@@ -521,7 +603,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    생년월일: {patient[2] or "등록되지 않음"}
+                    생년월일: {escape(str(patient[2] or "등록되지 않음"))}
 
                 </div>
 
@@ -529,7 +611,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    전화번호: {patient[3] or "등록되지 않음"}
+                    전화번호: {escape(str(patient[3] or "등록되지 않음"))}
 
                 </div>
 
@@ -537,7 +619,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    주소: {patient[4] or "등록되지 않음"}
+                    주소: {escape(str(patient[4] or "등록되지 않음"))}
 
                 </div>
 
@@ -545,7 +627,7 @@ def patient_detail(patient_id: int):
 
                 <div class="info">
 
-                    보호자: {patient[5] or "등록되지 않음"}
+                    보호자: {escape(str(patient[5] or "등록되지 않음"))}
 
                 </div>
 
@@ -555,7 +637,7 @@ def patient_detail(patient_id: int):
 
                     보호자 전화번호:
 
-                    {patient[6] or "등록되지 않음"}
+                    {escape(str(patient[6] or "등록되지 않음"))}
 
                 </div>
 
@@ -617,13 +699,14 @@ def voice_intake_page():
     return HTMLResponse((BASE_DIR / "templates" / "voice_intake.html").read_text(encoding="utf-8"))
 
 @app.get("/emergency", response_class=HTMLResponse)
-def emergency_page():
+
+def emergency_page(flow_token: str = ''):
     patients = get_patients()
     patient_options = "".join(
         f'<option value="{int(patient[0])}">{escape(str(patient[1]))}</option>'
         for patient in patients
     )
-    return HTMLResponse(f"""<!doctype html>
+    return _flow_response(HTMLResponse(f"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>응급상황 접수 | 퀵119</title>
 <style>
@@ -633,35 +716,32 @@ a{{color:inherit;text-decoration:none}}button,select{{font:inherit}}.top{{backgr
 main{{max-width:980px;margin:0 auto;padding:40px 20px 72px}}.eyebrow{{font-size:12px;letter-spacing:2px;color:var(--blue);font-weight:800;margin:0 0 10px}}h1{{font-size:clamp(28px,4vw,38px);line-height:1.25;letter-spacing:-1px;margin:0 0 14px;color:var(--navy)}}.lead{{color:var(--muted);margin:0;max-width:660px;font-size:16px}}.intro{{margin-bottom:28px}}
 .voice{{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px;border-radius:18px;background:#eaf2fc;border:1px solid #d7e6fa;margin-bottom:22px}}.voice h2{{font-size:17px;color:var(--navy);margin:0 0 5px}}.voice p{{margin:0;color:#53677f;font-size:14px}}.voice-link{{background:var(--navy);color:white;padding:13px 20px;border-radius:12px;white-space:nowrap;font-weight:800;text-align:center}}
 .cards{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}}.card{{min-width:0;background:white;border:1px solid var(--line);border-radius:20px;padding:26px;display:flex;flex-direction:column;box-shadow:0 6px 22px rgba(30,54,83,.045)}}.card-head{{display:flex;align-items:center;gap:12px;margin-bottom:12px}}.number{{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;background:#eaf2fc;color:var(--navy);border-radius:11px;font-weight:900}}h2{{font-size:21px;margin:0;color:var(--navy);letter-spacing:-.4px}}.desc{{font-size:14px;color:var(--muted);margin:0 0 24px;min-height:44px}}.card form{{display:flex;flex-direction:column;gap:14px;flex:1}}label{{font-size:13px;font-weight:800;color:#43556c}}select{{width:100%;max-width:100%;min-width:0;height:52px;border:1px solid #cbd5e1;border-radius:12px;background:white;color:var(--ink);padding:0 14px}}.spacer{{flex:1;min-height:66px}}.action{{border:0;border-radius:12px;min-height:52px;width:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px 16px;font-size:15px;font-weight:800;cursor:pointer}}.primary{{background:var(--navy);color:white}}.secondary{{background:#eef3fa;color:var(--navy);border:1px solid #d8e3f1}}.action:hover,.voice-link:hover{{filter:brightness(.96)}}.note{{margin-top:24px;padding:16px 18px;background:#fff8f0;border:1px solid #ffebce;border-radius:12px;color:#855619;font-size:13px}}
-#voice-summary{{display:none;margin-bottom:20px;padding:20px;background:white;border:1px solid #cbdced;border-radius:16px}}#voice-summary h2{{font-size:16px;margin:0 0 8px}}#voice-summary p{{white-space:pre-line;margin:0;font-size:14px;overflow-wrap:anywhere}}
+#voice-intake-summary:not(:empty){{margin-bottom:20px;padding:20px;background:white;border:1px solid #cbdced;border-radius:16px;overflow-wrap:anywhere}}
 @media(max-width:700px){{main{{padding:26px 16px 52px}}.top-inner{{padding:15px 16px}}.cards{{grid-template-columns:1fr;gap:14px}}.card{{padding:22px}}.desc{{min-height:0;margin-bottom:18px}}.spacer{{min-height:0}}.voice{{flex-direction:column;align-items:stretch;padding:20px}}.voice-link{{width:100%}}.lead{{font-size:15px}}}}
 </style></head><body>
-<header class="top"><div class="top-inner"><a class="brand" href="/">퀵119 <span style="font-size:12px;font-weight:700;color:#718096">QUICK119</span></a><a class="home" href="/">← 홈으로</a></div></header>
 <main><div class="intro"><p class="eyebrow">EMERGENCY INTAKE</p><h1>응급상황 접수</h1><p class="lead">환자 등록 여부를 선택해 접수를 시작하세요. 음성 문진을 먼저 진행했다면 분석 결과도 함께 확인할 수 있습니다.</p></div>
-<section class="voice"><div><h2>음성으로 증상 설명하기</h2><p>질환, 통증 부위, 현재 상태를 말하면 주요 정보를 정리해 드립니다.</p></div><a class="voice-link" href="/voice-intake">음성 문진 시작</a></section>
-<section id="voice-summary" aria-live="polite"><h2>이전 음성 문진 결과</h2><p id="voice-content"></p></section>
+<section class="voice"><div><h2>음성으로 증상 설명하기</h2><p>질환, 통증 부위, 현재 상태를 말하면 주요 정보를 정리해 드립니다.</p></div><a class="voice-link" data-voice-intake-link href="/voice-intake">음성 문진 시작</a></section>
 <div class="cards">
-<section class="card"><div class="card-head"><span class="number">01</span><h2>등록 환자 접수</h2></div><p class="desc">등록된 환자를 선택하면 기존 환자 정보를 불러옵니다.</p><form action="/emergency/check" method="get"><label for="patient_id">환자 선택</label><select id="patient_id" name="patient_id" required><option value="" disabled selected>환자를 선택해 주세요</option>{patient_options}</select><button class="action primary" type="submit">선택한 환자로 접수 시작</button></form></section>
+<section class="card"><div class="card-head"><span class="number">01</span><h2>등록 환자 접수</h2></div><p class="desc">등록된 환자를 선택하면 기존 환자 정보를 불러옵니다.</p><form action="/emergency/check" method="get"><label for="voice-patient-select">환자 선택</label><select id="voice-patient-select" name="patient_id" required><option value="" disabled selected>환자를 선택해 주세요</option>{patient_options}</select><button class="action primary" type="submit">선택한 환자로 접수 시작</button></form></section>
 <section class="card"><div class="card-head"><span class="number">02</span><h2>미등록 환자 접수</h2></div><p class="desc">환자 정보가 등록되지 않아도 바로 응급상황을 접수할 수 있습니다.</p><div class="spacer"></div><a class="action secondary" href="/emergency/check?patient_id=0">미등록 환자로 접수 시작</a></section>
 </div><div class="note">실제 응급상황이라면 이 화면의 입력보다 119 신고를 우선하세요. 이 서비스는 실제 구급대 신고·출동을 대신하지 않습니다.</div></main>
-<script>
-(function(){{try{{const d=JSON.parse(sessionStorage.getItem('emergencyVoiceIntake')||'null');if(!d)return;const lines=[['기존 질환',d.conditions],['통증 부위',d.areas],['현재 증상',d.symptoms],['발생 시점',d.onset],['환자 진술',d.transcript]].filter(x=>x[1]);if(!lines.length)return;document.getElementById('voice-content').textContent=lines.map(x=>x[0]+': '+x[1]).join('\n');document.getElementById('voice-summary').style.display='block';}}catch(e){{}}}})();
-</script></body></html>""")
+</body></html>"""), flow_token)
+
+
+
 
 
 # ==================================================
-# 의식 확인
+
+# 🚨 의식 확인
+
 # ==================================================
 
 
-
-def quick119_intake_response(html: str):
-    """Apply one consistent, mobile-first layout to all intake steps."""
-    return HTMLResponse(html.replace("</head>", '<style id="quick119-intake-redesign">\n:root{--qnavy:#17375e;--qink:#1d2d42;--qmuted:#65758b;--qline:#e0e8f1;--qbg:#f5f8fc}\nhtml{width:100%;min-width:0}body{box-sizing:border-box!important;display:block!important;width:100%!important;min-width:0!important;min-height:100vh!important;height:auto!important;margin:0!important;padding:72px 16px 60px!important;background:var(--qbg)!important;color:var(--qink)!important;font-family:Pretendard,\'Noto Sans KR\',system-ui,sans-serif!important;text-align:left!important;line-height:1.55!important}\nbody::before{content:\'퀵119  /  QUICK119\';position:absolute;top:0;left:0;right:0;height:58px;display:flex;align-items:center;padding:0 max(20px,calc((100vw - 840px)/2));background:#fff;border-bottom:1px solid var(--qline);color:var(--qnavy);font-size:18px;font-weight:900;letter-spacing:-.4px}\nbody .container{box-sizing:border-box!important;display:block!important;width:100%!important;max-width:760px!important;min-width:0!important;height:auto!important;min-height:0!important;margin:22px auto 0!important;padding:clamp(22px,5vw,44px)!important;background:#fff!important;border:1px solid var(--qline)!important;border-radius:22px!important;box-shadow:0 12px 35px rgba(23,55,94,.055)!important;text-align:left!important;overflow:visible!important}\nbody .container .icon{display:none!important}body .container h1{font-size:clamp(25px,4vw,34px)!important;line-height:1.25!important;letter-spacing:-.7px!important;color:var(--qnavy)!important;text-align:left!important;margin:0 0 18px!important;overflow-wrap:anywhere}\nbody .container .patient{box-sizing:border-box!important;display:block!important;width:100%!important;padding:14px 18px!important;margin:0 0 24px!important;background:#edf4fd!important;border:1px solid #dce8f6!important;border-radius:12px!important;color:var(--qnavy)!important;text-align:left!important;font-size:15px!important;overflow-wrap:anywhere}\nbody .container .question{box-sizing:border-box!important;display:block!important;width:100%!important;min-height:0!important;margin:0 0 22px!important;padding:0!important;color:var(--qink)!important;font-size:clamp(18px,3vw,22px)!important;font-weight:800!important;line-height:1.55!important;text-align:left!important;overflow-wrap:anywhere}\nbody .container a.answer{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;min-height:58px!important;margin:0 0 12px!important;padding:14px 20px!important;border-radius:13px!important;text-align:center!important;text-decoration:none!important;font-size:17px!important;font-weight:800!important;box-shadow:none!important;float:none!important;position:static!important}\nbody .container a.answer.yes{background:#17375e!important;color:#fff!important;border:1px solid #17375e!important}body .container a.answer.no{background:#fff1f1!important;color:#b42332!important;border:1px solid #f5cbd0!important}\nbody .container form{box-sizing:border-box!important;display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important}\nbody .container .symptom-options{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;width:100%!important;min-width:0!important;margin:0 0 24px!important;padding:0!important}\nbody .container label.symptom-choice,body .container label.choice{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;width:100%!important;min-width:0!important;min-height:60px!important;margin:0!important;padding:14px 16px!important;background:#f8fafc!important;border:1px solid #dbe5f0!important;border-radius:13px!important;color:var(--qink)!important;text-align:left!important;font-size:15px!important;line-height:1.45!important;overflow-wrap:anywhere;cursor:pointer}\nbody .container label.symptom-choice:has(input:checked),body .container label.choice:has(input:checked){background:#eaf2fd!important;border-color:#376cb5!important;color:#17375e!important}\nbody .container label input[type=checkbox]{width:21px!important;height:21px!important;flex:0 0 21px!important;accent-color:#17375e!important;margin:0!important}\nbody .container label.choice{margin-bottom:10px!important}\nbody .container button[type=submit]{box-sizing:border-box!important;display:block!important;width:100%!important;min-width:0!important;min-height:56px!important;margin:20px 0 0!important;padding:14px 18px!important;border:0!important;border-radius:13px!important;background:#17375e!important;color:white!important;font-size:16px!important;font-weight:800!important;line-height:1.45!important;white-space:normal!important;cursor:pointer}\nbody .container p{color:var(--qmuted)!important;line-height:1.65!important;text-align:left!important;overflow-wrap:anywhere}\nbody .container svg{max-width:100%!important;height:auto!important}\n@media(max-width:600px){body{padding:65px 12px 32px!important}body::before{height:54px;padding:0 16px;font-size:16px}body .container{margin:12px auto 0!important;padding:22px 18px!important;border-radius:17px!important}body .container .symptom-options{grid-template-columns:1fr!important;gap:9px!important}body .container .question{font-size:18px!important}body .container a.answer{min-height:58px!important}}\n</style>'+"</head>", 1))
 
 @app.get("/emergency/check", response_class=HTMLResponse)
 
-def emergency_check(patient_id: str = ""):
+def emergency_check(patient_id: str = "", flow_token: str = ''):
 
 
 
@@ -709,7 +789,7 @@ def emergency_check(patient_id: str = ""):
 
 
 
-        patient_name = patient[1]
+        patient_name = escape(str(patient[1]))
 
 
 
@@ -717,7 +797,7 @@ def emergency_check(patient_id: str = ""):
 
 
 
-    return quick119_intake_response(f"""
+    return _flow_response(HTMLResponse(f"""
 
         <!DOCTYPE html>
 
@@ -1009,7 +1089,7 @@ def emergency_check(patient_id: str = ""):
 
         </html>
 
-    """)
+    """), flow_token, patient_id or 0)
 
 
 
@@ -1029,9 +1109,9 @@ def emergency_breathing(
 
     patient_id: int | None = None,
 
-    consciousness: str = ""
-
-):
+    consciousness: str = "",
+    flow_token: str = ''):
+    consciousness = consciousness if consciousness in ('yes', 'no') else 'unknown'
 
 
 
@@ -1063,7 +1143,7 @@ def emergency_breathing(
 
 
 
-        patient_name = patient[1]
+        patient_name = escape(str(patient[1]))
 
 
 
@@ -1071,7 +1151,7 @@ def emergency_breathing(
 
 
 
-    return quick119_intake_response(f"""
+    return _flow_response(HTMLResponse(f"""
 
         <!DOCTYPE html>
 
@@ -1365,7 +1445,7 @@ def emergency_breathing(
 
         </html>
 
-    """)
+    """), flow_token, patient_id or 0)
 
 
 
@@ -1387,9 +1467,10 @@ def emergency_symptoms(
 
     consciousness: str = "",
 
-    breathing: str = ""
-
-):
+    breathing: str = "",
+    flow_token: str = ''):
+    consciousness = consciousness if consciousness in ('yes', 'no') else 'unknown'
+    breathing = breathing if breathing in ('yes', 'no') else 'unknown'
 
 
 
@@ -1421,7 +1502,7 @@ def emergency_symptoms(
 
 
 
-        patient_name = patient[1]
+        patient_name = escape(str(patient[1]))
 
 
 
@@ -1429,7 +1510,7 @@ def emergency_symptoms(
 
 
 
-    return quick119_intake_response(f"""
+    return _flow_response(HTMLResponse(f"""
 
         <!DOCTYPE html>
 
@@ -1719,7 +1800,7 @@ def emergency_symptoms(
 
         </html>
 
-    """)
+    """), flow_token, patient_id or 0)
 
 
 
@@ -1735,7 +1816,11 @@ def emergency_bodymap(
     consciousness: str = "",
     breathing: str = "",
     symptom: list[str] = Query(default=[]),
+
+    flow_token: str = '',
 ):
+    consciousness = consciousness if consciousness in ('yes', 'no') else 'unknown'
+    breathing = breathing if breathing in ('yes', 'no') else 'unknown'
     allowed_symptoms = {"가슴 통증", "호흡 곤란", "출혈", "의식 저하", "기타"}
     selected_symptoms = list(dict.fromkeys(x for x in symptom if x in allowed_symptoms))
     patient = get_patient(patient_id) if patient_id else None
@@ -1745,7 +1830,7 @@ def emergency_bodymap(
         f'<input type="hidden" name="symptom" value="{escape(x, quote=True)}">'
         for x in selected_symptoms
     )
-    return quick119_intake_response(f"""
+    return _flow_response(HTMLResponse(f"""
     <!DOCTYPE html>
     <html lang="ko"><head><meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1786,7 +1871,7 @@ def emergency_bodymap(
         <button type="submit">선택 완료 · 구급대 전달 정보 확인</button>
       </form>
     </div></body></html>
-    """)
+    """), flow_token, patient_id or 0)
 
 
 # ==================================================
@@ -2214,7 +2299,11 @@ def emergency_report(
     breathing: str = "",
     symptom: list[str] = Query(default=[]),
     body_part: list[str] = Query(default=[]),
+
+    flow_token: str = '',
 ):
+    consciousness = consciousness if consciousness in ('yes', 'no') else 'unknown'
+    breathing = breathing if breathing in ('yes', 'no') else 'unknown'
     """구급대 전달용 환자 요약. 병원 조회는 다음 페이지에서 수행."""
     patient = get_patient(patient_id) if patient_id and patient_id > 0 else None
     fields = (
@@ -2246,7 +2335,7 @@ def emergency_report(
         )
         for value in values
     )
-    return HTMLResponse("""<!DOCTYPE html>
+    return _flow_response(HTMLResponse("""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>구급대 전달 정보</title>
 <style>
@@ -2260,42 +2349,14 @@ button{display:block;width:100%;padding:17px;background:#1976d2;color:white;bord
 </style></head><body><main class="container"><h1>🚑 구급대 전달 정보</h1>
 <p class="description">현재 확인된 환자 정보와 응급상태를 정리했습니다.</p>
 """ + rows + """
-<section id="voice-report" style="display:none;margin-top:24px;padding:18px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff">
-<h2 style="margin:0 0 10px;font-size:19px">🎤 음성 문진으로 확인한 정보</h2>
-<p style="font-size:12px;color:#475569;line-height:1.5">음성에서 자동 추출한 내용입니다. 환자·보호자 진술을 바탕으로 하며 진단이나 검증된 병력이 아닙니다.</p>
-<div id="voice-report-fields"></div>
-<p style="font-size:12px;color:#b45309;line-height:1.5">오인식·누락 가능성이 있으므로 구급대에 전달하기 전에 확인해 주세요.</p>
-<button type="button" id="voice-report-clear" style="background:#64748b;padding:10px;font-size:14px;margin-top:10px">음성 문진 정보 지우기</button>
-</section>
-<script>
-(function(){
-  const container=document.getElementById('voice-report');
-  const fields=document.getElementById('voice-report-fields');
-  let data;
-  try { data=JSON.parse(sessionStorage.getItem('emergencyVoiceIntake')||'null'); } catch(e) { return; }
-  if(!data || typeof data!=='object' || !data.transcript) return;
-  const entries=[['기존 질환 언급',data.conditions],['통증 부위',data.areas],['현재 증상',data.symptoms],['발생 시점',data.onset],['환자·보호자 진술 원문',data.transcript]];
-  for(const [label,value] of entries){
-    const row=document.createElement('div');row.className='info';
-    const key=document.createElement('span');key.className='label';key.textContent=label;
-    const val=document.createElement('strong');val.textContent=typeof value==='string'?value:'확인 필요';
-    row.append(key,val);fields.appendChild(row);
-  }
-  container.style.display='block';
-  document.getElementById('voice-report-clear').addEventListener('click',()=>{
-    sessionStorage.removeItem('emergencyVoiceIntake');container.style.display='none';fields.replaceChildren();
-  });
-})();
-</script>
+
 <p class="notice">의식이 없거나 호흡이 비정상이라면 추가 입력보다 즉시 119 신고와 안내를 우선하세요.</p>
 <form action="/emergency/hospitals" method="get">""" + hidden + """
 <button type="submit">📍 다음: 현재 위치 및 주변 응급실</button></form>
-</main></body></html>""")
+</main></body></html>"""), flow_token, patient_id or 0)
 
 
-@app.get("/emergency/hospitals", response_class=HTMLResponse)
-
-def emergency_hospitals(
+def _render_emergency_hospitals(
 
     patient_id: int | None = None,
 
@@ -2311,9 +2372,36 @@ def emergency_hospitals(
 
     longitude: float | None = None,
 
-    accuracy: float | None = None
+    accuracy: float | None = None,
+    flow_token: str = '', _connection=None, _status_code=200):
+    consciousness = consciousness if consciousness in ('yes', 'no') else 'unknown'
+    breathing = breathing if breathing in ('yes', 'no') else 'unknown'
+    connection = dict(_connection or {})
+    try:
+        flow_token = str(uuid.UUID(flow_token))
+    except (ValueError, TypeError, AttributeError):
+        flow_token = new_submission_id()
+    form_latitude = connection.get('latitude', latitude)
+    form_longitude = connection.get('longitude', longitude)
+    try:
+        latitude, longitude = float(latitude), float(longitude)
+        if not math.isfinite(latitude) or not math.isfinite(longitude) or not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            latitude = longitude = None
+    except (ValueError, TypeError):
+        latitude = longitude = None
+    try:
+        catalog = hospital_catalog()
+    except CommonServerError as exc:
+        catalog = []
+        connection.setdefault('error', str(exc))
+    connect_form = _connect_form_html(catalog, patient_id, consciousness, breathing, symptom, body_part,
+        form_latitude, form_longitude, submission_id=connection.get('submission_id', new_submission_id()),
+        flow_token=flow_token, reporter_role=connection.get('reporter_role', ''),
+        required_capabilities=connection.get('required_capabilities'), special_team=connection.get('special_team', False),
+        consent=connection.get('consent', False), inquiry_policy=connection.get('inquiry_policy', 'fixed_3'),
+        error=connection.get('error', ''), episode_payload=connection.get('episode_payload', ''),
+        voice_payload=connection.get('voice_payload', ''), voice_confirmed=connection.get('voice_confirmed', ''))
 
-):
 
 
 
@@ -2349,47 +2437,22 @@ def emergency_hospitals(
 
 
 
-        patient_name = patient[1]
+        patient_name = escape(str(patient[1]))
 
-        birth = patient[2] or "등록되지 않음"
+        birth = escape(str(patient[2] or "등록되지 않음"))
 
-        phone = patient[3] or "등록되지 않음"
+        phone = escape(str(patient[3] or "등록되지 않음"))
 
-        address = patient[4] or "등록되지 않음"
+        address = escape(str(patient[4] or "등록되지 않음"))
 
-        guardian = patient[5] or "등록되지 않음"
+        guardian = escape(str(patient[5] or "등록되지 않음"))
 
-        guardian_phone = patient[6] or "등록되지 않음"
-
-
-
-    if consciousness == "yes":
-
-        consciousness_text = "있음"
-
-        consciousness_class = "normal"
-
-    else:
-
-        consciousness_text = "없음"
-
-        consciousness_class = "warning"
+        guardian_phone = escape(str(patient[6] or "등록되지 않음"))
 
 
 
-    if breathing == "yes":
-
-        breathing_text = "정상"
-
-        breathing_class = "normal"
-
-    else:
-
-        breathing_text = "비정상"
-
-        breathing_class = "warning"
-
-
+    consciousness_text, consciousness_class = _observed_state(consciousness, '\uC788\uC74C', '\uC5C6\uC74C')
+    breathing_text, breathing_class = _observed_state(breathing, '\uC815\uC0C1', '\uBE44\uC815\uC0C1')
 
     allowed_symptoms = {"가슴 통증", "호흡 곤란", "출혈", "의식 저하", "기타"}
     selected_symptoms = list(dict.fromkeys(x for x in symptom if x in allowed_symptoms))
@@ -2400,7 +2463,7 @@ def emergency_hospitals(
 
 
 
-    if latitude is not None and longitude is not None:
+    if latitude is not None and longitude is not None and not _connection:
 
         sorted_hospitals, hospital_error = fetch_emergency_hospitals(latitude, longitude)
 
@@ -2607,7 +2670,7 @@ def emergency_hospitals(
 
                     <strong>전국 응급의료 API 조회를 완료하지 못했습니다.</strong><br>
 
-                    {hospital_error}<br><br>
+                    {escape(str(hospital_error or ''))}<br><br>
 
                     <strong>설정 방법</strong><br>
 
@@ -2635,7 +2698,7 @@ def emergency_hospitals(
 
 
 
-    return HTMLResponse(f"""
+    return _flow_response(HTMLResponse(f"""
 
         <!DOCTYPE html>
 
@@ -3034,7 +3097,7 @@ def emergency_hospitals(
 
                 <div class="location" id="location-box">
 
-                    {("<strong>위치 확인 완료</strong><br>위도: " + str(latitude) + "<br>경도: " + str(longitude) + "<br>정확도: 약 " + str(round(accuracy, 1)) + "m") if latitude is not None and longitude is not None else "현재 위치를 자동으로 확인하고 있습니다..."}
+                    {("<strong>위치 확인 완료</strong><br>위도: " + str(latitude) + "<br>경도: " + str(longitude) + ("<br>정확도: 약 " + str(round(accuracy, 1)) + "m" if isinstance(accuracy, (int, float)) and math.isfinite(accuracy) else "")) if latitude is not None and longitude is not None else "현재 위치를 자동으로 확인하고 있습니다..."}
 
                 </div>
 
@@ -3059,6 +3122,7 @@ def emergency_hospitals(
 
 
                 {hospital_cards}
+                {connect_form}
 
 
 
@@ -3182,7 +3246,7 @@ def emergency_hospitals(
 
                     document.addEventListener("DOMContentLoaded", function() {{
                         const url = new URL(window.location.href);
-                        if (!url.searchParams.has("latitude") || !url.searchParams.has("longitude")) {{
+                        if (!document.getElementById("connect-error") && (!url.searchParams.has("latitude") || !url.searchParams.has("longitude"))) {{
                             getCurrentLocation();
                         }}
                     }});
@@ -3229,4 +3293,83 @@ def emergency_hospitals(
 
         </html>
 
-    """)
+    """, status_code=_status_code), flow_token, patient_id or 0)
+
+
+@app.get('/emergency/hospitals', response_class=HTMLResponse)
+def emergency_hospitals(patient_id: int | None = None, consciousness: str = '', breathing: str = '',
+                        symptom: list[str] = Query(default=[]), body_part: list[str] = Query(default=[]),
+                        latitude: float | None = None, longitude: float | None = None,
+                        accuracy: float | None = None, flow_token: str = ''):
+    return _render_emergency_hospitals(patient_id, consciousness, breathing, symptom, body_part,
+                                       latitude, longitude, accuracy, flow_token)
+
+
+@app.post('/emergency/connect', response_class=HTMLResponse)
+def emergency_connect(submission_id: str = Form(''), patient_id: str = Form('0'),
+                      consciousness: str = Form('unknown'), breathing: str = Form('unknown'),
+                      symptom: list[str] = Form(default=[]), body_part: list[str] = Form(default=[]),
+                      latitude: str = Form(''), longitude: str = Form(''), reporter_role: str = Form(''),
+                      consent: str = Form(''), required_capabilities: list[str] = Form(default=[]),
+                      special_team: str = Form(''), inquiry_policy: str = Form('fixed_3'),
+                      flow_token: str = Form(''), voice_payload: str = Form(''),
+                      voice_confirmed: str = Form(''), episode_payload: str = Form('')):
+    local_id = None
+    original_payload = episode_payload
+    consciousness = consciousness if consciousness in ('yes', 'no') else 'unknown'
+    breathing = breathing if breathing in ('yes', 'no') else 'unknown'
+    try:
+        try:
+            local_id = int(patient_id or '0')
+            if local_id < 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise CommonServerError('선택한 로컬 환자 정보를 확인하세요.') from None
+        profile = get_patient(local_id) if local_id else None
+        if local_id and profile is None:
+            raise CommonServerError('선택한 환자 프로필을 찾지 못했습니다. 환자를 다시 선택하세요.')
+        try:
+            lat, lon = float(latitude), float(longitude)
+        except (ValueError, TypeError):
+            raise CommonServerError('환자의 실제 위도와 경도를 입력하세요.', 400, 'LOCATION_REQUIRED') from None
+        if (not math.isfinite(lat) or not math.isfinite(lon) or not (-90 <= lat <= 90 and -180 <= lon <= 180)
+                or (lat, lon) == (0, 0)):
+            raise CommonServerError('환자의 실제 위치 범위에 맞는 좌표를 입력하세요.', 400, 'LOCATION_REQUIRED')
+        if consent != 'yes':
+            raise CommonServerError('환자 정보 전달에 명시적으로 동의해야 합니다.', 400, 'CONSENT_REQUIRED')
+        if inquiry_policy not in ('fixed_1', 'fixed_3', 'fixed_5', 'observed_v2', 'observed_v3'):
+            raise CommonServerError('문의 정책을 확인하세요.')
+        if special_team not in ('', 'yes'):
+            raise CommonServerError('합성 전문팀 선택을 확인하세요.')
+        allowed_symptoms = {'가슴 통증', '호흡 곤란', '출혈', '의식 저하', '기타'}
+        if any(value not in allowed_symptoms for value in symptom):
+            raise CommonServerError('직접 선택한 증상 항목을 확인하세요.')
+        voice = confirmed_voice_intake(voice_payload, voice_confirmed, flow_token, local_id)
+        try:
+            flow_token = str(uuid.UUID(flow_token))
+        except ValueError:
+            flow_token = new_submission_id()
+        expected = build_episode_payload(profile=profile, reporter_role=reporter_role,
+            consciousness=consciousness, breathing=breathing, symptoms=', '.join(dict.fromkeys(symptom)),
+            required_capabilities=required_capabilities, special_team=special_team == 'yes', lat=lat, lon=lon,
+            consent=True, inquiry_policy=inquiry_policy, body_parts=body_part, voice_intake=voice)
+        signing_key = get_retry_signing_key()
+        payload = restore_episode_payload(episode_payload, expected, signing_key, submission_id, flow_token)
+        # Only a verified snapshot can preserve the catalogue from the first attempt.
+        if payload is None:
+            catalog = hospital_catalog()
+            known = {str(cap) for hospital in catalog for cap in hospital.get('capabilities', [])}
+            if not set(required_capabilities) <= known:
+                raise CommonServerError('선택한 진료 분야가 공통 서버의 저장 목록에 없습니다.')
+            payload = expected
+            original_payload = sign_episode_payload(payload, signing_key, submission_id, flow_token)
+        patient = create_episode(payload, submission_id)
+    except CommonServerError as exc:
+        return _render_emergency_hospitals(local_id, consciousness, breathing, symptom, body_part,
+            latitude, longitude, None, flow_token, _status_code=exc.status,
+            _connection=dict(submission_id=submission_id, reporter_role=reporter_role,
+                required_capabilities=required_capabilities, special_team=special_team == 'yes',
+                consent=consent == 'yes', inquiry_policy=inquiry_policy, latitude=latitude, longitude=longitude,
+                error=str(exc), episode_payload=original_payload,
+                voice_payload=voice_payload, voice_confirmed=voice_confirmed))
+    return RedirectResponse(transport_url(patient['id']), status_code=303)

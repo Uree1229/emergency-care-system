@@ -2,6 +2,11 @@ import {assertTransportRetryScope,hospitalDecisionActor,resetHospitalApprovalChe
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 $('patientId').value=params.get('pid')||'';$('hospitalId').value=params.get('hid')||'';
+const reviewHospital=params.get('view')==='hospital-review'?$('hospitalId').value.trim():'';
+if(reviewHospital){
+  $('hospitalId').readOnly=true;
+  $('hospitalLink').href='/hospital/?hid='+encodeURIComponent(reviewHospital);
+}
 const entryActor=params.get('actor_id');
 const validActor=value=>typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,79}$/.test(value);
 if(entryActor!==null)$('actorId').value=validActor(entryActor)?entryActor:'';
@@ -69,6 +74,12 @@ function showSession(){
 async function loadPatient(){
   const origin=currentScope();const p=await api(`/api/patients/${encodeURIComponent(scope().pid)}`);
   if(origin!==currentScope())return;
+  if(reviewHospital&&(p.destination_hospital_id!==reviewHospital||!['CONFIRMED','IN_TRANSIT'].includes(p.state))){
+    clearContext();
+    $('patientSummary').textContent='이 병원의 변경 검토 대상에서 벗어난 이송입니다.';
+    $('currentConditions').hidden=true;
+    throw new Error('목적지가 바뀌었거나 이송이 종료됐습니다. 병원 화면에서 현재 검토 목록을 확인하세요.');
+  }
   patient=p;$('hospitalId').value=p.destination_hospital_id||'';
   $('patientSummary').textContent=`${p.id} · ${states[p.state]||p.state} · 정보 버전 ${p.version} · 현재 목적지 ${p.destination_hospital_id||'미정'}`;
   $('hospitalLink').href='/hospital/?hid='+encodeURIComponent(p.destination_hospital_id||'');

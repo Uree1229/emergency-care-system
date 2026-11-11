@@ -50,12 +50,13 @@ export function changeLines(proposal) {
   return lines.length ? lines : ['치료조건 변화 없음 · 관찰 기록만 바뀜'];
 }
 
-// 기존 검토 화면의 진입 계약은 pid·hid다. 이송자용 actor_id에 병원 작업자를 넣지 않는다.
+// 검토 목록에서 들어온 경우 해당 병원의 업무 범위를 유지한다.
 export function reviewLink(server, hospital, patient) {
   try {
     const url = new URL('/patient/transport-change.html', server);
     if (!/^https?:$/.test(url.protocol)) return null;
     url.searchParams.set('pid', patient); url.searchParams.set('hid', hospital);
+    url.searchParams.set('view', 'hospital-review');
     return url.href;
   } catch { return null; }
 }
