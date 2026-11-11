@@ -1,14 +1,18 @@
 import sqlite3
+import os
+import secrets
+from contextlib import closing
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "emergency.db"
+DB_PATH = Path(os.environ.get("EMERGENCY_PROFILE_DB", str(BASE_DIR / "emergency.db")))
 
 
 # 데이터베이스 생성
 def create_database():
 
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
 
     cursor = conn.cursor()
@@ -24,9 +28,22 @@ def create_database():
             guardian_phone TEXT
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS intake_retry_key (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            secret BLOB NOT NULL
+        )
+    """)
+    cursor.execute('INSERT OR IGNORE INTO intake_retry_key VALUES (1, ?)', (secrets.token_bytes(32),))
 
     conn.commit()
     conn.close()
+
+
+def get_retry_signing_key():
+    """Keep retry signatures valid across restarts using the same profile DB."""
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        return conn.execute('SELECT secret FROM intake_retry_key WHERE id = 1').fetchone()[0]
 
 
 # 환자 정보 저장
