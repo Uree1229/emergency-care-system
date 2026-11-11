@@ -29,10 +29,11 @@ test('변경 전후: 진료·자원·관찰 변화와 감소를 문장으로 보
   assert.deepEqual(changeLines({current:{},proposed:{},observation_changes:{},reductions:[]}),['치료조건 변화 없음 · 관찰 기록만 바뀜']);
 });
 
-test('검토 화면 링크는 서버 주소에 pid·hid만 담고 구급대 actor_id를 넣지 않는다',()=>{
+test('검토 화면 링크는 병원 범위를 지정하고 구급대 actor_id를 넣지 않는다',()=>{
   const link=new URL(reviewLink('http://127.0.0.1:18024','H1','P 1'));
   assert.equal(link.origin,'http://127.0.0.1:18024');assert.equal(link.pathname,'/patient/transport-change.html');
   assert.equal(link.searchParams.get('pid'),'P 1');assert.equal(link.searchParams.get('hid'),'H1');assert.equal(link.searchParams.has('actor_id'),false);
+  assert.equal(link.searchParams.get('view'),'hospital-review');
   assert.equal(reviewLink('javascript:alert(1)','H1','P1'),null);assert.equal(reviewLink('not a url','H1','P1'),null);
 });
 
@@ -96,7 +97,7 @@ test('병원 메인에 현재 병원의 대기 검토만 보이고 목록 카드
   assert.equal(page.panel.hidden,false);
   assert.match(page.panel.innerHTML,/data-review-id="ER-1"/);assert.doesNotMatch(page.panel.innerHTML,/ER-2/,'종료된 검토는 대기 목록에 없음');
   assert.match(page.panel.innerHTML,/필요 진료: 정형외과 → 정형외과, 신경외과/);
-  assert.match(page.panel.innerHTML,/href="http:\/\/one\/patient\/transport-change.html\?pid=P1&amp;hid=H1"/);
+  assert.match(page.panel.innerHTML,/href="http:\/\/one\/patient\/transport-change.html\?pid=P1&amp;hid=H1&amp;view=hospital-review"/);
   page.eval("setTab('incoming')");await settle();
   assert.match(page.el('incomingList').innerHTML,/data-patient="P1"[\s\S]*변경 검토 대기/);
   assert.doesNotMatch(page.el('incomingList').innerHTML.split('data-patient="P2"')[1],/변경 검토 대기/);
