@@ -23,6 +23,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+INQUIRY_LAB_TESTS = ROOT / 'tests' / 'research' / 'inquiry_lab'
 
 # Product-facing modules. New tests named with these prefixes join core (and CI) automatically.
 CORE_PREFIXES = (
@@ -48,7 +49,12 @@ API_KEYS = ('KAKAO_REST_KEY', 'DATA_GO_KR_KEY', 'AZURE_SPEECH_KEY')
 
 
 def python_modules():
-    return sorted(p.stem for p in ROOT.glob('test_*.py'))
+    names = {p.stem for p in ROOT.glob('test_*.py')}
+    for path in INQUIRY_LAB_TESTS.glob('test_*.py'):
+        if path.stem in names:
+            raise ValueError(f'Duplicate Python test module: {path.stem}')
+        names.add(path.stem)
+    return sorted(names)
 
 
 def node_files():
@@ -128,7 +134,7 @@ def main(argv=None):
         return 0
     for key in API_KEYS:
         os.environ.pop(key, None)
-    sys.path[:0] = [str(ROOT), str(ROOT / '.solver_deps')]
+    sys.path[:0] = [str(ROOT), str(ROOT / '.solver_deps'), str(INQUIRY_LAB_TESTS)]
     os.chdir(ROOT)
     started = time.time()
     report = dict(suite=args.suite, environment=pinned_environment())

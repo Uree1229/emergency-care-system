@@ -19,7 +19,7 @@
 
 Travelwake는 연구용 14개 조건을 통과했다. 원래 27개 조건은 기존 자료의 엄격한 대기 감소가 없어 실패했다. 두 후보 모두 수치·출력 검사는 통과했고 기술 워크플로 오류는 0개다. Travelwake의 공개 이동시간 필터는 별도 도구가 실제 기록에서 독립 재구성했다. 전체 부모 H 수학·공개 이력·FIFO의 의미감사는 완료하지 않았으며 `semantic_verification=false`다. 원래 전체 목표 9개·보존 9개·환자별 보존 17개나 과거 전체 검사의 10개 실패를 이번에 재검사하거나 바꾸지 않았다.
 
-상세 결과와 증빙 범위는 [다중 환자 재평가 검증](EAT_DECLINEWAKE_MULTI_EXPERIMENT_20261028.md)과 [이동시간 보호 후보](EAT_TRAVELWAKE_EXPERIMENT_20261028.md)에 기록했다.
+상세 결과와 증빙 범위는 [다중 환자 재평가 검증](research/inquiry-experiments/EAT_DECLINEWAKE_MULTI_EXPERIMENT_20261028.md)과 [이동시간 보호 후보](research/inquiry-experiments/EAT_TRAVELWAKE_EXPERIMENT_20261028.md)에 기록했다.
 
 ## 같은 결과를 더 적은 계산으로 얻는 시제품
 
