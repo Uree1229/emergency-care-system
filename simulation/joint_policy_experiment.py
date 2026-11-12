@@ -39,9 +39,9 @@ NEW_SOURCES = (
     'server/inquiry_policies.py', 'server/inquiry_v3.py', 'server/inquiry_v4.py',
     'config/inquiry_v3_selected.json', 'simulation/joint_policy_engine.py',
     'simulation/joint_policy_scenarios.py', 'simulation/joint_policy_experiment.py',
-    'simulation/joint_policy_audit.py', 'test_inquiry_v4.py',
-    'test_joint_policy_engine.py', 'test_joint_policy_scenarios.py',
-    'test_joint_policy_experiment.py', 'test_joint_policy_audit.py')
+    'simulation/joint_policy_audit.py', 'tests/research/test_inquiry_v4.py',
+    'tests/research/test_joint_policy_engine.py', 'tests/research/test_joint_policy_scenarios.py',
+    'tests/research/test_joint_policy_experiment.py', 'tests/research/test_joint_policy_audit.py')
 SOURCE_FILES = tuple(sorted(set(PREVIOUS_SOURCES) | set(NEW_SOURCES)))
 PAIRS = (
     ('recovery_H1', 'fixed3_H1_no_backup', 'fixed3_H1'),

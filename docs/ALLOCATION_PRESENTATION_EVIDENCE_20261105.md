@@ -91,7 +91,7 @@ for seconds in (0, 3):
 python -c $demoCode
 ```
 
-대조 입력은 A 용량을 `[2,2]`로 늘리는 경우다. 두 방식 모두 A에 5분·7분으로 배정한다. 두 환자의 `eligible`을 비우면 두 방식 모두 미배정이다. 같은 CP-SAT에서 목표만 바꾸는 질문에는 기존 `GOLD-priority_tradeoff`를 쓴다. `severity_first`는 우선군4 한 명, `total_first`는 우선군1 세 명을 배정한다. 두 해 모두 각 목표에서 최적이므로 우선순위 보호와 총 배정 인원 사이의 선택을 설명할 수 있다. [목적 비교 회귀](../test_solver_improved.py#L7)
+대조 입력은 A 용량을 `[2,2]`로 늘리는 경우다. 두 방식 모두 A에 5분·7분으로 배정한다. 두 환자의 `eligible`을 비우면 두 방식 모두 미배정이다. 같은 CP-SAT에서 목표만 바꾸는 질문에는 기존 `GOLD-priority_tradeoff`를 쓴다. `severity_first`는 우선군4 한 명, `total_first`는 우선군1 세 명을 배정한다. 두 해 모두 각 목표에서 최적이므로 우선순위 보호와 총 배정 인원 사이의 선택을 설명할 수 있다. [목적 비교 회귀](../tests/core/test_solver_improved.py#L7)
 
 ## 지도 시연과 반례
 

@@ -18,7 +18,7 @@
 
 수정 소유 범위:
 - hospital-ui/의 병원 웹 코드
-- 저장소 루트의 test_hospital* 테스트
+- 저장소 루트의 tests/browser/test_hospital* 테스트
 - docs/team-handoff/20261102/dev2/ 문서
 다른 폴더는 계약 이해를 위한 읽기만 허용한다. patient-ui/, paramedic-ui/, emergency-app/, server/, DB와 스키마, simulation/, 솔버와 배정 정책, 실험 결과·해시·잠금 파일, 공통 인계 문서는 수정하지 마라. 검사 스크립트도 수정하지 말고 기존 명령을 실행하라. 병원 기능은 별도 모듈로 만들고 index.html 연결은 최소화하라. 기존 operations.mjs와 workflow 모듈을 통째로 재작성하지 마라.
 
@@ -61,11 +61,11 @@ H01~H03과 다른 PR로 진행하라. 지금 README의 `server.app --seed`는 �
 검증은 새로 만든 합성 DB만 사용하라. 공유/실제/공공 DB를 수정하거나 초기화하지 마라. 실제 병원·전화·길찾기·음성 외부 서비스를 호출하는 평가를 수행하지 마라. 자신의 새 .codex-build/dev2-* 또는 임시 폴더에만 검증 출력을 둬라. 공통 런타임 문서의 설치·실행 방법과 고정 환경을 따라라.
 
 저장소 루트의 현재 회귀 명령:
-node --test test_hospital_operations.mjs test_hospital_workflow.mjs test_patient_workflow_transport_change_retry.mjs
-python -B -m unittest test_conversations test_enroute_patient_review test_accounting_reconciliation -v
+node --test tests/browser/test_hospital_operations.mjs tests/browser/test_hospital_workflow.mjs tests/browser/test_patient_workflow_transport_change_retry.mjs
+python -B scripts/test_suites.py python test_conversations test_enroute_patient_review test_accounting_reconciliation -v
 python scripts/test_suites.py core --node "<실제 node.exe 경로>"
 
-인계 시 첫 Node 명령 50개 통과를 확인했지만 현재 작업에서도 다시 확인하라. 새 H01/H02/H03에는 test_hospital* 테스트를 추가하라. 실제 HTTP 운영 모듈 검증은 python test_hospital_operations_http.py --node "<실제 node.exe 경로>" --output "<존재하지 않는 새 출력 폴더>"로 실행하라. test_hospital_operations_http.mjs를 단독 실행하지 마라. 이 harness는 기존 운영 모듈 검사이므로 새 기능의 완료 검증을 대신하지 않는다. 실행하지 않은 검사·브라우저·다른 PC·실제 사용자 검증을 통과했다고 쓰지 마라.
+인계 시 첫 Node 명령 50개 통과를 확인했지만 현재 작업에서도 다시 확인하라. 새 H01/H02/H03에는 tests/browser/test_hospital* 테스트를 추가하라. 실제 HTTP 운영 모듈 검증은 python tests/core/test_hospital_operations_http.py --node "<실제 node.exe 경로>" --output "<존재하지 않는 새 출력 폴더>"로 실행하라. test_hospital_operations_http.mjs를 단독 실행하지 마라. 이 harness는 기존 운영 모듈 검사이므로 새 기능의 완료 검증을 대신하지 않는다. 실행하지 않은 검사·브라우저·다른 PC·실제 사용자 검증을 통과했다고 쓰지 마라.
 
 구현과 검증을 마치면 결과를 다음 5개 항목으로 보고하라.
 1. 확인한 main 커밋, 작업 브랜치, 완료한 H 번호.

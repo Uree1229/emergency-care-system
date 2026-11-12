@@ -9,7 +9,7 @@
 ```powershell
 python -m usability_eval prepare --output outputs/usability_evaluation_20261030/new_preparation
 python -m usability_eval evaluate --input outputs/usability_evaluation_20261030/new_preparation/measurement_template.csv --output outputs/usability_evaluation_20261030/new_results
-python -m unittest test_usability_eval -v
+python scripts/test_suites.py python test_usability_eval -v
 ```
 
 출력 폴더가 이미 있으면 실행을 거부한다. `prepare`는 빈 CSV·JSON, 프로토콜과 미측정 보고서를 만든다. `evaluate`는 검증한 원자료, 입력 SHA-256, 평가 코드 스냅샷·해시, JSON·Markdown 보고서를 새 폴더에 저장한다. 기존 DB·외부 API에는 접근하지 않는다.

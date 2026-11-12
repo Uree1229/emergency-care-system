@@ -28,8 +28,8 @@ LOCK_PATH=ROOT/'config/existing_info_lock_20261015.json'
 SOURCE_FILES=tuple(sorted(set(PREVIOUS_SOURCE_FILES)|{
     'simulation/existing_info_engine.py','simulation/existing_info_experiment.py',
     'simulation/existing_info_scenarios.py','simulation/existing_info_audit.py',
-    'test_existing_info_engine.py','test_existing_info_experiment.py',
-    'test_existing_info_scenarios.py','test_existing_info_audit.py',
+    'tests/research/test_existing_info_engine.py','tests/research/test_existing_info_experiment.py',
+    'tests/research/test_existing_info_scenarios.py','tests/research/test_existing_info_audit.py',
 }))
 SETTINGS=deepcopy(PREVIOUS_SETTINGS)
 SETTINGS.update(policies=deepcopy(list(DEFAULT_EXISTING_INFO_POLICIES)),

@@ -34,7 +34,7 @@ dev2는 병원 담당자가 문의를 처리하고 이송 중인 환자를 확�
 
 **현재 문제:** `index.html`의 `chatPending`은 메모리 변수다. 전송 결과를 모르는 상태에서 새로고침하거나 다른 환자를 선택하면 `resetChat`으로 원래 메시지 ID·본문·참여 구간이 사라진다. 서버는 정확한 재전송을 지원하지만 화면은 이를 지속해서 복구하지 못한다.
 
-**구현 범위:** `hospital-ui/`에 채팅 상태·저장·재시도 모듈을 추가하고 기존 채팅에 연결한다. 새 `test_hospital_chat*.mjs` 등 병원 테스트를 추가한다. 기존 통화·업무 계측과 중요 알림 모듈을 함께 재작성하지 않는다.
+**구현 범위:** `hospital-ui/`에 채팅 상태·저장·재시도 모듈을 추가하고 기존 채팅에 연결한다. 새 `tests/browser/test_hospital_chat*.mjs` 등 병원 테스트를 추가한다. 기존 통화·업무 계측과 중요 알림 모듈을 함께 재작성하지 않는다.
 
 **완료 기준:**
 
@@ -148,8 +148,8 @@ GET  /api/hospitals/{hid}/accounting-reconciliations/{id}
 저장소 루트에서 실행한다. 설치·서버 실행·고정 런타임은 [실행/API](../COMMON_RUNTIME.md)를 따른다. `npm test`나 별도 프론트 빌드가 필요한 구조가 아니다.
 
 ```powershell
-node --test test_hospital_operations.mjs test_hospital_workflow.mjs test_patient_workflow_transport_change_retry.mjs
-python -B -m unittest test_conversations test_enroute_patient_review test_accounting_reconciliation -v
+node --test tests/browser/test_hospital_operations.mjs tests/browser/test_hospital_workflow.mjs tests/browser/test_patient_workflow_transport_change_retry.mjs
+python -B scripts/test_suites.py python test_conversations test_enroute_patient_review test_accounting_reconciliation -v
 python scripts/test_suites.py core --node "<node.exe 경로>"
 ```
 
@@ -158,7 +158,7 @@ python scripts/test_suites.py core --node "<node.exe 경로>"
 실제 HTTP 운영 모듈 검증은 아래 harness가 새 합성 DB와 loopback 서버를 만든다. 출력 경로가 이미 있으면 거절하므로 실행마다 새 이름을 쓴다. `test_hospital_operations_http.mjs`를 단독 실행하지 않는다.
 
 ```powershell
-python test_hospital_operations_http.py --node "<node.exe 경로>" --output ".codex-build/dev2-hospital-http-20261102-01"
+python tests/core/test_hospital_operations_http.py --node "<node.exe 경로>" --output ".codex-build/dev2-hospital-http-20261102-01"
 ```
 
 위 명령은 기존 운영 모듈 검증이며 새 H01/H02/H03의 완료 증거를 대신하지 않는다. 새 기능에는 해당 오류·복구 경로의 테스트를 추가하고 새 합성 DB에서 실제 화면/API 연결을 확인한다. 50개 통과는 병원 메인 전체의 브라우저·다른 PC·실제 의료기관 검증을 뜻하지 않는다.

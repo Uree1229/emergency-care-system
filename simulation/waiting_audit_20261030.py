@@ -458,7 +458,7 @@ def audit_run(run_directory,output):
     output.mkdir(parents=True)
     source_root=Path(__file__).resolve().parents[1]
     source_before={name:_digest(source_root/name) for name in
-        ('simulation/waiting_audit_20261030.py','test_waiting_audit_20261030.py')}
+        ('simulation/waiting_audit_20261030.py','tests/research/test_waiting_audit_20261030.py')}
     try:
         report=_read(run_directory/'report.json');lock=_read(run_directory/'execution-lock.json')
         validate_protocol(lock['protocol'])

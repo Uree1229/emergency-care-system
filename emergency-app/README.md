@@ -56,9 +56,9 @@ python -m uvicorn main:app --app-dir emergency-app --host 127.0.0.1 --port 18026
 저장소 루트에서 테스트 의존성을 설치하고 실행합니다.
 
 ```powershell
-python -m pip install -r requirements-intake-test.txt
-python -m unittest test_patient_workflow_dev1_http test_patient_workflow_dev1_intake test_patient_workflow_dev1_profile test_patient_commit_bridge -v
-node --test test_emergency_intake_voice_core.mjs test_emergency_intake_voice_ui.mjs
+python -m pip install -r requirements/requirements-intake-test.txt
+python scripts/test_suites.py python test_patient_workflow_dev1_http test_patient_workflow_dev1_intake test_patient_workflow_dev1_profile test_patient_commit_bridge -v
+node --test tests/browser/test_emergency_intake_voice_core.mjs tests/browser/test_emergency_intake_voice_ui.mjs
 ```
 
 새 통합 검증은 FastAPI의 실제 ASGI 경로와 별도 `ThreadingHTTPServer` 공통 서버, 분리된 임시 프로필·이송 DB를 사용합니다. 단계별 화면의 링크·폼, 명시 동의, 동일 요청 재시도, 응답 유실, 환자·흐름 격리, 확인 음성의 참고 정보 전달, 병원 수용→확정→출발→도착을 검사하며 외부 API 요청은 차단합니다. 렌더링한 인라인 JavaScript는 Node로 문법을 검사합니다.

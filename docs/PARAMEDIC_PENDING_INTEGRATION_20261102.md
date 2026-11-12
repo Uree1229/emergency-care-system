@@ -36,7 +36,7 @@
 - 화면 이탈 시 진행 작업과 마이크를 종료합니다. 브라우저의 뒤로 가기 복귀 시에는 남아 있는 입력·결과를 조작할 수 있도록 복원하며 녹음·처리·재생을 자동 재개하지 않습니다.
 - 합성 비교에서는 처리 후 인식이 나빠진 조건도 있었습니다. 기본 STT 전처리로 채택하지 않습니다. [기존 합성 결과와 한계](VOICE_RNNOISE_COMPARISON_20261031.md)를 함께 확인합니다.
 
-선택형 오프라인 파일 인식 도구 `speech_eval/noise_pair_asr.py`와 별도 고정 의존성 `requirements-audio-asr-eval.txt`도 포함합니다. 이미 준비한 로컬 모델과 명시적으로 합성으로 표시한 16kHz PCM WAV 쌍이 필요합니다. 서버 실행에 추가 ASR 패키지 설치가 필요한 것은 아닙니다.
+선택형 오프라인 파일 인식 도구 `speech_eval/noise_pair_asr.py`와 별도 고정 의존성 `requirements/requirements-audio-asr-eval.txt`도 포함합니다. 이미 준비한 로컬 모델과 명시적으로 합성으로 표시한 16kHz PCM WAV 쌍이 필요합니다. 서버 실행에 추가 ASR 패키지 설치가 필요한 것은 아닙니다.
 
 ## 실행·검증
 

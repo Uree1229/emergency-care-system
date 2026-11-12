@@ -31,8 +31,8 @@ POLICY_IDS = tuple(p['id'] for p in POLICIES)
 NEW_SOURCES = (
     'simulation/deadline_safe_engine.py', 'simulation/deadline_safe_scenarios.py',
     'simulation/deadline_safe_audit.py', 'simulation/deadline_safe_experiment.py',
-    'test_deadline_safe_engine.py', 'test_deadline_safe_scenarios.py',
-    'test_deadline_safe_audit.py', 'test_deadline_safe_experiment.py',
+    'tests/research/test_deadline_safe_engine.py', 'tests/research/test_deadline_safe_scenarios.py',
+    'tests/research/test_deadline_safe_audit.py', 'tests/research/test_deadline_safe_experiment.py',
 )
 SOURCE_FILES = tuple(sorted(set(PREVIOUS_SOURCES) | set(NEW_SOURCES)))
 # Names are resolved from the explicit configuration instead of relying on IDs.

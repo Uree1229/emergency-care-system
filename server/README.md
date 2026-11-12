@@ -74,7 +74,7 @@ python -B -m server.inquiry_v3_experiment validation --lock simulation_results/v
 
 ## 공공 API 데이터 적재·갱신
 
-공식 명세와 필드 매핑은 [api_field_mapping.md](../api_field_mapping.md)를 참고하세요. 인증키는 공공데이터포털의 [국립중앙의료원 전국 응급의료기관 정보 조회 서비스](https://www.data.go.kr/data/15000563/openapi.do) 활용 신청 후 발급받습니다. 실호출 검증 범위는 안성·평택·오산·화성·용인·수원·천안·아산이며, 다른 지역·다중 페이지·장기 갱신은 추가 검증 대상입니다.
+공식 명세와 필드 매핑은 [api_field_mapping.md](../docs/api/api_field_mapping.md)를 참고하세요. 인증키는 공공데이터포털의 [국립중앙의료원 전국 응급의료기관 정보 조회 서비스](https://www.data.go.kr/data/15000563/openapi.do) 활용 신청 후 발급받습니다. 실호출 검증 범위는 안성·평택·오산·화성·용인·수원·천안·아산이며, 다른 지역·다중 페이지·장기 갱신은 추가 검증 대상입니다.
 
 PowerShell에서 키를 입력하고 한 번 적재합니다.
 

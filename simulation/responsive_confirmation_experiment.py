@@ -24,8 +24,8 @@ LOCK_PATH=ROOT/'config/responsive_confirmation_lock_20261015.json'
 SOURCE_FILES=tuple(sorted(set(PREVIOUS_SOURCE_FILES)|{
     'simulation/responsive_confirmation_engine.py','simulation/responsive_confirmation_experiment.py',
     'simulation/responsive_confirmation_scenarios.py','simulation/responsive_confirmation_audit.py',
-    'test_responsive_confirmation_engine.py','test_responsive_confirmation_scenarios.py',
-    'test_responsive_confirmation_experiment.py','test_responsive_confirmation_audit.py',
+    'tests/research/test_responsive_confirmation_engine.py','tests/research/test_responsive_confirmation_scenarios.py',
+    'tests/research/test_responsive_confirmation_experiment.py','tests/research/test_responsive_confirmation_audit.py',
 }))
 SETTINGS=deepcopy(PREVIOUS_SETTINGS)
 SETTINGS.update(policies=deepcopy(list(DEFAULT_RESPONSIVE_POLICIES)),

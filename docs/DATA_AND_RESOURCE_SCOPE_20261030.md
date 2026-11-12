@@ -77,7 +77,7 @@ scope = resource_scope()
 ```powershell
 python -m server.data_provenance inventory --db data/public.db --output NEW-inventory.json
 python -m server.data_provenance fixture --source data/seoul-public-demo.db --output NEW-fixture-directory
-python -m unittest test_data_provenance_20261030 -v
+python scripts/test_suites.py python test_data_provenance_20261030 -v
 ```
 
 기존 출력 폴더·DB를 덮어쓰지 않는다. 시연 DB의 존재 자체는 서버 구동·실제 병원 통신·배정 성공·사용성 평가의 완료 근거가 아니다. 공통 서버의 기존 DB를 자동으로 이 파일로 바꾸지도 않는다.

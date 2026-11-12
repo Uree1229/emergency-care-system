@@ -104,7 +104,7 @@ H1 기준 계산과 추가 W1 탐색을 합해 탐색 후보 계획 평가를 �
 - 실행 전후 증거는 `.codex-build/waiting-protection-20261030/preflight.json`, `postflight.json`이다. 원 36환경 보고서와 이전 최종 정책 결정 JSON은 수정하지 않았다.
 
 ```powershell
-python -m unittest test_waiting_assignment_20261030 test_waiting_experiment_20261030 test_waiting_audit_20261030 -v
+python scripts/test_suites.py python test_waiting_assignment_20261030 test_waiting_experiment_20261030 test_waiting_audit_20261030 -v
 python -m simulation.waiting_experiment_20261030 verify --output outputs/waiting_protection_20261030/study-v1
 python -m simulation.waiting_audit_20261030 --run outputs/waiting_protection_20261030/study-v1 --output outputs/waiting_protection_20261030/NEW-INDEPENDENT-REVIEW
 ```

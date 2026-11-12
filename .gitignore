@@ -4,7 +4,7 @@ __pycache__/
 .venv/
 venv/
 
-# 벤더링된 솔버 라이브러리 (requirements-portable.txt로 설치)
+# 벤더링된 솔버 라이브러리 (requirements/requirements-portable.txt로 설치)
 .solver_deps/
 .codex-build/
 

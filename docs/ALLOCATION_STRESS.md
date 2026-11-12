@@ -87,7 +87,7 @@ C1 50ms와 공통 배정된3,494명은 H1에서 평균0.50분 짧았다. 하지�
 
 ```powershell
 $env:PYTHONPATH = Join-Path (Get-Location) '.solver_deps'
-python -m unittest test_heuristic_assignment test_allocation_stress test_allocation_stress_audit
+python scripts/test_suites.py python test_heuristic_assignment test_allocation_stress test_allocation_stress_audit
 python -m simulation.allocation_stress_audit simulation_results/allocation_stress_validation_20261014.json --lock-file config/allocation_stress_lock_20261014.json
 ```
 

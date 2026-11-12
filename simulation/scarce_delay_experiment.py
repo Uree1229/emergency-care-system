@@ -27,8 +27,8 @@ POLICY_IDS = tuple(p['id'] for p in POLICIES)
 NEW_SOURCES = (
     'simulation/scarce_delay_engine.py', 'simulation/scarce_delay_scenarios.py',
     'simulation/scarce_delay_audit.py', 'simulation/scarce_delay_experiment.py',
-    'test_scarce_delay_engine.py', 'test_scarce_delay_scenarios.py',
-    'test_scarce_delay_audit.py', 'test_scarce_delay_experiment.py',
+    'tests/research/test_scarce_delay_engine.py', 'tests/research/test_scarce_delay_scenarios.py',
+    'tests/research/test_scarce_delay_audit.py', 'tests/research/test_scarce_delay_experiment.py',
 )
 SOURCE_FILES = tuple(sorted(set(PREVIOUS_SOURCES) | set(NEW_SOURCES)))
 # Names are resolved from the explicit configuration instead of relying on IDs.

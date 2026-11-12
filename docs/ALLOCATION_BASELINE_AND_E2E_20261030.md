@@ -89,7 +89,7 @@ python -m server.voice_allocation_rehearsal --output .codex-build/voice-allocati
 이번 추가 회귀만 실행하려면 다음을 사용한다.
 
 ```powershell
-python -m unittest test_allocation_baseline test_voice_allocation_transport_flow test_voice_allocation_rehearsal -v
+python scripts/test_suites.py python test_allocation_baseline test_voice_allocation_transport_flow test_voice_allocation_rehearsal -v
 ```
 
 기존 559개 통합 회귀의 실행기와 상세 로그는 `.codex-build/voice-allocation-e2e-20261030/verify.py`, `server-verification.json`, `server-verification.log`에 있다.

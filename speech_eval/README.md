@@ -86,5 +86,5 @@ python -m speech_eval prompts --output paramedic-ui/new-evaluation-cases.json
 검증:
 
 ```powershell
-python -m unittest test_speech_eval_metrics test_speech_eval_runner
+python scripts/test_suites.py python test_speech_eval_metrics test_speech_eval_runner
 ```

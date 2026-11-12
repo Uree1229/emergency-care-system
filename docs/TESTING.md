@@ -5,14 +5,14 @@
 ## 기본 실행
 
 ```powershell
-python -m pip install -r requirements-server.txt -r requirements-intake-test.txt
+python -m pip install -r requirements/requirements-server.txt -r requirements/requirements-intake-test.txt
 python scripts/test_suites.py list
 python scripts/test_suites.py core
 ```
 
-`list`는 저장소 루트와 `tests/research/inquiry_lab/`의 테스트를 분류한다. 모듈 수와 통과 수는 실행 결과를 기준으로 읽는다. `core`는 Python 제품 검사와 Node 화면 검사를 함께 실행한다. Node는 `--node` 인자, `TEST_NODE`, PATH 순서로 선택한다.
+`list`는 `tests/core/`의 제품·로컬 자료 검사, `tests/browser/`의 화면 검사, `tests/research/`의 연구 검사를 나열한다. 문의 실험 검사는 `tests/research/inquiry_lab/`에 있다. 모듈 수와 통과 수는 실행 결과를 기준으로 읽는다. `core`는 Python 제품 검사와 Node 화면 검사를 함께 실행한다. Node는 `--node` 인자, `TEST_NODE`, PATH 순서로 선택한다.
 
-`requirements-intake-test.txt`는 별도 환자 입력 앱의 FastAPI 경로를 실제 시험 클라이언트로 검사하기 위한 의존성이다. `test_patient_workflow_dev1_*`는 이 앱의 새 화면, 음성 기록 범위, HTML·JavaScript, 공통 이송 연결과 새 합성 DB의 이송 흐름을 검증한다. 프로필 DB는 임시 경로로 지정하며 외부 의료·지도 API를 시험 중 호출하지 않는다.
+`requirements/requirements-intake-test.txt`는 별도 환자 입력 앱의 FastAPI 경로를 실제 시험 클라이언트로 검사하기 위한 의존성이다. `test_patient_workflow_dev1_*`는 이 앱의 새 화면, 음성 기록 범위, HTML·JavaScript, 공통 이송 연결과 새 합성 DB의 이송 흐름을 검증한다. 프로필 DB는 임시 경로로 지정하며 외부 의료·지도 API를 시험 중 호출하지 않는다.
 
 | 묶음 | 목적 | 필요한 자료 |
 |---|---|---|
@@ -27,7 +27,7 @@ python scripts/test_suites.py research
 python scripts/test_suites.py all
 ```
 
-실행기는 API 키 환경변수를 제거하고 결과 JSON에 실패·오류·생략·환경 일치 여부를 기록한다. `config/research_expected_failures_20261101.json`에 등록된 연구 모듈의 실패는 따로 세며 종료 코드에서 제외한다. 종료 코드 0과 함께 `expected_failures`, `unexpected_failures`, `environment.match`도 확인한다. 파일명에 따라 분류하므로 새 검사는 `scripts/test_suites.py`의 `CORE_PREFIXES`와 `LOCAL_DATA`를 함께 점검한다. `test_hospital_operations_http.mjs`는 Python HTTP 하네스가 실행한다.
+실행기는 API 키 환경변수를 제거하고 결과 JSON에 실패·오류·생략·환경 일치 여부를 기록한다. `config/research_expected_failures_20261101.json`에 등록된 연구 모듈의 실패는 따로 세며 종료 코드에서 제외한다. 종료 코드 0과 함께 `expected_failures`, `unexpected_failures`, `environment.match`도 확인한다. 새 제품 Python 검사는 `tests/core/`, 알고리즘 연구 검사는 `tests/research/`, 화면 검사는 `tests/browser/`에 둔다. 로컬 원자료가 필요한 제품 검사는 실행기의 `LOCAL_DATA`에도 등록한다. `tests/browser/test_hospital_operations_http.mjs`는 `tests/core/test_hospital_operations_http.py`가 실행한다.
 
 ## 실행 환경과 CI
 
@@ -35,16 +35,16 @@ python scripts/test_suites.py all
 
 `.github/workflows/core-tests.yml`은 main 대상 PR과 main 반영 시 Node 24 및 SHA-256으로 고정한 Python 배포본으로 `core`를 실행한다. 새 클론에서 필요한 의존성을 설치하고 이 결과를 제품 회귀의 기준으로 삼는다. 과거 실행의 누적 통과 수를 최신 실행 결과로 사용하지 않는다.
 
-연구 검사는 정확한 소스 바이트와 Git 제외 산출물에 묶인 경우가 있다. 과거 잠금을 현재 소스에 맞춰 다시 쓰면 원래 실험을 재현할 수 없으므로, 해당 소스·입력·결과를 함께 복원해 검사한다. 새 실험의 소스 해시는 `scripts/source_hash.py`를 사용한다. 재현 가능한 작은 입력은 저장소 안에 두고, 큰 원자료는 별도 백업의 위치·해시를 기록한다.
+연구 검사는 정확한 소스 바이트·경로와 Git 제외 산출물에 묶인 경우가 있다. 루트 테스트 경로를 사용하는 과거 실험은 실험 기록이 지정한 커밋에서 실행한다. 테스트 폴더 정리 직전 트리는 `03f60cf`다. 과거 잠금을 현재 소스에 맞춰 다시 쓰면 원래 실험을 재현할 수 없으므로, 해당 소스·입력·결과를 함께 복원해 검사한다. 새 실험의 소스 해시는 `scripts/source_hash.py`를 사용한다. 재현 가능한 작은 입력은 저장소 안에 두고, 큰 원자료는 별도 백업의 위치·해시를 기록한다.
 
 ## 변경 범위별 확인
 
-전체 검증 전에 변경한 부분을 먼저 확인할 수 있다. 다음 검사는 각각 새로운 임시 자료를 사용한다. 구체적인 실행 환경과 네트워크 허용 여부는 해당 검사의 설정을 따른다.
+전체 검증 전에 변경한 부분을 먼저 확인할 수 있다. `python scripts/test_suites.py python <테스트 모듈명>`으로 옮겨진 Python 검사를 골라 실행할 수 있다. 다음 검사는 각각 새로운 임시 자료를 사용한다. 구체적인 실행 환경과 네트워크 허용 여부는 해당 검사의 설정을 따른다.
 
 ```powershell
-python -m unittest test_voice_input test_voice_r1 test_voice_followup test_voice_connection_http -v
-node --test test_paramedic_recording_control.mjs test_paramedic_critical_review.mjs test_paramedic_patient_records.mjs test_paramedic_draft_recovery.mjs
-python -m unittest test_conversations test_transport_review test_arrival_accounting -v
+python scripts/test_suites.py python test_voice_input test_voice_r1 test_voice_followup test_voice_connection_http -v
+node --test tests/browser/test_paramedic_recording_control.mjs tests/browser/test_paramedic_critical_review.mjs tests/browser/test_paramedic_patient_records.mjs tests/browser/test_paramedic_draft_recovery.mjs
+python scripts/test_suites.py python test_conversations test_transport_review test_arrival_accounting -v
 ```
 
 음성 변경은 일반 항목 정확도 외에 수치 오답·누락, 증상 있음/없음/불확실, 시간·인용 문맥, 명령 오탐·누락을 확인한다. 저장·통합 변경은 같은 환자 ID, 버전 충돌, 응답 유실 후 동일 요청 재시도, 환자 전환 중 오래된 응답, 새로고침 복원을 확인한다. 임시 DB와 localhost HTTP를 쓰는 검사가 있어 샌드박스의 소켓 차단은 별도 실행 제한으로 기록한다.
@@ -56,7 +56,7 @@ python -m unittest test_conversations test_transport_review test_arrival_account
 ```powershell
 python -m speech_eval evaluate --output outputs/speech_eval/new_reference_run
 python -m usability_eval prepare --output outputs/usability_eval/new_preparation
-python -m unittest test_usability_eval -v
+python scripts/test_suites.py python test_usability_eval -v
 ```
 
 사용성 시험은 같은 참여자·과업에서 수동/음성 순서를 교차 배치하고 입력부터 수정·검토·전송 완료까지 측정한다. 실제 관찰이 없는 준비 양식은 미측정이다. 화면·인식 엔진 버전이 다른 짝은 분리해 평가하며, 병원 문의 수를 병원의 검토시간으로 대신 쓰지 않는다.

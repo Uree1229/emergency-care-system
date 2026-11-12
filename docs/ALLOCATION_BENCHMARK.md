@@ -48,7 +48,7 @@ R2는 현재 구조적으로 수용 가능한 병원을 잠재적 대안으로 �
 
 ## 실행과 결과 파일
 
-OR-Tools는 `requirements-portable.txt`의 버전을 사용한다. 개발 환경의 `.solver_deps`를 쓸 경우 다음처럼 실행한다.
+OR-Tools는 `requirements/requirements-portable.txt`의 버전을 사용한다. 개발 환경의 `.solver_deps`를 쓸 경우 다음처럼 실행한다.
 
 ```powershell
 $env:PYTHONPATH = Join-Path (Get-Location) '.solver_deps'

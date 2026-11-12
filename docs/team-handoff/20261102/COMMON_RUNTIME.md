@@ -121,15 +121,15 @@ python -m server.app --db data/voice-dev1-20261102.db --port 8000 --no-planner -
 `team_runtime`에서는 action 뒤에 옵션을 쓴다. 기본 full의 진입점은 다음과 같으며, **지정한 서버 환경에서 중앙 서버 담당자가 수행한다.**
 
 ```powershell
-python -m pip install -r requirements-server.txt
+python -m pip install -r requirements/requirements-server.txt
 python -m server.team_runtime prepare --db data/team-common-20261102.db
 python -m server.team_runtime check --db data/team-common-20261102.db
 python -m server.team_runtime serve --db data/team-common-20261102.db --port 18033
 ```
 
-기준 환경은 **CPython 3.12.14 / SQLite 3.53.1 / OR-Tools 9.15.6755**다. [requirements-server.txt](../../../requirements-server.txt)의 10개 정확 버전과 [고정 프로필](../../../config/team_runtime_profile_20261030.json)을 검사한다. 일반 Python 3.12 설치가 같은 SQLite 버전을 뜻하지 않는다. `--allow-environment-difference`는 명시적인 통합 시험에만 사용하며, 의존성 누락·잘못된 패키지 핀·보호 소스 변경을 허용하지 않는다. 이 옵션을 쓴 실행을 고정 환경 성능 실험으로 보고하지 않는다.
+기준 환경은 **CPython 3.12.14 / SQLite 3.53.1 / OR-Tools 9.15.6755**다. [requirements/requirements-server.txt](../../../requirements/requirements-server.txt)의 10개 정확 버전과 [고정 프로필](../../../config/team_runtime_profile_20261030.json)을 검사한다. 일반 Python 3.12 설치가 같은 SQLite 버전을 뜻하지 않는다. `--allow-environment-difference`는 명시적인 통합 시험에만 사용하며, 의존성 누락·잘못된 패키지 핀·보호 소스 변경을 허용하지 않는다. 이 옵션을 쓴 실행을 고정 환경 성능 실험으로 보고하지 않는다.
 
-일반 Git clone에서는 `TEAM_START.ps1`·`TEAM_VERIFY.ps1`를 실행하지 않는다. 두 스크립트는 이웃 `release-manifest.json`과 `source/` 구조를 갖춘 검증 배포 묶음용이다. README의 `outputs/...` 고정 묶음 링크가 새 clone에 없을 수 있다. main 소스 실행은 위 Python 모듈 명령으로 한다.
+일반 Git clone에서는 팀 실행 스크립트는 릴리즈의 `source/scripts/`(이전 묶음은 `source/`)에서 사용한다. 두 스크립트는 `release-manifest.json`과 `source/` 구조를 갖춘 검증 배포 묶음용이다. README의 `outputs/...` 고정 묶음 링크가 새 clone에 없을 수 있다. main 소스 실행은 위 Python 모듈 명령으로 한다.
 
 공통 DB는 전용 표식·기관을 검사하고 재사용하며 같은 DB의 중복 실행을 잠근다. `chat_demo` DB를 공통 DB로 돌려 쓰지 않는다. 환자·문의·음성 기록을 지우는 `--seed`·DB 삭제로 연결 문제를 해결하지 않는다. 오래된 합성 자원의 명시 갱신·새 사례 생성·백업은 중앙 서버 담당자가 [공통 실행 규칙](../../RUNNING.md#공통-서버와-두-워커)에 따라 수행한다. 공통 full의 `/api/team-runtime` 및 `team_readiness` 사전 점검은 `chat_demo`의 기동 검사와 다르다.
 

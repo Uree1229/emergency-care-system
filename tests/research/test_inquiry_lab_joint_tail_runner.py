@@ -1,0 +1,355 @@
+"""SQLite synthetic adapter units; scenario smoke requires root opt-in."""
+from copy import deepcopy
+import os
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from server import db, inquiry_policies, inquiry_workflow, service
+from inquiry_lab import horizon_runner, joint_tail_policy, joint_tail_runner as r
+
+
+class JointTailRunnerUnits(unittest.TestCase):
+    def setUp(self):
+        self.workspace = Path(__file__).resolve().parents[2]
+        self.tmp = tempfile.TemporaryDirectory(prefix='joint-first-unit-',dir=self.workspace)
+        self.registry = deepcopy(inquiry_policies._POLICIES)
+        inquiry_policies._POLICIES[r.NAME] = joint_tail_policy.spec()
+        self.serial = 0
+        self.conn = None
+        self.fresh()
+
+    def tearDown(self):
+        if self.conn is not None:
+            self.conn.close()
+        inquiry_policies._POLICIES.clear()
+        inquiry_policies._POLICIES.update(self.registry)
+        self.assertTrue(Path(self.tmp.name).resolve().is_relative_to(self.workspace))
+        self.tmp.cleanup()
+
+    def fresh(self, people=('A','B')):
+        if self.conn is not None:
+            self.conn.close()
+        self.serial += 1
+        self.path = Path(self.tmp.name)/('unit'+str(self.serial)+'.db')
+        self.conn = db.connect(self.path)
+        db.init(self.conn)
+        for hid in ('H1','H2'):
+            service.upsert_hospital(self.conn,dict(id=hid,name=hid,lat=35.1,lon=127.1,
+                                                 capabilities=[],source='synthetic'))
+            service.set_resource(self.conn,1000,hid,'ed_bed',100,0,source='hospital_input')
+        for pid in people:
+            service.create_patient(self.conn,1000,pid,dict(reporter_role='transporter',
+                consent=True,symptoms='synthetic unit',required_capabilities=[],
+                resource_demands={'ed_bed':1},lat=35.,lon=127.,
+                auto_inquiry=True,inquiry_policy=r.NAME))
+
+    def offers(self, conn, now, pid, estimator):
+        self.assertFalse(conn.in_transaction,'travel/candidates must run outside a transaction')
+        return dict(candidates=[dict(hospital_id=h,travel=dict(duration_seconds=100+i),
+                                    resources_enough=True) for i,h in enumerate(('H1','H2'))])
+
+    def prepare(self, now=1000):
+        with patch.object(r.service,'candidates',side_effect=self.offers):
+            return r._prepare_group(self.conn,now,object())
+
+    def result(self, group):
+        return dict(decisions=[dict(send=[hid],reason='unit',evidence=dict(policy=r.NAME),
+            next_review_at=group['now']+15) for hid in ('H1','H2')],evidence={'unit':True})
+
+    def snapshot(self):
+        return {table:[tuple(row) for row in self.conn.execute('SELECT * FROM '+table+' ORDER BY 1')]
+            for table in ('patients','inquiry_workflows','inquiries','inquiry_policy_decisions','events','planning_state')}
+
+    def test_common_prefix_order_and_public_registry_capture(self):
+        self.fresh(('C','B','A'))
+        group = self.prepare()
+        self.assertEqual([m['patient_id'] for m in group['members']],['A','B'])
+        self.assertEqual(group['context']['pair_patient_ids'],['A','B'])
+        self.assertEqual([p['id'] for p in group['registry_snapshot']['patients']],['A','B','C'])
+        self.assertEqual([m['patient_id'] for m in group['tail_members']],['C'])
+        for member in group['members']:
+            self.assertEqual(len(member['inputs']),8)
+            self.assertEqual(member['inputs']['time_context']['event_prefix_max'],group['event_prefix_max'])
+            self.assertEqual(member['inputs']['time_context']['decision_prefix_max'],group['decision_prefix_max'])
+            self.assertEqual(member['workflow_snapshot']['apply_snapshot']['revision'],group['revision'])
+            self.assertEqual(member['inputs']['patient_pending'],[])
+        self.assertFalse(self.conn.in_transaction)
+
+    def test_every_current_tail_offer_and_snapshot_is_from_the_shared_prefix(self):
+        self.fresh(('D','C','B','A'))
+        group = self.prepare()
+        self.assertEqual([m['patient_id'] for m in group['members']],['A','B'])
+        self.assertEqual([m['patient_id'] for m in group['tail_members']],['C','D'])
+        for member in group['members']+group['tail_members']:
+            self.assertEqual(member['inputs']['max_new'],10)
+            self.assertEqual([c['hospital_id'] for c in member['inputs']['candidates']],['H1','H2'])
+            self.assertEqual(member['inputs']['time_context']['event_prefix_max'],group['event_prefix_max'])
+            self.assertEqual(member['inputs']['time_context']['decision_prefix_max'],group['decision_prefix_max'])
+            self.assertEqual(member['workflow_snapshot']['apply_snapshot']['revision'],group['revision'])
+        before = self.snapshot()
+        missing = deepcopy(group)
+        missing['tail_members'].pop()
+        self.assertIsNone(r._apply_group(self.conn,1000,missing,self.result(missing)))
+        self.assertEqual(self.snapshot(),before)
+
+    def test_tail_version_state_due_and_eligibility_drift_discard_the_pair_atomically(self):
+        changes = (
+            "UPDATE patients SET version=version+1 WHERE id='C'",
+            "UPDATE patients SET state='CANCELLED' WHERE id='C'",
+            "UPDATE inquiry_workflows SET version=version+1 WHERE patient_id='C'",
+            "UPDATE inquiry_workflows SET next_evaluation_at=1015 WHERE patient_id='C'",
+            "DELETE FROM inquiry_workflows WHERE patient_id='C'")
+        for sql in changes:
+            with self.subTest(sql=sql):
+                self.fresh(('A','B','C'))
+                group = self.prepare()
+                self.conn.execute(sql)
+                before = self.snapshot()
+                self.assertIsNone(r._apply_group(self.conn,1000,group,self.result(group)))
+                self.assertEqual(self.snapshot(),before)
+                self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM inquiries').fetchone()[0],0)
+        self.fresh(('A','B','C'))
+        group = self.prepare()
+        before = self.snapshot()
+        with patch.object(inquiry_workflow,'_eligible_now',side_effect=lambda conn,now,p,h:p['id']!='C'):
+            self.assertIsNone(r._apply_group(self.conn,1000,group,self.result(group)))
+        self.assertEqual(self.snapshot(),before)
+
+    def test_all_tail_matches_are_checked_before_any_send_but_only_pair_is_applied(self):
+        self.fresh(('A','B','C','D'))
+        group = self.prepare()
+        checks = []
+        original = inquiry_workflow._matches
+        def checked(conn,snapshot):
+            checks.append((snapshot['patient_id'],conn.execute('SELECT COUNT(*) FROM inquiries').fetchone()[0]))
+            return original(conn,snapshot)
+        with patch.object(inquiry_workflow,'_matches',side_effect=checked):
+            self.assertIsNotNone(r._apply_group(self.conn,1000,group,self.result(group)))
+        self.assertEqual(checks,[('A',0),('B',0),('C',0),('D',0)])
+        self.assertEqual([row[0] for row in self.conn.execute('SELECT patient_id FROM inquiries ORDER BY id')],['A','B'])
+        self.assertEqual([row[0] for row in self.conn.execute('SELECT patient_id FROM inquiry_policy_decisions ORDER BY id')],['A','B'])
+        next_group = self.prepare()
+        self.assertEqual([m['patient_id'] for m in next_group['members']],['C','D'])
+        self.assertEqual(next_group['tail_members'],[])
+        self.assertGreater(next_group['event_prefix_max'],group['event_prefix_max'])
+        self.assertGreater(next_group['decision_prefix_max'],group['decision_prefix_max'])
+        self.assertGreater(next_group['revision'],group['revision'])
+
+    def test_tail_drift_while_estimating_tail_offers_is_detected_without_sends(self):
+        self.fresh(('A','B','C'))
+        seen = []
+        def drift(conn,now,pid,estimator):
+            result = self.offers(conn,now,pid,estimator)
+            seen.append(pid)
+            if pid=='C':
+                conn.execute("UPDATE inquiry_workflows SET version=version+1 WHERE patient_id='C'")
+            return result
+        with patch.object(r.service,'candidates',side_effect=drift):
+            self.assertIsNone(r._prepare_group(self.conn,1000,object()))
+        self.assertEqual(seen,['A','B','C'])
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM inquiries').fetchone()[0],0)
+        self.assertFalse(self.conn.in_transaction)
+
+    def test_first_send_revision_does_not_invalidate_prechecked_second_member(self):
+        group = self.prepare()
+        checks = []
+        original = inquiry_workflow._matches
+        def checked(conn,snapshot):
+            checks.append((snapshot['patient_id'],r._watermarks(conn)['revision'],
+                           conn.execute('SELECT COUNT(*) FROM inquiries').fetchone()[0]))
+            return original(conn,snapshot)
+        with patch.object(inquiry_workflow,'_matches',side_effect=checked):
+            saved = r._apply_group(self.conn,1000,group,self.result(group))
+        self.assertEqual(checks,[('A',group['revision'],0),('B',group['revision'],0)])
+        self.assertEqual(saved['db_decision_ids'],[1,2])
+        self.assertTrue(saved['validated_before_write'])
+        self.assertEqual([row[0] for row in self.conn.execute('SELECT patient_id FROM inquiries ORDER BY id')],['A','B'])
+        self.assertGreater(r._watermarks(self.conn)['revision'],group['revision'])
+        self.assertFalse(self.conn.in_transaction)
+
+    def test_failure_of_second_member_rolls_back_decisions_sends_jobs_events_and_revision(self):
+        group = self.prepare()
+        before = self.snapshot()
+        original = r._write_member
+        calls = []
+        def fail_second(conn,now,member,decision):
+            calls.append(member['patient_id'])
+            if len(calls)==2:
+                raise RuntimeError('synthetic second-member failure')
+            return original(conn,now,member,decision)
+        with patch.object(r,'_write_member',side_effect=fail_second):
+            with self.assertRaisesRegex(RuntimeError,'second-member'):
+                r._apply_group(self.conn,1000,group,self.result(group))
+        self.assertEqual(calls,['A','B'])
+        self.assertEqual(self.snapshot(),before)
+        self.assertFalse(self.conn.in_transaction)
+
+    def test_any_member_version_state_due_or_registry_change_discards_whole_group(self):
+        changes = (
+            "UPDATE patients SET version=version+1 WHERE id='B'",
+            "UPDATE patients SET state='CANCELLED' WHERE id='B'",
+            "UPDATE inquiry_workflows SET version=version+1 WHERE patient_id='B'",
+            "UPDATE inquiry_workflows SET enabled=0 WHERE patient_id='B'",
+            "UPDATE inquiry_workflows SET next_evaluation_at=1015 WHERE patient_id='B'",
+            "UPDATE inquiry_workflows SET deadline_at=1000 WHERE patient_id='B'",
+            "DELETE FROM inquiry_workflows WHERE patient_id='B'",
+            "UPDATE planning_state SET revision=revision+1 WHERE id=1")
+        for sql in changes:
+            with self.subTest(sql=sql):
+                self.fresh()
+                group = self.prepare()
+                self.conn.execute(sql)
+                before = self.snapshot()
+                self.assertIsNone(r._apply_group(self.conn,1000,group,self.result(group)))
+                self.assertEqual(self.snapshot(),before)
+                self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM inquiries').fetchone()[0],0)
+
+    def test_changed_event_or_decision_prefix_discards_without_partial_send(self):
+        for kind in ('event','decision','inquiry'):
+            with self.subTest(kind=kind):
+                self.fresh()
+                group = self.prepare()
+                if kind=='event':
+                    service.log(self.conn,1000,'unit','unit_public_change','B')
+                elif kind=='decision':
+                    self.conn.execute('INSERT INTO inquiry_policy_decisions '
+                        '(patient_id,at,policy_name,policy_version,job_version,reason,hospital_ids,evidence) '
+                        'VALUES (?,?,?,?,?,?,?,?)',('B',1000,r.NAME,1,1,'unit','[]','{}'))
+                else:
+                    service.send_inquiries(self.conn,1000,'B',['H1'])
+                before = self.snapshot()
+                self.assertIsNone(r._apply_group(self.conn,1000,group,self.result(group)))
+                self.assertEqual(self.snapshot(),before)
+
+    def test_eligibility_change_without_revision_is_rechecked_for_entire_pair(self):
+        group = self.prepare()
+        before = self.snapshot()
+        def eligible(conn,now,patient,hid):
+            return patient['id']!='B'
+        with patch.object(inquiry_workflow,'_eligible_now',side_effect=eligible):
+            self.assertIsNone(r._apply_group(self.conn,1000,group,self.result(group)))
+        self.assertEqual(self.snapshot(),before)
+
+    def test_snapshot_drift_during_unlocked_estimation_is_discarded(self):
+        seen = []
+        def drift(conn,now,pid,estimator):
+            result = self.offers(conn,now,pid,estimator)
+            seen.append(pid)
+            if pid=='B':
+                conn.execute("UPDATE inquiry_workflows SET version=version+1 WHERE patient_id='A'")
+            return result
+        with patch.object(r.service,'candidates',side_effect=drift):
+            self.assertIsNone(r._prepare_group(self.conn,1000,object()))
+        self.assertEqual(seen,['A','B'])
+        self.assertFalse(self.conn.in_transaction)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM inquiries').fetchone()[0],0)
+
+    def test_one_current_first_job_and_future_or_not_due_jobs_do_not_pair(self):
+        self.fresh(('A',))
+        self.assertIsNone(self.prepare())
+        self.fresh()
+        self.conn.execute("UPDATE inquiry_workflows SET next_evaluation_at=1015 WHERE patient_id='B'")
+        self.assertIsNone(self.prepare())
+        self.conn.execute("UPDATE inquiry_workflows SET next_evaluation_at=1000,started_at=1015 WHERE patient_id='B'")
+        self.assertIsNone(self.prepare())
+
+    def test_invalid_output_fails_before_writes_and_clock_drift_discards_group(self):
+        group = self.prepare()
+        before = self.snapshot()
+        invalid = self.result(group)
+        invalid['decisions'][1]['send'] = ['UNKNOWN']
+        with self.assertRaises(ValueError):
+            r._apply_group(self.conn,1000,group,invalid)
+        self.assertEqual(self.snapshot(),before)
+        self.assertIsNone(r._apply_group(self.conn,1001,group,self.result(group)))
+        self.assertEqual(self.snapshot(),before)
+
+    def test_group_never_calls_nested_original_apply_and_recorder_sees_current_member(self):
+        group = self.prepare()
+        result = self.result(group)
+        recorded = []
+        def recorder(name,**kwargs):
+            active = r._GROUP_MEMBER.get()
+            self.assertTrue(active['conn'].in_transaction)
+            self.assertEqual(name,r.NAME)
+            self.assertEqual(kwargs,{k:v for k,v in active['member']['inputs'].items() if k!='time_context'})
+            recorded.append(active['member']['patient_id'])
+            return active['decision']
+        with patch.object(inquiry_workflow,'_apply',side_effect=AssertionError('nested original apply')):
+            self.assertIsNotNone(r._apply_group(self.conn,1000,group,result,recorder=recorder))
+        self.assertEqual(recorded,['A','B'])
+        self.assertIsNone(r._GROUP_MEMBER.get())
+
+    def test_adapter_globals_restore_on_invalid_candidate_without_running_scenario(self):
+        old = (horizon_runner.horizon_policy,horizon_runner._capture_time_context,
+               inquiry_workflow.run_once,inquiry_workflow._apply,inquiry_policies.decide)
+        registry = deepcopy(inquiry_policies._POLICIES)
+        with patch.object(horizon_runner.ie,'validate',return_value=None):
+            with self.assertRaises(ValueError):
+                r.run_scenario({},[(r.NAME,'unknown-confirm-rule')])
+        self.assertEqual((horizon_runner.horizon_policy,horizon_runner._capture_time_context,
+            inquiry_workflow.run_once,inquiry_workflow._apply,inquiry_policies.decide),old)
+        self.assertEqual(inquiry_policies._POLICIES,registry)
+        self.assertFalse(r._RUN_LOCK.locked())
+
+    def test_controls_delegate_directly_and_reentrant_run_is_rejected(self):
+        replay = dict(scenario={'id':'unit'},initial_snapshot_sha256='s',environment_sha256='e',
+                      branches=[{'policy':'fixed_3'}],arms=[['fixed_3','immediate']])
+        with patch.object(r.control_runner,'run_scenario',return_value=replay) as delegated:
+            actual = r.run_scenario({'id':'unit'},[('fixed_3','immediate')])
+        delegated.assert_called_once_with({'id':'unit'},[('fixed_3','immediate')])
+        self.assertEqual(actual,replay)
+        r._RUN_LOCK.acquire()
+        try:
+            with self.assertRaisesRegex(RuntimeError,'one joint'):
+                r.run_scenario({},[(r.NAME,'immediate')])
+        finally:
+            r._RUN_LOCK.release()
+
+
+if os.environ.get('JOINT_TAIL_SEED7_SMOKE')=='1':
+    class JointTailRunnerSeed7Smoke(unittest.TestCase):
+        def test_known_simultaneous_seed7_has_real_groups_and_independent_audit_coverage(self):
+            from inquiry_lab import harness, joint_tail_audit
+            scenario = harness.build('family:simultaneous_w1',7)
+            actual = r.run_scenario(scenario,[(r.NAME,'immediate')])
+            branch = actual['branches'][0]
+            self.assertGreater(len(branch['joint_groups']),0)
+            self.assertTrue(any(group['tail_members'] for group in branch['joint_groups']))
+            links = {did:(group['id'],index) for group in branch['joint_groups']
+                     for index,did in enumerate(group['db_decision_ids'])}
+            self.assertEqual(len(links),2*len(branch['joint_groups']))
+            decisions = {row['id']:row for row in branch['db_decisions']}
+            calls = {call['db_decision_id']:call for call in branch['policy_calls']}
+            grouped_calls = {did for did,call in calls.items() if 'joint_group_id' in call}
+            self.assertEqual(grouped_calls,set(links))
+            for group in branch['joint_groups']:
+                self.assertEqual(len(group['db_decision_ids']),2)
+                for index,(member,did) in enumerate(zip(group['members'],group['db_decision_ids'])):
+                    self.assertEqual(decisions[did]['patient_id'],member['patient_id'])
+                    self.assertEqual(calls[did]['patient_id'],member['patient_id'])
+                    self.assertEqual((calls[did]['joint_group_id'],calls[did]['joint_member_index']),
+                                     (group['id'],index))
+                    self.assertEqual(calls[did]['output'],group['outputs'][index])
+                    self.assertEqual(calls[did]['db_event_prefix_max'],group['event_prefix_max'])
+            self.assertTrue(joint_tail_audit.audit_replay(actual)['passed'])
+
+        def test_old_seven_controls_are_full_raw_equal_and_candidate_groups_are_linked(self):
+            from inquiry_lab import harness
+            scenario = harness.build('mix',7)
+            controls = [('fixed_3','immediate'),('eat_l15_f','immediate'),
+                ('eat_residual_l15_f','immediate'),('eat_horizon_l15_f','immediate'),
+                ('eat_joint_first_l15_f','immediate'),('v3_w45_h900','immediate'),('eat_l15_f','hold120')]
+            self.assertEqual(r.run_scenario(scenario,controls),r.control_runner.run_scenario(scenario,controls))
+            branch = r.run_scenario(scenario,[(r.NAME,'immediate')])['branches'][0]
+            self.assertEqual(branch['instrumentation'],r.NEW_INSTRUMENTATION)
+            links = {did:(g['id'],i) for g in branch['joint_groups'] for i,did in enumerate(g['db_decision_ids'])}
+            for call in branch['policy_calls']:
+                if call['db_decision_id'] in links:
+                    self.assertEqual((call['joint_group_id'],call['joint_member_index']),links[call['db_decision_id']])
+
+
+if __name__=='__main__':
+    unittest.main()

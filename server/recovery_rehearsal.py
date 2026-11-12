@@ -20,6 +20,8 @@ import time
 import traceback
 from urllib.request import urlopen
 
+from .team_release_info import SERVER_REQUIREMENTS
+
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = 'recovery-rehearsal-20261030-v1'
 VOLATILE_TABLES = {'planning_state', 'planning_results', 'sqlite_sequence'}
@@ -140,7 +142,7 @@ def copy_release(output):
         sources.extend(p for p in (ROOT/directory).rglob('*') if p.is_file()
             and p.suffix.lower() in EXTENSIONS and '__pycache__' not in p.parts
             and 'node_modules' not in p.parts and not p.is_symlink())
-    sources.extend(ROOT/name for name in ('solver_improved.py','requirements-server.txt'))
+    sources.extend(ROOT/name for name in ('solver_improved.py', SERVER_REQUIREMENTS))
     manifest = {}
     for source in sorted(sources):
         relative = source.relative_to(ROOT)
@@ -183,7 +185,7 @@ def _get(base_url,path):
 
 def dependency_versions():
     result = {}
-    for line in (ROOT/'requirements-server.txt').read_text(encoding='utf-8').splitlines():
+    for line in (ROOT/SERVER_REQUIREMENTS).read_text(encoding='utf-8').splitlines():
         line = line.strip()
         if not line or line.startswith('#'):
             continue

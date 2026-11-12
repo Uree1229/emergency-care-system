@@ -22,9 +22,9 @@ VARIANTS=('frontier','paced','balanced')
 REFERENCES=deepcopy(tuple(old.POLICIES))
 NEW_SOURCES=('simulation/retry_dispatch_policy.py','simulation/retry_dispatch_engine.py',
     'simulation/retry_dispatch_audit.py','simulation/retry_dispatch_scenarios.py',
-    'simulation/retry_dispatch_experiment.py','test_retry_dispatch_policy.py',
-    'test_retry_dispatch_engine.py','test_retry_dispatch_audit.py',
-    'test_retry_dispatch_scenarios.py','test_retry_dispatch_experiment.py')
+    'simulation/retry_dispatch_experiment.py','tests/research/test_retry_dispatch_policy.py',
+    'tests/research/test_retry_dispatch_engine.py','tests/research/test_retry_dispatch_audit.py',
+    'tests/research/test_retry_dispatch_scenarios.py','tests/research/test_retry_dispatch_experiment.py')
 SOURCE_FILES=tuple(sorted(set(old.SOURCE_FILES)|set(NEW_SOURCES)))
 EXTRA_FIELDS=('distinct_contact_pairs','repeated_contacts')
 AGGREGATE_FIELDS=tuple(SUMMARY_FIELDS)+EXTRA_FIELDS

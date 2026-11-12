@@ -26,8 +26,8 @@ LOCK_PATH=ROOT/'config/stable_c1_lock_20261015.json'
 SOURCE_FILES=tuple(sorted(set(PREVIOUS_SOURCE_FILES)|{
     'simulation/stable_cp_sat_assignment.py','simulation/stable_c1_engine.py',
     'simulation/stable_c1_experiment.py','simulation/stable_c1_scenarios.py','simulation/stable_c1_audit.py',
-    'test_stable_cp_sat_assignment.py','test_stable_c1_engine.py','test_stable_c1_experiment.py',
-    'test_stable_c1_scenarios.py','test_stable_c1_audit.py',
+    'tests/research/test_stable_cp_sat_assignment.py','tests/research/test_stable_c1_engine.py','tests/research/test_stable_c1_experiment.py',
+    'tests/research/test_stable_c1_scenarios.py','tests/research/test_stable_c1_audit.py',
 }))
 SETTINGS=deepcopy(PREVIOUS_SETTINGS)
 SETTINGS.update(policies=deepcopy(list(DEFAULT_STABLE_C1_POLICIES)),

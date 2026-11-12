@@ -33,8 +33,8 @@ POLICY_IDS = tuple(p['id'] for p in POLICIES)
 NEW_SOURCES = (
     'simulation/shortage_probe_engine.py', 'simulation/shortage_probe_scenarios.py',
     'simulation/shortage_probe_audit.py', 'simulation/shortage_probe_experiment.py',
-    'test_shortage_probe_engine.py', 'test_shortage_probe_scenarios.py',
-    'test_shortage_probe_audit.py', 'test_shortage_probe_experiment.py',
+    'tests/research/test_shortage_probe_engine.py', 'tests/research/test_shortage_probe_scenarios.py',
+    'tests/research/test_shortage_probe_audit.py', 'tests/research/test_shortage_probe_experiment.py',
 )
 SOURCE_FILES = tuple(sorted(set(PREVIOUS_SOURCES) | set(NEW_SOURCES)))
 def policy_id(allocation, stage='baseline', *, inquiry='v4'):

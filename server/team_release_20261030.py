@@ -18,6 +18,8 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
+from .team_release_info import SERVER_REQUIREMENTS
+
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = 'team-release-20261030-v1'
 MANIFEST = 'release-manifest.json'
@@ -63,9 +65,18 @@ PYTHON_TESTS = (
     'test_data_provenance_20261030.py', 'test_hospital_operations_http.py',
     'test_flow_console.py', 'test_voice_recognition_context.py', 'test_voice_unified_unknown_defaults.py',
 )
-EXACT_FILES = ('solver_improved.py', 'requirements-server.txt', 'README.md', 'TEAM_START.ps1', 'TEAM_VERIFY.ps1',
+LEGACY_SERVER_REQUIREMENTS = 'requirements-server.txt'
+MOVED_RELEASE_FILES = {
+    LEGACY_SERVER_REQUIREMENTS: SERVER_REQUIREMENTS,
+    'TEAM_START.ps1': 'scripts/TEAM_START.ps1',
+    'TEAM_VERIFY.ps1': 'scripts/TEAM_VERIFY.ps1',
+    'test_team_release_info.py': 'tests/core/test_team_release_info.py',
+    'test_team_release_20261030.py': 'tests/core/test_team_release_20261030.py',
+}
+LEGACY_EXACT_FILES = ('solver_improved.py', LEGACY_SERVER_REQUIREMENTS, 'README.md', 'TEAM_START.ps1', 'TEAM_VERIFY.ps1',
     'datasets/demo/seoul_public_catalog.json', 'datasets/examples/cau_public_flow_cases.json',
     'datasets/examples/cau_seoul_patient_001.json')
+EXACT_FILES = tuple(MOVED_RELEASE_FILES.get(name, name) for name in LEGACY_EXACT_FILES)
 EXACT_DOC_FILES = (
     'docs/api/SERVER_SCHEMA_20261102.json',
     'docs/evidence/20261105/manifest.json', 'docs/evidence/20261105/allocation-seed9.json',
@@ -78,7 +89,8 @@ EXACT_DOC_FILES = (
     'docs/team-handoff/20261102/dev1/MOBILE_APP_IMPROVEMENTS_20261103.md',
     'docs/team-handoff/20261102/dev2/README.md', 'docs/team-handoff/20261102/dev2/AI_START.md',
 )
-REQUIRED = frozenset((*EXACT_FILES, *EXACT_DOC_FILES, 'server/team_runtime.py', 'server/team_runtime_profile.py',
+ADDITIONAL_DOC_FILES = ('docs/HANDOFF.md', 'docs/api/api_field_mapping.md')
+LEGACY_REQUIRED = frozenset((*LEGACY_EXACT_FILES, *EXACT_DOC_FILES, 'server/team_runtime.py', 'server/team_runtime_profile.py',
     'server/team_release_20261030.py', 'config/server_allocation_baseline_20261030.json',
     'config/team_runtime_profile_20261030.json', 'paramedic-ui/index.html', 'patient-ui/index.html',
     'hospital-ui/index.html', 'simulation/viewer_server.py', 'simulation/observed_inquiry.py',
@@ -97,6 +109,7 @@ REQUIRED = frozenset((*EXACT_FILES, *EXACT_DOC_FILES, 'server/team_runtime.py', 
     'config/team_release_source_refs_20261030.json', 'paramedic-ui/evaluation-cases.json',
     'simulation/viewer/index.html', 'simulation/viewer/demo.html',
     *(f'simulation/viewer/{name}' for name in VIEWER_DATA), 'test_team_release_20261030.py'))
+REQUIRED = frozenset(MOVED_RELEASE_FILES.get(name, name) for name in LEGACY_REQUIRED)
 SKIP_PARTS = frozenset(('.git', '.codex-build', '.solver_deps', 'node_modules', '__pycache__',
     'data', 'outputs', 'simulation_results', 'route_cache', '.venv', 'venv', '.claude'))
 POLICY = dict(inquiry='fixed_3', assignment='CP-SAT', objective='severity_first', solver_seconds=3,
@@ -161,14 +174,16 @@ def safe_file(root, name):
     return target
 
 
-def role(name):
+def role(name, *, legacy=False):
     p = relative_name(name); parts = p.parts; suffix = p.suffix.lower()
     if any(part in SKIP_PARTS or part.startswith('.env') for part in parts):
         return None
-    if name in EXACT_DOC_FILES: return 'documentation'
-    if name in EXACT_FILES: return 'runtime-or-public-fixture'
-    if name in PYTHON_TESTS: return 'verification-test'
-    if len(parts) == 1 and suffix == '.mjs' and re.fullmatch(r'test_(?:paramedic_.+|hospital_.+|patient_workflow_.+)\.mjs', name): return 'verification-test'
+    if name in EXACT_DOC_FILES or (not legacy and name in ADDITIONAL_DOC_FILES): return 'documentation'
+    if name in (LEGACY_EXACT_FILES if legacy else EXACT_FILES): return 'runtime-or-public-fixture'
+    test_location = () if legacy else ('tests', 'core')
+    browser_location = () if legacy else ('tests', 'browser')
+    if parts[:-1] == test_location and p.name in PYTHON_TESTS: return 'verification-test'
+    if parts[:-1] == browser_location and suffix == '.mjs' and re.fullmatch(r'test_(?:paramedic_.+|hospital_.+|patient_workflow_.+)\.mjs', p.name): return 'verification-test'
     if len(parts) == 2 and parts[0] in ('server', 'simulation') and suffix in ('.py', '.mjs'): return 'source'
     if len(parts) == 2 and parts[0] == 'config' and suffix == '.json': return 'configuration'
     if parts[0] in ('paramedic-ui', 'patient-ui', 'hospital-ui') and (suffix in STATIC_EXTENSIONS or len(parts) == 2 and parts[-1] in ('README.md', 'manifest.json') or name == 'paramedic-ui/evaluation-cases.json'): return 'ui'
@@ -195,9 +210,13 @@ def _walk(directory, *, skip=False, runtime=False):
             yield path
 
 
-def selected_paths(root):
+def selected_paths(root, *, legacy=False):
     root = Path(root).resolve(); candidates = set()
-    for directory in ('server', 'simulation', 'config', 'docs'):
+    directories = ('server', 'simulation', 'config', 'docs')
+    if not legacy:
+        directories += ('tests/core', 'tests/browser')
+        candidates.update(name for name in ADDITIONAL_DOC_FILES if (root/name).is_file())
+    for directory in directories:
         folder = root/directory
         if folder.exists():
             if _reparse(folder): raise ValueError('Reparse source directory: '+directory)
@@ -205,17 +224,18 @@ def selected_paths(root):
     for directory in ('paramedic-ui', 'patient-ui', 'hospital-ui', 'server/static', 'simulation/viewer'):
         candidates.update(p.relative_to(root).as_posix() for p in _walk(root/directory, skip=True))
     candidates.update(p.name for p in root.iterdir() if p.is_file())
-    candidates.update(EXACT_FILES); candidates.update(EXACT_DOC_FILES)
-    names = sorted(name for name in candidates if role(name))
+    candidates.update(LEGACY_EXACT_FILES if legacy else EXACT_FILES)
+    candidates.update(EXACT_DOC_FILES)
+    names = sorted(name for name in candidates if role(name, legacy=legacy))
     if len({name.casefold() for name in names}) != len(names): raise ValueError('Case-insensitive path collision.')
-    missing = sorted(REQUIRED-set(names))
+    missing = sorted((LEGACY_REQUIRED if legacy else REQUIRED)-set(names))
     if missing: raise ValueError('Required release inputs missing: '+', '.join(missing))
     for name in names: safe_file(root, name)
     return names
 
 
-def inventory(root, names):
-    return {name:{**file_record(safe_file(root, name)), 'role':role(name)} for name in names}
+def inventory(root, names, *, legacy=False):
+    return {name:{**file_record(safe_file(root, name)), 'role':role(name, legacy=legacy)} for name in names}
 
 
 class _Assets(HTMLParser):
@@ -233,7 +253,7 @@ _JS_MODULE_REFERENCE = re.compile(
 )
 
 
-def dependency_check(root, names):
+def dependency_check(root, names, *, legacy=False):
     """Static local import and script/style closure; no payload code executes."""
     root = Path(root).resolve(); included = set(names); errors = []; seen = set(); external = set(); todo = list(ENTRYPOINTS)
     def module_file(module):
@@ -261,13 +281,15 @@ def dependency_check(root, names):
                 elif top and top not in sys.stdlib_module_names and top != '__future__': external.add(top)
     test_helpers = set()
     for name in sorted(included):
-        if not name.startswith('test_') or not name.endswith('.py'): continue
+        test_path = PurePosixPath(name)
+        if not test_path.name.startswith('test_') or test_path.suffix != '.py': continue
         for node in ast.walk(ast.parse(safe_file(root, name).read_text(encoding='utf-8-sig'), filename=name)):
             targets = [alias.name for alias in node.names] if isinstance(node, ast.Import) else [node.module] if isinstance(node, ast.ImportFrom) and node.module else []
             for module in targets:
                 if module.startswith('test_'):
                     test_helpers.add(module)
-                    if module.replace('.', '/')+'.py' not in included: errors.append(f'Missing Python test helper: {name} -> {module}')
+                    helper = test_path.parent/(module.replace('.', '/')+'.py')
+                    if helper.as_posix() not in included: errors.append(f'Missing Python test helper: {name} -> {module}')
     for name in sorted(included):
         if not name.endswith(('.html', '.js', '.mjs')): continue
         text = safe_file(root, name).read_text(encoding='utf-8-sig'); refs = []
@@ -287,7 +309,8 @@ def dependency_check(root, names):
             target = target.resolve()
             if not target.is_relative_to(root) or target.relative_to(root).as_posix() not in included:
                 errors.append(f'Missing local script/style/module: {name} -> {ref}')
-    pins = set(re.findall(r'^([A-Za-z0-9_.-]+)==[^\s]+$', (root/'requirements-server.txt').read_text(encoding='utf-8'), re.MULTILINE))
+    requirements = LEGACY_SERVER_REQUIREMENTS if legacy else SERVER_REQUIREMENTS
+    pins = set(re.findall(r'^([A-Za-z0-9_.-]+)==[^\s]+$', safe_file(root, requirements).read_text(encoding='utf-8'), re.MULTILINE))
     import_packages = {'ortools':'ortools', 'absl':'absl-py', 'immutabledict':'immutabledict', 'numpy':'numpy',
         'pandas':'pandas', 'google':'protobuf', 'dateutil':'python-dateutil', 'six':'six',
         'typing_extensions':'typing_extensions', 'tzdata':'tzdata'}
@@ -329,10 +352,13 @@ def verify_release(release, *, source_root=None):
         expected_digest = manifest.get('manifest_sha256'); unsigned = {k:v for k,v in manifest.items() if k != 'manifest_sha256'}
         if digest(unsigned) != expected_digest: raise ValueError('Manifest digest mismatch.')
         files = manifest['files']
-        if not isinstance(files, dict) or not REQUIRED <= set(files): raise ValueError('Required payload paths missing from manifest.')
+        if not isinstance(files, dict): raise ValueError('Required payload paths missing from manifest.')
+        legacy = LEGACY_SERVER_REQUIREMENTS in files and SERVER_REQUIREMENTS not in files
+        if not (LEGACY_REQUIRED if legacy else REQUIRED) <= files.keys(): raise ValueError('Required payload paths missing from manifest.')
         if len({name.casefold() for name in files}) != len(files): raise ValueError('Case-insensitive manifest path collision.')
         for name, item in files.items():
-            if not role(name) or set(item) != {'bytes', 'sha256', 'role'} or item['role'] != role(name) or type(item['bytes']) is not int or item['bytes'] < 0 or not re.fullmatch('[0-9a-f]{64}', str(item['sha256'])): raise ValueError('Invalid allowlist/file record: '+str(name))
+            allowed_role = role(name, legacy=legacy)
+            if not allowed_role or set(item) != {'bytes', 'sha256', 'role'} or item['role'] != allowed_role or type(item['bytes']) is not int or item['bytes'] < 0 or not re.fullmatch('[0-9a-f]{64}', str(item['sha256'])): raise ValueError('Invalid allowlist/file record: '+str(name))
         content_id = digest(dict(revision=REVISION, policy=POLICY, files=files))
         if manifest.get('content_sha256') != content_id or manifest.get('release_id') != 'team-20261030-'+content_id[:16] or manifest.get('file_count') != len(files) or manifest.get('total_bytes') != sum(v['bytes'] for v in files.values()): raise ValueError('Release content identity/count mismatch.')
         payload = release/PAYLOAD
@@ -341,14 +367,14 @@ def verify_release(release, *, source_root=None):
         for name in sorted(set(files)-actual_names): report['issues'].append('Missing payload file: '+name)
         for name in sorted(actual_names & set(files)):
             if file_record(safe_file(payload, name)) != {k:files[name][k] for k in ('bytes', 'sha256')}: report['issues'].append('Payload bytes changed: '+name)
-        report['dependencies'] = dependency_check(payload, files)
+        report['dependencies'] = dependency_check(payload, files, legacy=legacy)
         report['issues'].extend(report['dependencies']['errors'])
         if manifest.get('dependencies') != report['dependencies']: report['issues'].append('Recorded static dependency evidence differs.')
         report['baseline_source_profile'] = source_profile(payload)
         if not report['baseline_source_profile']['ok']: report['issues'].append('Frozen allocation source/profile check failed.')
         if manifest.get('baseline_source_profile') != report['baseline_source_profile']: report['issues'].append('Recorded frozen-source profile evidence differs.')
         if source_root is not None:
-            current = inventory(source_root, selected_paths(source_root))
+            current = inventory(source_root, selected_paths(source_root, legacy=legacy), legacy=legacy)
             report['source_matches'] = current == files
             if not report['source_matches']: report['issues'].append('Source root differs from the frozen release inventory/bytes.')
         report.update(release_id=manifest['release_id'], manifest_sha256=expected_digest, content_sha256=content_id,
@@ -363,7 +389,7 @@ def package_release(output, *, source_root=ROOT, label='team-20261030-v1'):
     root = Path(source_root).resolve(); output = Path(output).resolve()
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,79}', label): raise ValueError('Release label must be a short ASCII identifier.')
     if output.exists(): raise ValueError('Use a NEW release output directory; existing files are never overwritten.')
-    if output == root or any(output.is_relative_to(root/p) for p in ('server', 'simulation', 'config', 'docs', 'paramedic-ui', 'patient-ui', 'hospital-ui', 'datasets')): raise ValueError('Output must not be inside a packaged source tree.')
+    if output == root or any(output.is_relative_to(root/p) for p in ('server', 'simulation', 'config', 'docs', 'paramedic-ui', 'patient-ui', 'hospital-ui', 'datasets', 'scripts', 'requirements', 'tests')): raise ValueError('Output must not be inside a packaged source tree.')
     names = selected_paths(root); before = inventory(root, names); dependencies = dependency_check(root, names)
     if not dependencies['ok']: raise ValueError('; '.join(dependencies['errors']))
     profile = source_profile(root)

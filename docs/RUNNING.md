@@ -8,10 +8,10 @@ Python 3.12 이상에서 프로젝트 루트를 연다. 전체 서버와 솔버�
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-server.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements/requirements-server.txt
 ```
 
-전체 실행 환경의 고정 버전은 `requirements-server.txt`에 있다. 음성 전용 서버는 Python 표준 라이브러리로 실행하지만 실제 마이크 인식은 브라우저 지원과 권한에 의존한다. 음성·원음 평가용 추가 의존성은 해당 평가 안내를 따른다.
+전체 실행 환경의 고정 버전은 `requirements/requirements-server.txt`에 있다. 음성 전용 서버는 Python 표준 라이브러리로 실행하지만 실제 마이크 인식은 브라우저 지원과 권한에 의존한다. 음성·원음 평가용 추가 의존성은 해당 평가 안내를 따른다.
 
 ## 가상 환자·병원 화면 시연
 
@@ -62,7 +62,7 @@ $demoIp = '192.168.0.10'
 
 ## 검증된 소스 묶음
 
-`TEAM_START.ps1`과 `TEAM_VERIFY.ps1`은 `release-manifest.json`이 있는 릴리즈의 `source/`에서 사용한다. 개발 저장소에서 바로 실행할 명령은 위 Python 명령이다. 두 스크립트는 `-PythonPath`를 주지 않으면 `py -3.12`, 그다음 PATH의 `python`을 쓴다. 릴리즈의 `.solver_deps`는 CPython 3.12용(cp312) 패키지라 full 모드는 Python 3.12가 필요하다. 3.12보다 새 버전은 경고를 내고 진행하며, 3.12보다 오래된 버전은 거부한다. 소스 묶음은 새 폴더에 만들고 검증한다.
+새 릴리즈는 `source/`에서 `.\scripts\TEAM_START.ps1`과 `.\scripts\TEAM_VERIFY.ps1`을 실행한다. 기존 릴리즈에 스크립트가 `source/` 바로 아래에 있으면 해당 경로를 사용한다. 개발 저장소에서 바로 실행할 명령은 위 Python 명령이다. 두 스크립트는 `-PythonPath`를 주지 않으면 `py -3.12`, 그다음 PATH의 `python`을 쓴다. 릴리즈의 `.solver_deps`는 CPython 3.12용(cp312) 패키지라 full 모드는 Python 3.12가 필요하다. 3.12보다 새 버전은 경고를 내고 진행하며, 3.12보다 오래된 버전은 거부한다. 소스 묶음은 새 폴더에 만들고 검증한다.
 
 ```powershell
 .\.venv\Scripts\python.exe -B -m server.team_release_20261030 package --output outputs/team-release-new

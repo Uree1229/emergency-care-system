@@ -33,7 +33,7 @@
 
 새 [오프라인 분석기](../inquiry_lab/target_feasibility.py)의 `exclusive_workload_certificate`는 숨은 합성 potential을 **사후 목표 불가능성 확인에만** 사용한다. runtime 정책에 연결하지 않았으며 이를 이용한 oracle 후보나 성능 비교는 없다. 증명서가 나오지 않는 다른 사례를 가능하다고 판정하는 완전한 feasibility solver도 아니다.
 
-[합성 테스트](../test_inquiry_lab_target_feasibility.py) **9개가 오류·실패·skip 0개로 0.008373초에 통과**했고 분석기·테스트 해시는 전후 동일했다. 이는 과거 정책의 337개 테스트와 별개다. [테스트 결과](../.codex-build/eat-joint-success-20261021/feasibility-tests.json)
+[합성 테스트](../tests/research/test_inquiry_lab_target_feasibility.py) **9개가 오류·실패·skip 0개로 0.008373초에 통과**했고 분석기·테스트 해시는 전후 동일했다. 이는 과거 정책의 337개 테스트와 별개다. [테스트 결과](../.codex-build/eat-joint-success-20261021/feasibility-tests.json)
 
 [증명서 생성 명령](../.codex-build/eat-joint-success-20261021/audit_target.py)은 지정한 case054 원문 1개를 압축·해제 SHA로 검증하고 [불가능성 증명서](../.codex-build/eat-joint-success-20261021/feasibility-certificate.json)를 기록했다. 결과는 `proven_infeasible`, 필수 업무 314초·가용 업무 300초·최소 실패 1명이다. 원래 소스 **385개와 엄격 참조 279개**를 보존했다. 후보 정책 실행·시계 rollout·새 성능 실행·새 seed 생성·heldout 결과 조회는 모두 0이다. 문서 작성 과정의 추가 raw 조회도 0이며 실서버를 변경하지 않았다.
 

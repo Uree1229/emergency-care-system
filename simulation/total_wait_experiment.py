@@ -28,8 +28,8 @@ LOCK_PATH=ROOT/'config/total_wait_lock_20261015.json'
 SOURCE_FILES=tuple(sorted(set(PREVIOUS_SOURCE_FILES)|{
     'simulation/total_wait_engine.py','simulation/total_wait_metrics.py','simulation/total_wait_experiment.py',
     'simulation/total_wait_scenarios.py','simulation/total_wait_audit.py',
-    'test_total_wait_engine.py','test_total_wait_metrics.py','test_total_wait_experiment.py',
-    'test_total_wait_scenarios.py','test_total_wait_audit.py',
+    'tests/research/test_total_wait_engine.py','tests/research/test_total_wait_metrics.py','tests/research/test_total_wait_experiment.py',
+    'tests/research/test_total_wait_scenarios.py','tests/research/test_total_wait_audit.py',
 }))
 SETTINGS=deepcopy(PREVIOUS_SETTINGS)
 SETTINGS.update(policies=deepcopy(list(DEFAULT_TOTAL_WAIT_POLICIES)),
