@@ -4,6 +4,7 @@ import importlib.metadata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SERVER_REQUIREMENTS = 'requirements/requirements-server.txt'
 
 
 def check_dependencies(mode='full', root=None):
@@ -13,7 +14,7 @@ def check_dependencies(mode='full', root=None):
     if mode != 'full':
         raise ValueError('Unknown runtime mode.')
     packages = {}
-    for line in (Path(root or ROOT)/'requirements-server.txt').read_text(encoding='utf-8').splitlines():
+    for line in (Path(root or ROOT)/SERVER_REQUIREMENTS).read_text(encoding='utf-8').splitlines():
         line = line.strip()
         if not line or line.startswith('#'):
             continue

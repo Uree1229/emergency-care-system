@@ -150,7 +150,7 @@
 테스트는 가상 환자·병원과 임시 DB·로컬 임시 포트만 사용한다. 실제 전화나 외부 병원 요청은 하지 않는다.
 
 ```text
-python -m unittest test_call_records test_call_records_api -v
+python scripts/test_suites.py python test_call_records test_call_records_api -v
 ```
 
 ## 8 병원 전체 통화함

@@ -29,7 +29,7 @@ dev2, 기존 채팅 복구(H01)보다 먼저 이 작업을 해줘. 문의 A에 �
 6. 브라우저에서 A↔B와 3초 갱신을 확인하고, 범위 분리·전송 성공·실패·지연을 새 `test_hospital*` 회귀 검사에 넣는다. 기존 병원 워크플로·운영 테스트도 실행한다. 시험은 별도 포트와 새 합성 DB에서 진행한다. [공통 실행 안내](../../20261102/COMMON_RUNTIME.md)
 
 ```powershell
-node --test test_hospital_workflow.mjs test_hospital_operations.mjs
+node --test tests/browser/test_hospital_workflow.mjs tests/browser/test_hospital_operations.mjs
 ```
 
 수정 대상은 `hospital-ui/`의 문의 입력과 필요한 병원 테스트다. H01 채팅 복구, H02 임상변경 검토 발견, H03 정산·감사는 이 PR을 검증한 뒤 별도 작업으로 이어간다. 구급대 음성·검토는 별도 담당 범위다. 서버 API, DB 스키마, 배정 정책과 공유 시연 서버는 공통 담당자가 관리한다. [이전 H01~H03 인계](../../20261102/dev2/README.md)

@@ -114,10 +114,10 @@
 ```powershell
 python scripts/test_suites.py list
 python scripts/test_suites.py core
-node --test test_paramedic_voice_client.mjs test_paramedic_main_workflow.mjs test_patient_workflow_state.mjs test_patient_workflow_view.mjs test_patient_workflow_transport_change_retry.mjs
-node --test test_paramedic_command_commit.mjs test_paramedic_command_practice_page.mjs test_paramedic_quick_page.mjs
-node --test test_paramedic_main_recovery_20261031.mjs test_paramedic_local_audio_page.mjs test_paramedic_noise_suppression.mjs test_paramedic_noise_compare_page.mjs
-python -m unittest test_server test_voice_api test_voice_treatment_review_http test_work_activity test_backend_measurement_api -v
+node --test tests/browser/test_paramedic_voice_client.mjs tests/browser/test_paramedic_main_workflow.mjs tests/browser/test_patient_workflow_state.mjs tests/browser/test_patient_workflow_view.mjs tests/browser/test_patient_workflow_transport_change_retry.mjs
+node --test tests/browser/test_paramedic_command_commit.mjs tests/browser/test_paramedic_command_practice_page.mjs tests/browser/test_paramedic_quick_page.mjs
+node --test tests/browser/test_paramedic_main_recovery_20261031.mjs tests/browser/test_paramedic_local_audio_page.mjs tests/browser/test_paramedic_noise_suppression.mjs tests/browser/test_paramedic_noise_compare_page.mjs
+python scripts/test_suites.py python test_server test_voice_api test_voice_treatment_review_http test_work_activity test_backend_measurement_api -v
 ```
 
 `core`는 Python 3.12.14·SQLite 3.53.1·OR-Tools 9.15.6755 고정 환경을 확인한다. Node가 PATH에 없으면 `python scripts/test_suites.py core --node <실행파일>` 또는 `TEST_NODE`를 사용한다. 실행기는 외부 API 키 환경변수를 제거하고 `test_hospital_operations_http.mjs`를 단독 Node 대상에서 제외한다. 해당 파일은 Python HTTP harness 없이 실행하지 않는다. 환경 불일치/로컬 자료 누락과 제품 회귀를 구분한다. 연구 실험·잠금 파일을 고쳐 core를 통과시키지 않는다.

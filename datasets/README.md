@@ -36,7 +36,7 @@
 ```powershell
 python -m datasets.generate
 python -m datasets.validate --output datasets/generated/validation_report.json
-python -m unittest test_server test_solver_improved test_simulation test_planning test_datasets -v
+python scripts/test_suites.py python test_server test_solver_improved test_simulation test_planning test_datasets -v
 ```
 
 전체 구조·ID·분할·출처·파일 해시를 검사합니다. 서버 흐름 200건은 메모리 DB에서 실제 서비스 함수로 재생하고, 작은 정답 사례 15건은 완전탐색과 비교합니다. 결과는 [검증 보고](generated/validation_report.json)에 저장합니다. 큰 무작위 사례에 임의의 `OPTIMAL` 정답을 붙이지 않습니다. 가용량을 초과하는 기존 점유나 고정 목적지 충돌은 의도된 유효 입력입니다.

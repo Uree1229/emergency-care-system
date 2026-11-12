@@ -28,8 +28,8 @@ LOCK_PATH = ROOT / 'config/opportunity_protection_lock_20261015.json'
 SOURCE_FILES = tuple(sorted(set(PREVIOUS_SOURCE_FILES) | {
     'simulation/opportunity_guard.py', 'simulation/opportunity_engine.py',
     'simulation/opportunity_scenarios.py', 'simulation/opportunity_experiment.py',
-    'simulation/opportunity_audit.py', 'test_opportunity_engine.py',
-    'test_opportunity_scenarios.py', 'test_opportunity_experiment.py', 'test_opportunity_audit.py',
+    'simulation/opportunity_audit.py', 'tests/research/test_opportunity_engine.py',
+    'tests/research/test_opportunity_scenarios.py', 'tests/research/test_opportunity_experiment.py', 'tests/research/test_opportunity_audit.py',
 }))
 SETTINGS = dict(
     policies=deepcopy(list(DEFAULT_OPPORTUNITY_POLICIES)), stale_after_minutes=10,

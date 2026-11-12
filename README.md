@@ -8,7 +8,7 @@ Windows PowerShell에서 Python 3.12를 준비한 뒤 저장소 루트에서 실
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-server.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements/requirements-server.txt
 $demoDb = 'data/demo-' + [guid]::NewGuid().ToString('N') + '.db'
 .\.venv\Scripts\python.exe -B -m server.chat_demo --db $demoDb --port 18020
 ```
@@ -28,8 +28,11 @@ $demoDb = 'data/demo-' + [guid]::NewGuid().ToString('N') + '.db'
 | `emergency-app/` | 별도 환자 프로필·음성 문진 앱(FastAPI). 접수를 공통 이송 흐름으로 연결 |
 | `simulation/`, `inquiry_lab/`, `simulation_results/` | 배정 재생, 문의 정책 실험과 결과 |
 | `speech_eval/`, `voice_lab/`, `usability_eval/` | 음성·명령·사용성 평가 도구 |
-| `tests/`, `scripts/` | 문의 실험 테스트와 공통 검증 실행기 |
+| `tests/core/`, `tests/browser/`, `tests/research/` | 서버·팀 실행, 화면, 알고리즘 연구 테스트 |
+| `scripts/`, `requirements/` | 공통 검증·시연 실행 도구와 용도별 Python 의존성 |
 | `docs/`, `datasets/`, `archive/` | 팀 문서와 발표 근거, 공개·합성 자료, 이전 산출물 |
+
+`solver_improved.py`는 서버 배정과 검증 프로필이 경로·해시를 고정하는 실행 모듈이다.
 
 ## 개발과 검증
 
@@ -38,7 +41,7 @@ PR을 검토할 때는 현재 구현 상태와 팀 인계에서 화면별 작업
 아래 검증 명령은 Git으로 클론한 저장소에서 실행합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-server.txt -r requirements-intake-test.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements/requirements-server.txt -r requirements/requirements-intake-test.txt
 .\.venv\Scripts\python.exe scripts/test_suites.py list
 .\.venv\Scripts\python.exe scripts/test_suites.py core
 ```

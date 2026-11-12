@@ -174,7 +174,7 @@ GET은 수신 기록을 만들지 않는다. 수신 기록 없이 확인하면 `
 테스트는 임시 DB·가상 환자·로컬 임시 포트를 사용하며 외부 병원이나 공공·지도 API를 호출하지 않는다.
 
 ```text
-python -m unittest test_inquiry_observations test_work_activity test_important_events test_backend_measurement_api -v
+python scripts/test_suites.py python test_inquiry_observations test_work_activity test_important_events test_backend_measurement_api -v
 ```
 
 Windows 기본 임시 경로에 SQLite 쓰기 권한이 없으면 쓰기 가능한 테스트 전용 임시 경로를 지정한다. 테스트 통과는 서버 계약 검증이며 현장 업무량 감소나 임상 성과 검증을 뜻하지 않는다.

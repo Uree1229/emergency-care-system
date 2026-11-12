@@ -63,7 +63,7 @@ R1/H1의 미배정은 각각 23명, 미도착은 각각 40명이다. 여기서 �
 신규 `simulation/algorithm_decision_20261030.py`가 기존 원 사건을 읽어 환자별 끝점을 다시 만들고 원 보고서의 벡터와 대조한다. 보고서·실행 잠금·원 코드 사본·압축 및 비압축 raw·분석 증거 해시를 검사한다. 다른 내용으로 바뀌면 중단하며 기존 결과를 자동 갱신하지 않는다.
 
 ```powershell
-python -m unittest test_algorithm_decision_20261030 -v
+python scripts/test_suites.py python test_algorithm_decision_20261030 -v
 python -m simulation.algorithm_decision_20261030 --output outputs/algorithm_decision_20261030/NEW-REPORT
 ```
 

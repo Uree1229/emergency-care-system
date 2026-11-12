@@ -115,7 +115,7 @@ python -m server.team_demo --db data/team-lan-demo.db --host 0.0.0.0 --port 1802
 자동 검사:
 
 ```powershell
-python -m unittest test_team_demo test_server test_conversations test_transport_review test_transport_reassignment test_patient_commit_bridge -q
+python scripts/test_suites.py python test_team_demo test_server test_conversations test_transport_review test_transport_reassignment test_patient_commit_bridge -q
 ```
 
 실제 기관명·주소·진료과와 공개 관측값은 **2026-10-13 수집 스냅샷**이며 실시간 정보가 아닙니다. 공개 병상 수는 운영 총량·현재 당직·환자별 수용 확답을 뜻하지 않습니다. 이동시간은 거리 기반 추정이고, 환자 상태·수용 응답·제한·채팅은 가상 입력입니다. 이 테스트는 연결 기능 검증이며 임상 효과나 알고리즘 성능 검증이 아닙니다.

@@ -7,7 +7,7 @@
 저장소 루트에서 프로젝트의 Python 환경과 고정 의존성을 준비합니다. 새 가상 시연 DB 경로를 사용하면 초기 합성 병원 10곳이 생성됩니다. 기존 공통 DB를 지정하면 기록과 자원 관측시각을 보존하며 재사용합니다.
 
 ```powershell
-python -m pip install -r requirements-server.txt
+python -m pip install -r requirements/requirements-server.txt
 python -B -m server.flow_console_runtime --db data/flow-console-demo.db --mode full --port 18035 --run-dir .codex-build/flow-console/run-001
 ```
 
@@ -32,8 +32,8 @@ python -B -m server.flow_console_runtime --db data/flow-console-demo.db --mode f
 ## 검증
 
 ```powershell
-python -B -m unittest test_flow_console
-node --test test_paramedic_flow_console_state.mjs test_paramedic_flow_console_entry.mjs test_paramedic_draft_handoff.mjs
+python -B scripts/test_suites.py python test_flow_console
+node --test tests/browser/test_paramedic_flow_console_state.mjs tests/browser/test_paramedic_flow_console_entry.mjs tests/browser/test_paramedic_draft_handoff.mjs
 ```
 
 읽기 전용 DB 보존, 선택 범위, 잘못된 쿼리, 기존 처리기 위임·실행기 종료, 지연 응답 취소, 초안 소유자·버전과 미전송 문장 보존을 검사합니다. 별도 합성 DB에서 full 실행 시작·관제 API·세 역할 화면의 HTTP 응답·정상 종료를 확인했습니다. 같은 기능 소스의 별도 합성 실행본에서 Chromium UI로 가상 환자 등록 → 세 병원 문의 → 병원 수용 → 담당자 목적지 확정 → 양쪽 메시지 → 출발 → 병원 도착 흐름과 자동 갱신을 확인했습니다. 이는 실제 마이크·기기·소음·임상 사용성 평가를 대신하지 않습니다.

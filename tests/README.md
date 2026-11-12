@@ -1,13 +1,19 @@
 # 테스트 폴더
 
-저장소 루트에서 `python scripts/test_suites.py core`를 실행하면 CI와 같은 제품 회귀 묶음을 확인할 수 있습니다. 묶음별 대상과 실행 환경은 [테스트 안내](../docs/TESTING.md)에 있습니다.
+| 경로 | 대상 |
+|---|---|
+| `core/` | 공통 서버, 화면과 API 연결, 음성·이송, 팀 배포, 로컬 자료 검증 |
+| `browser/` | Node로 실행하는 구급대·환자·병원·지도 화면 테스트 |
+| `research/` | 문의 정책과 배정 알고리즘, 재생 및 실험 검증 |
+| `research/inquiry_lab/` | 병원 문의 정책의 독립 실험 테스트 |
 
-`tests/research/inquiry_lab/`에는 병원 문의 정책 실험의 Python 테스트를 모았습니다. 전체 테스트 실행기는 루트와 이 폴더를 모두 탐색합니다. 모듈 이름과 연구 묶음에서의 분류는 위치를 옮기기 전과 같습니다.
-
-문의 정책 모듈 하나만 확인할 때는 저장소 루트에서 실행합니다.
+저장소 루트에서 아래 명령을 실행합니다.
 
 ```powershell
-python -m unittest discover -s tests/research/inquiry_lab -p test_inquiry_lab_batch_policy.py -v
+python scripts/test_suites.py list
+python scripts/test_suites.py core
+python scripts/test_suites.py python test_inquiry_lab_batch_policy -v
+node --test tests/browser/test_hospital_operations.mjs
 ```
 
-루트의 테스트는 제품·화면 검증, 팀 배포 묶음, 원본 경로가 연구 재현에 필요한 검사에 사용합니다.
+로컬 자료나 당시 소스가 필요한 연구 검사의 실행 조건은 [테스트 안내](../docs/TESTING.md)에 있습니다.

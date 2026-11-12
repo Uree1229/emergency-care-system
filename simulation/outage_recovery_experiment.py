@@ -28,8 +28,8 @@ LOCK_PATH=ROOT/'config/outage_recovery_lock_20261015.json'
 SOURCE_FILES=tuple(sorted(set(PREVIOUS_SOURCE_FILES)|{
     'simulation/outage_recovery_engine.py','simulation/outage_recovery_experiment.py',
     'simulation/outage_recovery_scenarios.py','simulation/outage_recovery_audit.py',
-    'test_outage_recovery_engine.py','test_outage_recovery_experiment.py',
-    'test_outage_recovery_scenarios.py','test_outage_recovery_audit.py',
+    'tests/research/test_outage_recovery_engine.py','tests/research/test_outage_recovery_experiment.py',
+    'tests/research/test_outage_recovery_scenarios.py','tests/research/test_outage_recovery_audit.py',
 }))
 SETTINGS={'stale_after_minutes': 10,
  'inquiry_policy': 'fixed_3_first_acceptance_extra_wait_2_minutes',

@@ -140,9 +140,9 @@ D01/D02에 잡음 처리나 명령 정책 변경을 섞지 않는다.
 기본 검증 명령(저장소 루트):
 python scripts/test_suites.py list
 python scripts/test_suites.py core
-node --test test_paramedic_voice_client.mjs test_paramedic_main_workflow.mjs test_patient_workflow_state.mjs test_patient_workflow_view.mjs test_patient_workflow_transport_change_retry.mjs
-node --test test_paramedic_main_recovery_20261031.mjs test_paramedic_local_audio_page.mjs test_paramedic_quick_page.mjs test_paramedic_noise_suppression.mjs test_paramedic_noise_compare_page.mjs
-python -m unittest test_server test_voice_api test_work_activity test_backend_measurement_api -v
+node --test tests/browser/test_paramedic_voice_client.mjs tests/browser/test_paramedic_main_workflow.mjs tests/browser/test_patient_workflow_state.mjs tests/browser/test_patient_workflow_view.mjs tests/browser/test_patient_workflow_transport_change_retry.mjs
+node --test tests/browser/test_paramedic_main_recovery_20261031.mjs tests/browser/test_paramedic_local_audio_page.mjs tests/browser/test_paramedic_quick_page.mjs tests/browser/test_paramedic_noise_suppression.mjs tests/browser/test_paramedic_noise_compare_page.mjs
+python scripts/test_suites.py python test_server test_voice_api test_work_activity test_backend_measurement_api -v
 
 core는 Python 3.12.14, SQLite 3.53.1, OR-Tools 9.15.6755 고정 환경이다.
 Node 경로가 필요하면 core --node <실행파일> 또는 TEST_NODE를 사용한다.

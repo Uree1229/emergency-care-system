@@ -129,8 +129,8 @@ python -m server.chat_demo
 `conversations`, `conversation_hospital_sessions`, `chat_messages`를 추가했다. 병원 참여는 시각만으로 나누지 않고 사건 ID 경계로 구분해 같은 초의 재배정도 처리한다. 메시지는 저장 당시의 사건 ID를 순서 기준으로 보관한다.
 
 ```powershell
-python -m unittest test_conversations test_server test_planning -v
-node --test test_hospital_chat_recovery.mjs test_hospital_question_drafts.mjs
+python scripts/test_suites.py python test_conversations test_server test_planning -v
+node --test tests/browser/test_hospital_chat_recovery.mjs tests/browser/test_hospital_question_drafts.mjs
 ```
 
 Python 테스트는 임시 가상 DB를 사용한다. 병원 참여 시점, 재배정 전후 조회 범위, 동시 재전송, 기록 페이지 처리, 기존 DB 확장, 업무 상태와 배정 버전 유지, HTTP 경로를 검증한다.

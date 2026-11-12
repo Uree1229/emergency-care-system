@@ -1,0 +1,3 @@
+# Exercise the real teammate FastAPI routes as part of core, with isolated data.
+-r ../emergency-app/requirements.txt
+httpx==0.28.1

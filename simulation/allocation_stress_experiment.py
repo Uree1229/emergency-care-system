@@ -37,7 +37,7 @@ SETTINGS = dict(at=10, r2_lambda=15., h1_max_moves=2048, budgets_seconds=list(BU
                 budget_scope='optional model/search work; total observable wall time reported separately')
 SOURCE_FILES = ('simulation/allocation_stress_scenarios.py', 'simulation/allocation_stress_experiment.py',
                 'simulation/heuristic_assignment.py', 'simulation/allocation_stress_audit.py',
-                'test_allocation_stress.py', 'test_allocation_stress_audit.py', 'test_heuristic_assignment.py',
+                'tests/research/test_allocation_stress.py', 'tests/research/test_allocation_stress_audit.py', 'tests/research/test_heuristic_assignment.py',
                 'simulation/allocation_benchmark.py', 'simulation/allocation_scenarios.py',
                 'simulation/cp_sat_assignment.py', 'simulation/sim.py', 'simulation/priority_assignment.py')
 LIMITATIONS = [

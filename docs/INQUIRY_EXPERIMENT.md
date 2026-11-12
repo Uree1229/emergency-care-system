@@ -69,7 +69,7 @@
 ```powershell
 python -m server.inquiry_experiment --output simulation_results/server_inquiry_comparison_new
 python -m server.inquiry_experiment_audit simulation_results/server_inquiry_comparison_new.json --output simulation_results/server_inquiry_comparison_new_audit.json
-python -m unittest test_server_inquiry_experiment -v
+python scripts/test_suites.py python test_server_inquiry_experiment -v
 ```
 
 기존 결과 파일이 있으면 실행기가 덮어쓰기를 거부한다. 임시 DB만 사용하며 운영·시연 DB와 외부 API에는 접근하지 않는다. 구현은 `server/inquiry_experiment.py`, 입력 생성은 `server/inquiry_experiment_scenarios.py`다. 이 신규 비교 테스트 17개와 기존 회귀를 포함한 154개가 통과했다.

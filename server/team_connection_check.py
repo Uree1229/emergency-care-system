@@ -18,10 +18,12 @@ import time
 import unittest
 
 from . import allocation_baseline, team_runtime_profile
+from .team_release_info import SERVER_REQUIREMENTS
 
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = 'team-connection-check-20261030-v1'
 TEST_MODULES = ('test_team_connection_races', 'test_team_connection_recovery')
+TEST_DIRECTORY = 'tests/core'
 SOURCE_FILES = tuple(sorted(set(allocation_baseline.SOURCE_PATHS) | {
     'server/team_connection_check.py', 'server/team_runtime.py', 'server/team_runtime_profile.py',
     'server/app.py', 'server/recommendation_view.py', 'server/allocation_input_review.py',
@@ -30,8 +32,8 @@ SOURCE_FILES = tuple(sorted(set(allocation_baseline.SOURCE_PATHS) | {
     'server/voice_followup.py', 'server/voice_commands.py', 'server/voice_lexicon.py',
     'server/voice_treatment_review.py', 'config/voice_commands.json',
     'config/paramedic_voice_terms.json', 'config/server_allocation_baseline_20261030.json',
-    'config/team_runtime_profile_20261030.json', 'requirements-server.txt',
-    *(name+'.py' for name in TEST_MODULES),
+    'config/team_runtime_profile_20261030.json', SERVER_REQUIREMENTS,
+    *(f'{TEST_DIRECTORY}/{name}.py' for name in TEST_MODULES),
 }))
 CONTRACT = [
     dict(case='uncertain_voice_submit', request='POST /api/voice/sessions/{sid}/submit',
@@ -62,6 +64,14 @@ def fingerprints():
 def collect_evidence():
     return {name:deepcopy(getattr(sys.modules.get(name), 'CONNECTION_EVIDENCE', {}))
             for name in TEST_MODULES}
+
+
+def load_suite():
+    loader = unittest.TestLoader()
+    return unittest.TestSuite(
+        loader.discover(str(ROOT/TEST_DIRECTORY), pattern=name+'.py')
+        for name in TEST_MODULES
+    )
 
 
 def _ids(suite):
@@ -193,7 +203,7 @@ def run(output):
         with target.open('xb') as handle:
             handle.write(content)
         snapshot_hashes[name] = hashlib.sha256(content).hexdigest()
-    suite = unittest.defaultTestLoader.loadTestsFromNames(TEST_MODULES)
+    suite = load_suite()
     planned = list(_ids(suite))
     protocol = dict(revision=REVISION, modules=list(TEST_MODULES), planned_tests=planned,
         profile=profile, source_hashes=before, actual_speech_count=0, actual_hospital_requests=0,

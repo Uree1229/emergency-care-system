@@ -54,7 +54,7 @@ G3는 G2의 실험 가중치 교환 목적을 바꾼 **별도 정책 후보**다
 ## 5 실행 및 검증
 
 ```powershell
-python -m unittest test_protected_assignment_20261029 test_protected_replay_20261029 -q
+python scripts/test_suites.py python test_protected_assignment_20261029 test_protected_replay_20261029 -q
 python -m simulation.protected_replay_20261029 --input outputs/professor_samples_20261029/inputs/S02.json --output outputs/g3-scarce-example.json
 ```
 
@@ -84,7 +84,7 @@ G4의 실행 가능 조건·보호 제약·목적함수는 G3와 같다. 바꾼 
 대형5건의 목표 배정 수15·14·15·14·15명을 현재 보호 조건을 유지하며 모두 회복했다. 원85분 사례 P08도15분 도착을 유지했다. 이는 알려진 사례의 회귀 복구이며 새 검증 효과와 구분한다. P12의 우선 배정 이익 손실도 그대로 별도 평가한다.
 
 ```powershell
-python -m unittest test_protected_augment_20261029 test_protected_augment_replay_20261029 -q
+python scripts/test_suites.py python test_protected_augment_20261029 test_protected_augment_replay_20261029 -q
 python -m simulation.protected_augment_replay_20261029 --input outputs/professor_samples_20261029/inputs/S03.json --output outputs/g4-large-example.json
 ```
 
@@ -173,7 +173,7 @@ P08 복구는 P12에게 큰 지연을 되돌린다는 비용이 있다. 모든 �
 G4는 현재 수용 기회를 보호하는 연구 후보로 추가했다. 기존 G2의 가중치 우선 교환과 목표가 다르다. 현재 입력에서의 보호·동수 이동 비악화는 검사하지만, 전체 시간축의 R1/G2 비악화·임상 우선순위·전역 최적성을 보장하지 않는다. 운영 기본값은 자동 교체하지 않았다.
 
 ```powershell
-python -m unittest test_protected_augment_20261029 test_protected_augment_replay_20261029 -q
+python scripts/test_suites.py python test_protected_augment_20261029 test_protected_augment_replay_20261029 -q
 python -m simulation.protected_augment_replay_20261029 --input outputs/professor_samples_20261029/inputs/S03.json --output outputs/g4-large-example.json
 ```
 

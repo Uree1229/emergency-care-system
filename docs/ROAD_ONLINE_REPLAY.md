@@ -53,7 +53,7 @@
 
 타일은 기본 브라우저 캐시와 Referer를 사용하며 일괄 수집·사전 다운로드 기능은 없다. [OpenStreetMap 타일 이용 정책](https://operations.osmfoundation.org/policies/tiles/).
 
-지도 좌표 계산 시험은 `node --test test_viewer_basemap.cjs`로 실행한다. 2026-10-14 확인에서 관련 Python 61개와 지도 계산 6개가 통과했고, 실제 지도 표시·배경 전환·시간 재생·합성/실제 사례 전환·새 3사례·연결 실패·390px 화면의 브라우저 검사 10개를 통과했다. 화면 검사는 `.codex-build/road-basemap-20261014/qa.json`에 있다.
+지도 좌표 계산 시험은 `node --test tests/browser/test_viewer_basemap.cjs`로 실행한다. 2026-10-14 확인에서 관련 Python 61개와 지도 계산 6개가 통과했고, 실제 지도 표시·배경 전환·시간 재생·합성/실제 사례 전환·새 3사례·연결 실패·390px 화면의 브라우저 검사 10개를 통과했다. 화면 검사는 `.codex-build/road-basemap-20261014/qa.json`에 있다.
 
 카카오 자동차 길찾기는 **API 조회 시점의 일반 자동차 예상시간**을 사용한다. 시뮬레이션의 경과시간에 맞춰 실제 교통을 갱신하거나, 실제 미래 도착시간·구급차 우선주행 시간을 예측한 것이 아니다. OSRM도 실시간 교통·구급차 우선주행 자료로 사용하지 않는다. 병원 좌표와 스냅된 도로 사이 접속은 시속 10km로 추정하며 별도 점선 연결구간으로 남긴다. 구간 내 위치는 누적 이동거리 비례로 보간하고 이동시간은 분 단위로 올림한다. 실제 구간별 신호·속도를 재현하는 모델은 아니다.
 
@@ -91,7 +91,7 @@ python -m simulation.road_online_replay --provider osrm --offline
 카카오 캐시는 앱의 지도 재생 속도와 중복 호출 방지를 위한 로컬 자료이며 `.codex-build/kakao-route-cache`에 둔다. 기본 만료는 30분이고, 새 생성 시 만료 자료는 다시 조회한다. `--offline` 생성도 만료·손상·누락 캐시를 거부한다. 저장된 시연 JSON을 브라우저에서 다시 보는 것은 새 길찾기 요청이 아니라 **기록된 조회시점 자료의 재생**이다. 각 구간의 `fetched_at`을 남기며 이를 현재 교통 안내로 쓰지 않는다. 카카오 운영정책의 캐시 목적·최신 유지 제한에 따라 무기한 경로 데이터베이스나 재배포용 데이터셋으로 사용하지 않는다. [카카오 운영정책](https://developers.kakao.com/terms/latest/ko/site-policies)
 
 ```powershell
-python -m unittest test_kakao_routes test_road_online_replay -v
+python scripts/test_suites.py python test_kakao_routes test_road_online_replay -v
 ```
 
 단위 시험은 꺾인 도로와 실제 직선거리 순서가 다른 예상시간을 주어 배정 결과 자체가 바뀌는지, 출동시각에 도로시간이 반영되는지, 재배정 전후 경로가 끊기지 않는지, 도착 평가 후 전원이 발생하는지, 미래 정보가 판단 입력에 없는지, 도로 실패 시 기존 결과를 보존하는지 확인한다. 단위 시험의 도로는 네트워크 없는 시험용 자료다.

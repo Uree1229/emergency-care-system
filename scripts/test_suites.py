@@ -11,6 +11,7 @@ config/research_expected_failures_20261101.json are reported but do not fail the
 
     python scripts/test_suites.py list
     python scripts/test_suites.py core [--node PATH]
+    python scripts/test_suites.py python test_server test_inquiry_policies
 """
 import argparse
 import json
@@ -19,25 +20,17 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 import unittest
+from contextlib import nullcontext
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-INQUIRY_LAB_TESTS = ROOT / 'tests' / 'research' / 'inquiry_lab'
-
-# Product-facing modules. New tests named with these prefixes join core (and CI) automatically.
-CORE_PREFIXES = (
-    'test_server', 'test_voice_', 'test_team_', 'test_paramedic', 'test_patient', 'test_hospital',
-    'test_conversations', 'test_important_events', 'test_enroute_', 'test_data_provenance',
-    'test_call_', 'test_backend_measurement', 'test_external_arrivals', 'test_accounting_reconciliation',
-    'test_arrival_accounting', 'test_recovery_rehearsal', 'test_flow_', 'test_speech_eval',
-    'test_usability_', 'test_viewer_server', 'test_transport_review', 'test_transport_reassignment',
-    'test_treatment_', 'test_solver_improved', 'test_planning', 'test_datasets', 'test_public_data',
-    'test_recommendation_contract', 'test_system_status', 'test_inquiry_workflow',
-    'test_allocation_input_review', 'test_allocation_baseline', 'test_audio_noise_benchmark',
-    'test_work_activity', 'test_resource_accounting', 'test_demo_casebook', 'test_source_hash',
-    'test_noise_pair_asr',
-)
+CORE_TESTS = ROOT / 'tests' / 'core'
+RESEARCH_TESTS = ROOT / 'tests' / 'research'
+INQUIRY_LAB_TESTS = RESEARCH_TESTS / 'inquiry_lab'
+BROWSER_TESTS = ROOT / 'tests' / 'browser'
+PYTHON_TEST_DIRS = (CORE_TESTS, RESEARCH_TESTS, INQUIRY_LAB_TESTS)
 # Core tests that read git-ignored data; they fail on a fresh clone by construction.
 LOCAL_DATA = {'test_server_replay_adapter', 'test_server_replay_regression', 'test_demo_casebook_20261030'}
 # Node files that a Python harness launches with a loopback fixture; not runnable alone.
@@ -49,43 +42,47 @@ API_KEYS = ('KAKAO_REST_KEY', 'DATA_GO_KR_KEY', 'AZURE_SPEECH_KEY')
 
 
 def python_modules():
-    names = {p.stem for p in ROOT.glob('test_*.py')}
-    for path in INQUIRY_LAB_TESTS.glob('test_*.py'):
-        if path.stem in names:
-            raise ValueError(f'Duplicate Python test module: {path.stem}')
-        names.add(path.stem)
-    return sorted(names)
+    locations = {}
+    for directory in PYTHON_TEST_DIRS:
+        for path in directory.glob('test_*.py'):
+            if path.stem in locations:
+                raise ValueError(f'Duplicate Python test module: {path.stem}')
+            locations[path.stem] = directory
+    return locations
 
 
 def node_files():
-    return sorted(p.name for p in ROOT.iterdir() if p.name.startswith('test_') and p.suffix in ('.mjs', '.cjs'))
+    return sorted(path.relative_to(ROOT).as_posix() for path in BROWSER_TESTS.glob('test_*')
+                  if path.is_file() and path.suffix in ('.mjs', '.cjs'))
 
 
 def classify():
     core, local_data, research = [], [], []
-    for name in python_modules():
+    for name, directory in sorted(python_modules().items()):
         if name in LOCAL_DATA:
             local_data.append(name)
-        elif name.startswith(CORE_PREFIXES):
+        elif directory == CORE_TESTS:
             core.append(name)
         else:
             research.append(name)
-    nodes = [n for n in node_files() if n not in HARNESS_ONLY]
+    nodes = [name for name in node_files() if Path(name).name not in HARNESS_ONLY]
     return dict(core=core, local_data=local_data, research=research, node=nodes)
 
 
-def run_python(names):
+def run_python(names, *, stream=None, verbosity=0):
     """Load each module separately so one import-time failure does not stop the rest."""
     summary = dict(modules=len(names), tests=0, failures=0, errors=0, skipped=0, failing={})
-    with open(os.devnull, 'w') as sink:
+    with (nullcontext(stream) if stream is not None else open(os.devnull, 'w')) as sink:
         for name in names:
             try:
                 suite = unittest.defaultTestLoader.loadTestsFromName(name)
             except Exception as exc:
+                if stream is not None:
+                    traceback.print_exc(file=sink)
                 summary['errors'] += 1
                 summary['failing'][name] = f'import: {type(exc).__name__}: {str(exc)[:160]}'
                 continue
-            result = unittest.TextTestRunner(stream=sink, verbosity=0).run(suite)
+            result = unittest.TextTestRunner(stream=sink, verbosity=verbosity).run(suite)
             summary['tests'] += result.testsRun
             summary['failures'] += len(result.failures)
             summary['errors'] += len(result.errors)
@@ -125,24 +122,43 @@ def run_node(files, node):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('suite', choices=('list', 'core', 'local-data', 'research', 'all'))
+    parser.add_argument('suite', choices=('list', 'core', 'local-data', 'research', 'all', 'python'))
+    parser.add_argument('modules', nargs='*', metavar='MODULE', help='Python test modules or qualified test names')
     parser.add_argument('--node', help='node executable for the UI tests (default: TEST_NODE or PATH)')
-    args = parser.parse_args(argv)
+    verbosity = parser.add_mutually_exclusive_group()
+    verbosity.add_argument('-v', '--verbose', dest='verbosity', action='store_const', const=2)
+    verbosity.add_argument('-q', '--quiet', dest='verbosity', action='store_const', const=0)
+    args = parser.parse_intermixed_args(argv)
     groups = classify()
+    if args.suite == 'python':
+        if not args.modules:
+            parser.error('the python suite requires at least one module name')
+        known = set(groups['core'] + groups['local_data'] + groups['research'])
+        unknown = sorted({name for name in args.modules if name.split('.', 1)[0] not in known})
+        if unknown:
+            parser.error(f'unknown Python test modules: {", ".join(unknown)}')
+    elif args.modules or args.verbosity is not None:
+        parser.error('module names and verbosity options require the python suite')
     if args.suite == 'list':
         print(json.dumps({k: dict(count=len(v), names=v) for k, v in groups.items()}, ensure_ascii=False, indent=1))
         return 0
     for key in API_KEYS:
         os.environ.pop(key, None)
-    sys.path[:0] = [str(ROOT), str(ROOT / '.solver_deps'), str(INQUIRY_LAB_TESTS)]
+    sys.path[:0] = [str(path) for path in (ROOT, ROOT / '.solver_deps', *PYTHON_TEST_DIRS)]
     os.chdir(ROOT)
     started = time.time()
     report = dict(suite=args.suite, environment=pinned_environment())
     if args.suite in ('core', 'all'):
         report['node'] = run_node(groups['node'], args.node)
-    names = dict(core=groups['core'], research=groups['research'], all=groups['core'] + groups['local_data'] + groups['research'])
-    report['python'] = run_python(names.get(args.suite, groups['local_data']))
-    expected = set(json.loads(EXPECTED_FAILURES.read_text(encoding='utf-8'))['modules'])
+    names = dict(core=groups['core'], local_data=groups['local_data'], research=groups['research'],
+                 all=groups['core'] + groups['local_data'] + groups['research'], python=args.modules)
+    selected = names[args.suite.replace('-', '_')]
+    if args.suite == 'python':
+        report['python'] = run_python(selected, stream=sys.stderr, verbosity=1 if args.verbosity is None else args.verbosity)
+        expected = set()
+    else:
+        report['python'] = run_python(selected)
+        expected = set(json.loads(EXPECTED_FAILURES.read_text(encoding='utf-8'))['modules'])
     unexpected = {k: v for k, v in report['python']['failing'].items() if k not in expected}
     report['expected_failures'] = len(set(report['python']['failing']) & expected)
     report['unexpected_failures'] = sorted(unexpected)

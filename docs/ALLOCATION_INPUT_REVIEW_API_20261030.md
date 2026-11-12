@@ -154,7 +154,7 @@ GET /api/patients/{patient_id}/input-review
 집중 검증 **38개 통과**: 순수 판정 20개 + 서버 통합 13개 + 실제 로컬 HTTP 5개. 가상 테스트 데이터로 검증했으며 실제 병원에 문의를 전송하지 않았다.
 
 ```powershell
-python -m unittest test_allocation_input_review test_allocation_input_review_integration test_allocation_input_review_http -v
+python scripts/test_suites.py python test_allocation_input_review test_allocation_input_review_integration test_allocation_input_review_http -v
 ```
 
 검증 범위에는 최신 값 우선, 명시적 빈 활력징후, 현재 주호소별 관련성, 선택 항목만 있을 때 비차단, 질문별 확인 불가, 그룹 관찰시각, 원문·소유자 정보 미노출, 읽기 요청의 DB 무변경, 대기 중 추천 표시, 선택 미측정 항목이 있는 기존 수용 확정 유지가 포함된다. 이 수치는 전체 프로젝트 테스트 또는 임상 효과 검증 결과를 의미하지 않는다.

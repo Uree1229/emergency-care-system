@@ -66,7 +66,7 @@ python -m simulation.experiment trace --seed 3          # 같은 사건을 두 �
 
 `map_replay.py`는 기존 문의·응답·선택 엔진을 재사용하고 119 출동, 현장 도착·처치, 이동 궤적, 도착 후 전원 절차와 합성 치료 점유 종료 기록을 추가한다. `viewer/`는 그 기록을 공통 시간축으로 재생한다. 기존 `simulation.experiment`의 대량 비교 결과와는 별도의 시연 입력이다.
 
-저장소 루트의 **`RUN_MAP_SIMULATION.cmd`**를 실행하거나 다음 명령을 사용한다. Python 표준 라이브러리만 필요하다.
+저장소 루트에서 **`.\scripts\RUN_MAP_SIMULATION.cmd`**를 실행하거나 다음 명령을 사용한다. Python 표준 라이브러리만 필요하다.
 
 ```powershell
 python -m simulation.viewer_server --reuse-data
@@ -132,7 +132,7 @@ python -m simulation.map_replay --scenario path/to/scenarios.json --dispatch-tim
 python -m simulation.map_replay --routing synthetic --output simulation/viewer/synthetic_replay.json
 
 # 재생 관련 불변조건과 기존 시뮬레이터 회귀 검사
-python -m unittest test_map_replay test_map_road_routes test_road_routes test_simulation -v
+python scripts/test_suites.py python test_map_replay test_map_road_routes test_road_routes test_simulation -v
 ```
 
 공개 DB가 없는 다른 PC에서는 생성 명령 대신 저장된 JSON을 `--reuse-data`로 재생한다. 외부 지도·API 호출 없이 재생 가능하며, 실제 병원 웹·모바일 화면의 입력과 자동 동기화되지는 않는다.
@@ -165,7 +165,7 @@ python -m unittest test_map_replay test_map_road_routes test_road_routes test_si
 python -m simulation.replay_experiment --seeds 20 --offline --replay-output simulation_results/map_comparison_replays.json
 
 # 관련 불변조건·회귀 검사
-python -m unittest test_simulation test_map_replay test_map_road_routes test_road_routes test_viewer_server test_multi_scenarios test_replay_experiment test_replay_observability -v
+python scripts/test_suites.py python test_simulation test_map_replay test_map_road_routes test_road_routes test_viewer_server test_multi_scenarios test_replay_experiment test_replay_observability -v
 ```
 
 [실험 보고서](../simulation_results/map_comparison.md)와 JSON에 20개 seed × 4조건 × (규칙 4개 + 문의 정책 6개), 총 800개 분기를 저장한다. 규칙 비교와 문의 정책 비교를 분리한다. 문의 정책은 R1을 고정하고 `k=1/3/5`, `wait=0/2`를 비교하며 탐색 범위 확대 시점 조정은 아직 포함하지 않았다.
@@ -192,7 +192,7 @@ python -m simulation.workload_experiment --routing synthetic
 python -m simulation.map_replay --offline --experiment-replays simulation_results/map_comparison_replays.json --synthetic-experiment-replays simulation_results/workload_validation_replays.json
 
 # 새 메커니즘·통합·정보 누설·검증 집합 분리 검사
-python -m unittest test_inquiry_queue test_workload_scenarios test_workload_integration test_condition_change_metrics test_workload_experiment
+python scripts/test_suites.py python test_inquiry_queue test_workload_scenarios test_workload_integration test_condition_change_metrics test_workload_experiment
 ```
 
 결과는 [문의부하·조건변경 보고서](../simulation_results/workload_validation.md)와 JSON에 저장한다. 개발 입력과 검증 입력은 환자 수·발생 간격·서비스 소요·자원량·배경 업무가 다르며 seed도 겹치지 않는다. 기관과 현장 좌표는 공유한다. 새 반복 실험은 기본적으로 직선거리 기반 이동 추정을 사용하며, 기존 지도 사례의 OSRM 도로 실험과 구분한다. 지도에 추가하는 예시는 측정 당시와 같은 이동 모드로 다시 생성한다.
@@ -217,7 +217,7 @@ python -m simulation.adaptive_experiment --routing synthetic
 # 기본 도로 사례와 앞선 업무량 실험을 보존하고 관측형 문의 대조 두 건을 추가
 python -m simulation.map_replay --offline --experiment-replays simulation_results/map_comparison_replays.json --synthetic-experiment-replays simulation_results/adaptive_inquiry_replays.json --synthetic-experiment-replays simulation_results/workload_validation_replays.json
 
-python -m unittest test_adaptive_inquiry test_adaptive_integration test_adaptive_experiment
+python scripts/test_suites.py python test_adaptive_inquiry test_adaptive_integration test_adaptive_experiment
 ```
 
 결과는 [관측형 문의 검증 보고서](../simulation_results/adaptive_inquiry.md), 상세 기록은 같은 이름의 JSON에 저장한다. 지도 예시는 성과를 보고 고르지 않고 첫 검증 seed의 충분 자원·무응답 0·담당 1명/2명으로 고정한다. 재생 시각까지의 문의 한도·이유·관측 근거를 보여 주며, 검증 전체의 대표 효과와 구분한다. `adaptive_mean_limit`은 정책이 요청한 한도의 평균이며 실제 처리한 문의 수나 실제 동시 문의 수가 아니다. 이 규칙도 비교 대상인 휴리스틱으로, 최적해를 보장하지 않는다.
@@ -237,7 +237,7 @@ python -m simulation.observed_experiment --development-only
 # 저장된 개발 결과의 설정·coverage를 검사하고, 선택을 유지한 채 검증만 실행
 python -m simulation.observed_experiment --development-input simulation_results/observed_inquiry_development.json
 # 개발부터 새로 실행하려면 --development-input 없이 실행
-python -m unittest test_observed_inquiry test_observed_integration test_observed_scenarios test_observed_experiment test_observed_audit
+python scripts/test_suites.py python test_observed_inquiry test_observed_integration test_observed_scenarios test_observed_experiment test_observed_audit
 python -m simulation.observed_audit
 ```
 
@@ -258,7 +258,7 @@ python -m simulation.priority_experiment --development-only
 python -m simulation.priority_experiment --development-input simulation_results/priority_protection_corrected_development.json
 python -m simulation.map_replay --offline --experiment-replays simulation_results/map_comparison_replays.json --synthetic-experiment-replays simulation_results/priority_protection_corrected_replays.json --synthetic-experiment-replays simulation_results/observed_inquiry_replays.json --synthetic-experiment-replays simulation_results/adaptive_inquiry_replays.json --synthetic-experiment-replays simulation_results/workload_validation_replays.json
 python -m simulation.priority_audit
-python -m unittest test_priority_assignment test_priority_scenarios test_priority_integration test_priority_experiment test_priority_audit
+python scripts/test_suites.py python test_priority_assignment test_priority_scenarios test_priority_integration test_priority_experiment test_priority_audit
 ```
 
 위 명령은 완료한 실험의 재현이다. 정책 수정 후에는 새 파일명과 미사용 검증 입력이 필요하다. 검증1001~1020·2001~2020·3001~3020·5001~5020 및 중단4001~4020은 재사용하지 않는다. [전체 결과](../simulation_results/priority_protection_corrected.md), 독립 감사(`simulation_results/priority_protection_corrected_audit.json`), [핸드오프](../docs/PROJECT_STATUS.md)에 군별 분모·공통 환자 구간·악화 조건을 남겼다. 관련301개 테스트와 전체 지도 실제 HTTP 재생·정지·필터·미래정보 차단·화면 검사를 통과했다. 실제 의료 효과나 현행 119 체계 대비 개선을 입증한 결과는 아니다.
@@ -270,12 +270,12 @@ python -m unittest test_priority_assignment test_priority_scenarios test_priorit
 ```powershell
 python -m simulation.server_replay_adapter
 python -m simulation.viewer_server --reuse-data --no-browser --port 18005
-python -m unittest test_server_replay_adapter test_server_replay_regression test_map_replay test_viewer_server
+python scripts/test_suites.py python test_server_replay_adapter test_server_replay_regression test_map_replay test_viewer_server
 ```
 
 `http://127.0.0.1:18005/?scenario=server-simultaneous_w1-7101`로 바로 연다. 변환기는 원본 서버 보고서와 기존 `map_replay_data.json`을 수정하지 않는다. 서로 다른 시각에 발생하는 환자의 예상 도착은 환자 생성시각+환자별 예상 도착 경과시간으로 공통 시각에 맞춘다. 실제119출동·현장처치·치료·전원은 원본에 없어 서버 사례에 만들지 않는다.
 
-`python -m simulation.server_replay_adapter`는 서버 V3 별도 seed 검증 기록을 재계산 없이 지도 재생 형식(`simulation/viewer/server_replay_data.json`)으로 바꾼다. 뷰어는 이 파일이 있으면 기존 사례 뒤에 덧붙인다. 유형마다 가장 낮은 검증 seed 1개를 결과와 무관하게 고르며, 고정3·V2·V3를 같은 사례에서 나란히 재생한다. 병원·환자·이동시간은 서버 실험의 합성값이고, 치료·전원은 기록하지 않는다. 변환 일치 검사는 `python -m unittest test_server_replay_adapter`.
+`python -m simulation.server_replay_adapter`는 서버 V3 별도 seed 검증 기록을 재계산 없이 지도 재생 형식(`simulation/viewer/server_replay_data.json`)으로 바꾼다. 뷰어는 이 파일이 있으면 기존 사례 뒤에 덧붙인다. 유형마다 가장 낮은 검증 seed 1개를 결과와 무관하게 고르며, 고정3·V2·V3를 같은 사례에서 나란히 재생한다. 병원·환자·이동시간은 서버 실험의 합성값이고, 치료·전원은 기록하지 않는다. 변환 일치 검사는 `python scripts/test_suites.py python test_server_replay_adapter`.
 
 ## 실제 지도 배경과 5개 정책 도로 시연 (2026-10-14)
 

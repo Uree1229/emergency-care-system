@@ -1,7 +1,7 @@
 """공공 의료 API 실응답 수집과 필드 목록 작성 (데이터 조사 문서 2절의 완료 조건 1, 2, 4, 5).
 
 원본 필드명을 추측해 확정하지 않기 위해, 실제 응답의 XML/JSON 항목을 그대로 세어
-data/api_probe/에 남긴다. 그 결과를 보고 api_field_mapping.md를 채운다.
+data/api_probe/에 남긴다. 그 결과를 보고 docs/api/api_field_mapping.md를 채운다.
 
 사용:
     set DATA_GO_KR_KEY=발급받은_일반_인증키(Decoding)

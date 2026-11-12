@@ -138,7 +138,7 @@ def source_hashes():
                 else:
                     pending.extend(base/(alias.name+'.py') for alias in node.names)
     seen.add(PROTOCOL)
-    seen.add(ROOT/'test_final_evaluation_20261030.py')
+    seen.add(ROOT/'tests/research/test_final_evaluation_20261030.py')
     return {p.relative_to(ROOT).as_posix(): file_sha(p) for p in sorted(seen)}
 
 

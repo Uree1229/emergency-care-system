@@ -217,7 +217,7 @@ def source_hashes():
             if node.module:pending.append(base.joinpath(*node.module.split('.')).with_suffix('.py'))
             else:pending.extend(base/(alias.name+'.py') for alias in node.names)
     for name in ('config/waiting_protocol_20261030.json','config/final_evaluation_protocol_20261030.json',
-                 'test_waiting_experiment_20261030.py','test_waiting_assignment_20261030.py','test_waiting_audit_20261030.py'):
+                 'tests/research/test_waiting_experiment_20261030.py','tests/research/test_waiting_assignment_20261030.py','tests/research/test_waiting_audit_20261030.py'):
         path=ROOT/name
         if path.is_file():seen.add(path)
     return {p.relative_to(ROOT).as_posix():file_sha(p) for p in sorted(seen)}

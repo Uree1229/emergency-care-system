@@ -27,7 +27,7 @@ docs/VOICE_INPUT_API.md text eol=lf
 docs/VOICE_TREATMENT_REVIEW_API_20261030.md text eol=lf
 docs/api/SERVER_SCHEMA_20261102.json text eol=lf
 docs/api/SERVER_TESTS_20261102.json text eol=lf
-requirements-server.txt text eol=lf
+requirements/requirements-server.txt text eol=lf
 server/README.md text eol=lf
 server/allocation_baseline.py text eol=lf
 server/allocation_input_review.py text eol=lf
@@ -145,3 +145,6 @@ emergency-app/main.py text eol=lf
 emergency-app/common_server.py text eol=lf
 emergency-app/static/*.mjs text eol=lf
 emergency-app/templates/voice_intake.html text eol=lf
+
+# A research guard receipt hashes this test file before using its synthetic fixture.
+tests/research/test_inquiry_lab_guard_audit.py text eol=lf

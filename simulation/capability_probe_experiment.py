@@ -31,8 +31,8 @@ EXPERIMENT_ID = 'capability_probe_20261017'
 POLICY_IDS = tuple(p['id'] for p in POLICIES)
 NEW_SOURCES = (
     'simulation/capability_probe_engine.py','simulation/capability_probe_audit.py',
-    'simulation/capability_probe_experiment.py','test_capability_probe_engine.py',
-    'test_capability_probe_audit.py','test_capability_probe_experiment.py')
+    'simulation/capability_probe_experiment.py','tests/research/test_capability_probe_engine.py',
+    'tests/research/test_capability_probe_audit.py','tests/research/test_capability_probe_experiment.py')
 SOURCE_FILES=tuple(sorted(set(PREVIOUS_SOURCES)|set(NEW_SOURCES)))
 VALIDATION_SEEDS=tuple(range(43101,43107))
 

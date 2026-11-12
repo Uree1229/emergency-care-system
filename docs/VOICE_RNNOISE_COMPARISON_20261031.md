@@ -48,7 +48,7 @@ CER는 공백·문장부호를 정리한 문자 편집 거리이며 숫자 단�
 
 `speech_eval/noise_pair_asr.py`는 별도 설치한 로컬 모델과 정답·파일 해시를 가진 고정 manifest를 받는다. 현재 manifest 형식은 명시적으로 합성 자료라고 표시한 16kHz mono PCM16 WAV 쌍 전용이다. UI의 48kHz WAV를 그대로 넣는 형식은 아니다. 기존 인식문을 정답으로 덮거나 임의로 환자 정보를 수정하는 기능이 없다.
 
-필요한 패키지는 선택 설치용 `requirements-audio-asr-eval.txt`에 고정했다. 서버 실행의 필수 의존성을 늘리지 않는다. 실행 예:
+필요한 패키지는 선택 설치용 `requirements/requirements-audio-asr-eval.txt`에 고정했다. 서버 실행의 필수 의존성을 늘리지 않는다. 실행 예:
 
 ```powershell
 python -m speech_eval.noise_pair_asr --manifest <고정_manifest.json> --local-model-dir <이미_받은_모델_폴더> --output <새_결과_폴더> --node <node.exe>
@@ -58,7 +58,7 @@ python -m speech_eval.noise_pair_asr --manifest <고정_manifest.json> --local-m
 
 ## 소프트웨어·증거 검증
 
-- 배포 후보의 `test_paramedic_*.mjs` **2,013개 통과**. 기존 1,929개에 실제 RNNoise WASM 검사 64개와 새 화면 검사 20개를 더했다. 화면 자동 검사에서는 디코더·마이크·보관함만 모의로 제공하며 실제 WASM을 실행한다.
+- 배포 후보의 `tests/browser/test_paramedic_*.mjs` **2,013개 통과**. 기존 1,929개에 실제 RNNoise WASM 검사 64개와 새 화면 검사 20개를 더했다. 화면 자동 검사에서는 디코더·마이크·보관함만 모의로 제공하며 실제 WASM을 실행한다.
 - 오프라인 비교 manifest·오류 지표 검사 **29개 통과**. 이 중 신규 runner 경계 검사는 10개다.
 - 별도 결과 읽기 검사 **313개 통과**. 보존된 인식문·독립 CER 재계산·앱 파서 판정·원본/처리 음원 연결을 확인했다. 실제 ASR은 51쌍이며 재실행을 독립 표본으로 합산하지 않는다.
 - 기존 `recording-control`, `command-commit`, `command-trace`, `quick-test`, `command-practice`, `speech`, `practice-audio`의 실행 코드는 직전 배포와 동일하다. 연습 HTML에 비교 화면 링크만 추가했다.

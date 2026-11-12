@@ -4,7 +4,7 @@
 
 | 필요한 내용 | 문서 |
 |---|---|
-| 현재 구현과 남은 작업 | [현재 상태](PROJECT_STATUS.md) |
+| 현재 구현과 남은 작업 | [현재 상태](PROJECT_STATUS.md), [빠른 인계](HANDOFF.md) |
 | 설치·실행 모드·기기 연결·복구 | [실행 안내](RUNNING.md) |
 | 시스템·상태 전환·자원 처리 | [아키텍처](ARCHITECTURE.md) |
 | 음성 기록·명령·검토·데이터 수집 | [음성 기능](VOICE.md) |
@@ -37,11 +37,11 @@ Git으로 클론한 저장소에서 문의 알고리즘의 단계별 개선과 �
 
 연구 기록과 결과 보고서에 있는 `.codex-build/`, `outputs/`, `data/` 링크와, 2026-10-28부터 git에서 뺀 `simulation_results/` 원자료(JSON·사례 파일) 링크는 원래 작업 PC와 그 백업에만 있는 파일을 가리킨다. GitHub와 새 클론에서는 열리지 않는다. 연구 기록은 봉인된 근거라서 이 링크를 고치지 않았고, 현재 안내 문서의 같은 경로는 링크 대신 경로로 적었다.
 
-`research/`는 공개자료 조사와 출처, `design/`은 기획 배경, `testing/`은 사람 시험용 대본·양식이다. `proposals/current/`와 `reports/`의 제출용 문서는 작성 당시 자료로 보관한다. 현재 데이터 필드와 수집 코드는 [필드 매핑](../api_field_mapping.md), [서버 안내](../server/README.md)를 따른다.
+`research/`는 공개자료 조사와 출처, `design/`은 기획 배경, `testing/`은 사람 시험용 대본·양식이다. `proposals/current/`와 `reports/`의 제출용 문서는 작성 당시 자료로 보관한다. 현재 데이터 필드와 수집 코드는 [필드 매핑](api/api_field_mapping.md), [서버 안내](../server/README.md)를 따른다.
 
 중복된 날짜별 진행·인계 문서는 주제별 안내로 합쳤다. 정리 전 원본·파일 해시·이동 대응표는 로컬 `.codex-build/repo-cleanup-20261105/`에 보관한다.
 
-다음 원본은 정리에서 제외해 그대로 둔다. 최종 발표가 근거로 인용하는 [병원 통화 기록·업무 계측](HOSPITAL_OPERATIONS_20261030.md)과 [입력·검토시간 평가](USABILITY_EVALUATION_20261030.md), 삭제한 브랜치의 복원 SHA를 담은 [10-31 인계](HANDOFF_20261031.md), 초기 문서 생성기·USB 전송 도구·초기 최적화 실험을 모은 [`archive/`](../archive/README.md)다. 팀원 화면 폴더(`patient-ui/`, `hospital-ui/`, `emergency-app/`)의 README는 각 담당자가 관리하므로 고치지 않았고, 그 README가 가리키는 [메인 화면 연결](MAIN_UI_INTEGRATION_20261030.md), [팀원 테스트 가이드](TEAM_TEST_GUIDE.md), [환자 앱 연결](TEAM_PATIENT_CONNECTION_20261013.md), [`prototype/`](../prototype/)도 함께 둔다.
+다음 원본은 정리에서 제외해 그대로 둔다. 최종 발표가 근거로 인용하는 [병원 통화 기록·업무 계측](HOSPITAL_OPERATIONS_20261030.md)과 [입력·검토시간 평가](USABILITY_EVALUATION_20261030.md), 삭제한 브랜치의 복원 SHA를 담은 [10-31 인계](HANDOFF_20261031.md), 초기 문서 생성기·USB 전송 도구·초기 최적화 실험을 모은 [`archive/`](../archive/README.md)다. 팀원 화면 폴더(`patient-ui/`, `hospital-ui/`, `emergency-app/`)의 README는 각 담당자가 관리한다. 해당 README가 가리키는 [메인 화면 연결](MAIN_UI_INTEGRATION_20261030.md), [팀원 테스트 가이드](TEAM_TEST_GUIDE.md), [환자 앱 연결](TEAM_PATIENT_CONNECTION_20261013.md), [`prototype/`](../prototype/)도 함께 둔다.
 
 ## 발표 근거
 
