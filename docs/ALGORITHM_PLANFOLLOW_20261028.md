@@ -25,7 +25,7 @@
 
 이미 본 합성 개발 자료의 결과이며 전체 H 수학·FIFO·공개 이력 의미감사는 미완료다. `semantic_verification=false`를 유지한다. 전체 1,242명의 개선이나 임상 효과를 주장하지 않는다. 운영 정책은 변경하지 않았고 `fixed_3`와 기존 전체 자료 연구 기준안을 유지한다. 다음으로 확인할 것은 더 넓은 환자 경쟁에서 이 작은 문의 절감이 유지되는지다.
 
-- [제외한 최초 묶음 제한안](EAT_WAVEPLANWAKE_EXPERIMENT_20261028.md)
-- [후속 전송 흐름을 보존한 후보](EAT_CHAINPLANWAKE_EXPERIMENT_20261028.md)
+- [제외한 최초 묶음 제한안](research/inquiry-experiments/EAT_WAVEPLANWAKE_EXPERIMENT_20261028.md)
+- [후속 전송 흐름을 보존한 후보](research/inquiry-experiments/EAT_CHAINPLANWAKE_EXPERIMENT_20261028.md)
 
 최종 파일·보관 해시와 실제 판정은 `outputs/algorithm_planfollow_20261028_manifest.json`에 기록한다. 이전 실험과 소스·문서는 수정하지 않았다.

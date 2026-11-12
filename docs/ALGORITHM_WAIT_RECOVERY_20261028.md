@@ -45,9 +45,9 @@ P02의 선정 자체를 과거 127초로 되돌린 것은 아니다. 그 환자�
 
 ## 상세 기록
 
-- [빈 대기열 예외](EAT_TRAVELRECALL_EXPERIMENT_20261028.md)
-- [선행 문의 회신 재평가](EAT_PREDECESSORWAKE_EXPERIMENT_20261028.md)
-- [전역 공개 회신 재평가](EAT_FOREIGNREPLYWAKE_EXPERIMENT_20261028.md)
-- [최종 계획 앞당김](EAT_PLANWAKE_EXPERIMENT_20261028.md)
+- [빈 대기열 예외](research/inquiry-experiments/EAT_TRAVELRECALL_EXPERIMENT_20261028.md)
+- [선행 문의 회신 재평가](research/inquiry-experiments/EAT_PREDECESSORWAKE_EXPERIMENT_20261028.md)
+- [전역 공개 회신 재평가](research/inquiry-experiments/EAT_FOREIGNREPLYWAKE_EXPERIMENT_20261028.md)
+- [최종 계획 앞당김](research/inquiry-experiments/EAT_PLANWAKE_EXPERIMENT_20261028.md)
 
 최종 후보 보관 SHA는 `82d0eb7fbfcd2325930ca3d9efc6abe2b305c2c8de9f2b681374fc3092da16ec`다. 전체 연결과 바이트 확인은 `outputs/algorithm_wait_recovery_20261028_manifest.json`에 기록한다. 과거 원문·소스·실패 기록·문서를 덮어쓰지 않는다. 선행자 관측기의 root 인수 실수로 원문 읽기 전에 중단된 기록도 올바른 재검사와 구분해 그대로 보존했다.
