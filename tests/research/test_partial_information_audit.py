@@ -430,11 +430,13 @@ class Block(importlib.abc.MetaPathFinder):
         if fullname in blocked or fullname.startswith('ortools.'):
             raise RuntimeError('forbidden audit dependency: ' + fullname)
 sys.meta_path.insert(0, Block())
+sys.path.insert(0, sys.argv[1])
 from simulation.partial_information_audit import audit_report
 from test_partial_information_audit import report_fixture
 assert audit_report(report_fixture())['branches'] == 6
 '''
-        result = subprocess.run([sys.executable, '-B', '-c', code], text=True, capture_output=True)
+        test_directory = str(Path(__file__).resolve().parent)
+        result = subprocess.run([sys.executable, '-B', '-c', code, test_directory], text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
